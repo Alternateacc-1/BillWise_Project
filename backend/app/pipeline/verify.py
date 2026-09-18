@@ -44,7 +44,22 @@ UNIT_PRICE_MAX = Decimal("500000")
 
 
 def _close(a: Decimal | None, b: Decimal | None, tol: Decimal = MONEY_TOLERANCE) -> bool:
-    """None never agrees with anything. A missing value is not a match."""
+    """Do two readers agree about this field?
+
+    TWO READERS AGREEING THAT A FIELD IS ABSENT IS AGREEMENT, NOT A
+    DISAGREEMENT. This used to return False for (None, None), which meant a
+    bill that simply does not print a unit-price column was treated as one the
+    readers could not agree about.
+
+    That is not hypothetical. The commonest retail pharmacy layout in India
+    prints MRP, PACK, QTY and TOTAL and expects you to divide -- measured on
+    the deployed stack, all six lines of such a bill came back unreadable.
+
+    One reader seeing a value and the other not IS a disagreement, and still
+    returns False.
+    """
+    if a is None and b is None:
+        return True
     if a is None or b is None:
         return False
     return abs(a - b) <= tol
@@ -71,11 +86,24 @@ def arithmetic_holds(item: ReaderItem | VerifiedItem) -> bool | None:
 
 
 def within_sanity_bounds(item: ReaderItem | VerifiedItem) -> bool:
-    if item.quantity is None or item.unit_price is None:
-        return False
-    if not (QUANTITY_MIN <= item.quantity <= QUANTITY_MAX):
-        return False
-    return UNIT_PRICE_MIN <= item.unit_price <= UNIT_PRICE_MAX
+    """Is every value we DID read plausible?
+
+    A FIELD THAT IS ABSENT CANNOT BE IMPLAUSIBLE. This used to return False
+    whenever quantity or unit_price was missing, so "we did not read this"
+    and "this value is nonsense" produced the same verdict -- and a bill that
+    prints no unit-price column failed a check it was never eligible for.
+
+    Each field present is checked; each field absent is skipped. A line with
+    nothing to check passes, and is held to account by the rules that need
+    those values rather than by this one.
+    """
+    if item.quantity is not None:
+        if not (QUANTITY_MIN <= item.quantity <= QUANTITY_MAX):
+            return False
+    if item.unit_price is not None:
+        if not (UNIT_PRICE_MIN <= item.unit_price <= UNIT_PRICE_MAX):
+            return False
+    return True
 
 
 def _index_by(reader: ReaderOutput | None) -> dict[int, ReaderItem]:
@@ -147,7 +175,21 @@ def verify_item(a: ReaderItem | None, b: ReaderItem | None) -> VerifiedItem:
     if not bounds_ok:
         reasons.append("outside_sanity_bounds")
 
-    if agrees and arithmetic is True and bounds_ok:
+    # line_total IS LOAD-BEARING AND IS NOT OPTIONAL.
+    #
+    # Relaxing "absent means wrong" must not go so far as to call a line with
+    # no money on it well-read. Without a line total there is no charge to
+    # audit: no per-unit price can be derived, nothing can be reconciled, and
+    # "we read this line reliably" would be a claim about a name and a
+    # quantity. A missing unit price is survivable because line_total/qty
+    # still bounds it; a missing line total is not.
+    has_money = item.line_total is not None
+
+    # `arithmetic is not False`, NOT `arithmetic is True`. None means the
+    # bill did not print the inputs, which is a check that cannot RUN -- not
+    # one that failed. Demanding True meant a bill without a unit-price column
+    # failed its arithmetic check by not having any arithmetic to do.
+    if agrees and has_money and arithmetic is not False and bounds_ok:
         item.confidence = ReadingConfidence.HIGH
     else:
         item.confidence = ReadingConfidence.UNVERIFIED

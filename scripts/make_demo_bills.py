@@ -370,28 +370,28 @@ BILLS = [
             Line("PANTOCID DSR CAP", "8", mrp="252.19", pack=15,
                  line_total_override="134.48",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: no unit-price column. MRP/pack 16.8127, "
-                     "billed/unit 16.8100 -- at MRP. Should be green."),
+                 why="Reads HIGH since Class A. Blocked on brand resolution. "
+                     "MRP/pack 16.8127, billed/unit 16.8100 -- at MRP."),
             Line("OFIVAY OZ TAB", "8", mrp="134.00", pack=10,
                  line_total_override="107.20",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: MRP/pack 13.40, billed/unit 13.40 -- exactly MRP."),
+                 why="Blocked on brand resolution. MRP/pack 13.40 = billed/unit."),
             Line("SINALATE TAB", "8", mrp="67.50", pack=10,
                  line_total_override="54.00",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: MRP/pack 6.75, billed/unit 6.75 -- exactly MRP."),
+                 why="Blocked on brand resolution. MRP/pack 6.75 = billed/unit."),
             Line("EFERIM SP TAB", "8", mrp="97.97", pack=10,
                  line_total_override="78.32",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: MRP/pack 9.797, billed/unit 9.79 -- below MRP."),
+                 why="Blocked on brand resolution. MRP/pack 9.797, billed 9.79."),
             Line("BECOSULE CAP", "4", mrp="62.37", pack=20,
                  line_total_override="12.44",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: MRP/pack 3.1185, billed/unit 3.11 -- below MRP."),
+                 why="Blocked on brand resolution. MRP/pack 3.1185, billed 3.11."),
             Line("MEDINOZE NASAL SPRAY", "1", mrp="67.50", pack=1,
                  line_total_override="67.50",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="CLASS A: single unit, billed at MRP exactly."),
+                 why="Blocked on brand resolution. Single unit, billed at MRP."),
         ],
     ),
 ]
@@ -464,13 +464,17 @@ def build_ground_truth(spec: BillSpec) -> dict:
     if spec.layout == "retail":
         truth["note"] = (
             "FORMAT FIXTURE. The grays below record CURRENT behaviour, not "
-            "desired behaviour. Every line on this bill is billed at or below "
-            "its printed MRP, so the correct verdict is six greens. They come "
-            "back could_not_verify only because the bill prints no unit-price "
-            "column and the verifier treats an absent value as a failed check "
-            "(Class A, docs/FORMAT_FINDINGS.md). When Class A lands, rewrite "
-            "this ground truth to greens in the same commit. Do NOT relax the "
-            "fixture to make a change pass."
+            "desired behaviour. Every line is billed at or below its printed "
+            "MRP, so the correct verdict is six GREENS. "
+            "CLASS A LANDED 2026-09-19 and moved these from could_not_read to "
+            "could_not_identify: all six lines now read at HIGH confidence and "
+            "the bill reconciles, but no brand name resolves to an NPPA "
+            "formulation. The remaining blocker is BRAND RESOLUTION -- the "
+            "DynamoDB brand index, which has never been written. Confirmed on "
+            "the deployed stack: PANTOCID DSR, OFIVAY OZ, SINALATE, EFERIM SP, "
+            "BECOSULE and MEDINOZE all returned name_did_not_resolve. "
+            "Rewrite to greens in the commit that lands brand resolution. Do "
+            "NOT relax the fixture to make a change pass."
         )
 
     return truth

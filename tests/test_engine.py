@@ -141,9 +141,36 @@ def test_sanity_bounds_reject_implausible_values(quantity, unit_price):
     assert verify_item(a, a).confidence is ReadingConfidence.UNVERIFIED
 
 
-def test_missing_values_never_count_as_agreement():
+def test_a_line_with_no_money_on_it_is_never_well_read():
+    """No line total means no charge to audit.
+
+    Narrowed from "missing values never count as agreement" when Class A
+    landed. That older, broader rule ALSO rejected a line that simply had no
+    unit-price column, which is the commonest retail pharmacy layout in India
+    -- on the deployed stack it made all six lines of such a bill unreadable.
+
+    The distinction that survives: a missing UNIT PRICE is recoverable,
+    because line_total/qty still bounds the per-unit price. A missing LINE
+    TOTAL is not -- there is no money on the line at all, and calling it
+    well-read would be a claim about a name and a quantity.
+    """
     a = reader_item(unit_price=None, line_total=None)
     assert verify_item(a, a).confidence is ReadingConfidence.UNVERIFIED
+
+
+def test_two_readers_agreeing_a_field_is_absent_is_agreement():
+    """CLASS A. The bill prints MRP/PACK/QTY/TOTAL and no unit-price column.
+
+    Both readers correctly report no unit price. That is agreement, and the
+    line is fully auditable: line_total/qty bounds the per-unit price, which
+    is exactly what the upper-bound gate consumes. Previously
+    `_close(None, None)` was False, `arithmetic_holds()` returned None where
+    True was demanded, and `within_sanity_bounds()` failed on the missing
+    value -- three separate rejections of one ordinary bill format.
+    """
+    a = reader_item(unit_price=None, line_total=Decimal("134.48"),
+                    quantity=Decimal("8"))
+    assert verify_item(a, a).confidence is ReadingConfidence.HIGH
 
 
 # --------------------------------------------------------------------------
