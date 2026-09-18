@@ -40,13 +40,23 @@ if PROVIDER not in ("local", "aws"):
 #: runtime populates it, so the template's AWS_REGION_NAME was dead config
 #: that nothing read. That happened to be correct and was not robust.
 #:
-#: us-east-1, not ap-south-1: Bedrock had no Claude available to this account
-#: in Mumbai. The WHOLE stack moved -- we never split regions. See
-#: docs/OPEN_QUESTIONS.md Q1, now resolved.
+#: ap-south-1 (Mumbai), which is where a tool for Indian patients belongs.
+#:
+#: This briefly moved to us-east-1 on the belief that Bedrock had no Claude in
+#: Mumbai. It does. The real blocker was the Anthropic USE-CASE-DETAILS form,
+#: which gates every Anthropic model ACCOUNT-WIDE and looks exactly like a
+#: regional availability problem from inside the console. Worth remembering:
+#: "the model is not offered here" and "this account may not call the model
+#: anywhere yet" present identically.
+#:
+#: Claude is reached from here through the APAC GEO inference profile, which
+#: routes only within Asia-Pacific. Textract, including AnalyzeExpense, is
+#: available in ap-south-1. The whole stack is in one Region -- we never split.
+#: See docs/OPEN_QUESTIONS.md Q1.
 AWS_REGION = (
     os.getenv("AWS_REGION_NAME")
     or os.getenv("AWS_REGION")
-    or "us-east-1"
+    or "ap-south-1"
 ).strip()
 
 #: Cross-region inference profile ID for Claude, copied verbatim from the

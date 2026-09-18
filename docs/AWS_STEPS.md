@@ -41,12 +41,12 @@ Without this, CloudWatch cannot see billing metrics at all.
 **Verify:** reload the page. Both boxes are still ticked.
 
 > **Gotcha:** billing metrics only exist in **us-east-1**, no matter where
-> your stack runs. Ours now runs there too, so this happens to line up --
-> but do not learn the wrong lesson from that. If you ever move the stack
-> back to an Indian region, billing metrics stay in us-east-1. If you go
-> looking for a billing
-> metric in the CloudWatch console, switch the region selector to N. Virginia
-> or you will find nothing and assume it is broken.
+> your stack runs. Ours runs in ap-south-1, so these do NOT line up. If you
+> go looking for a billing metric in the CloudWatch console, switch the
+> region selector to N. Virginia or you will find nothing and assume it is
+> broken.
+>
+> This one is genuinely fixed in AWS and is not a setting you control.
 
 ---
 
@@ -165,77 +165,177 @@ Budgets API reference and add them here once verified.
 
 # Section 1 — Bedrock model access  (START THIS FIRST)
 
-**This is the long pole and it is not under our control.** Enabling a model in
-Bedrock is a console request that can be granted in minutes or can sit. Nothing
-else in Phase 4 is blocked by it, so start it and walk away while the rest gets
-written.
+**This is the long pole and it is not under our control.**
 
 **Cost: $0.** Enabling access costs nothing; you pay per token when you call it.
 
-**Time: 5 minutes of clicking, then an unknown wait.**
+**Time: 10 minutes, then possibly a wait.**
+
+> **Rewritten 2026-09-19 against the console as it actually is.** The old
+> version described a "Model access" page that the current console does not
+> have in that place, and it completely missed the step that actually blocks
+> everything. If what you see disagrees with what is written here, trust your
+> screen and tell me.
 
 ---
 
-## 1.1 Enable a vision-capable Claude model in us-east-1
+## 1.1 Submit Anthropic use case details  ← THE REAL GATE
 
-1. Sign in. Set the region selector, top right, to **US East (N. Virginia)
-   us-east-1**. Get this wrong and you will enable a model in the wrong
-   region and wonder why the code cannot see it.
-2. Search for **Bedrock** → open it.
-3. Left sidebar, near the bottom → **Model access**.
-4. **Modify model access** (or **Enable specific models**).
-5. Tick a **vision-capable Claude** model. Vision is required — the reader
-   sends an image of a bill. A text-only model cannot do this job.
-6. Submit. Some models are granted instantly; some show **In progress**.
+**Do this first. Nothing else in this section works until it clears.**
 
-**Verify:** the model's status reads **Access granted**. Screenshot it.
+Anthropic requires first-time customers to submit use case details before
+invoking any of their models. It is **once per account** and applies to
+**every Anthropic model in every Region**.
 
-> **This is already the fallback region.** The stack was originally
-> specified for `ap-south-1` (Mumbai); Bedrock offered this account no
-> Claude model there, so on 2026-09-19 the WHOLE stack moved here. See
-> `OPEN_QUESTIONS.md` Q1.
->
-> **If no vision-capable Claude is offered in us-east-1 either**, stop and
-> tell me — do NOT go hunting for a third region on your own. We never
-> split regions, and the next move is a decision, not a click.
+**This is the single most misleading step in the whole deployment**, because
+an account that has not submitted it looks exactly like a Region where Claude
+is not offered. That mistaken reading cost us a full stack migration to
+us-east-1 and back. Remember the distinction:
 
----
+> "The model is not offered in this Region" and "this account may not call
+> the model anywhere yet" look **identical** from inside the console.
 
-## 1.2 Copy the cross-region inference profile ID
-
-We call Claude through a **global cross-region inference profile**, not a bare
-model id — it is what lets us-east-1 serve a request from wherever capacity
-exists.
-
-1. Bedrock → left sidebar → **Inference and assessment** → **Cross-region
-   inference**.
-2. Find the profile for the model you enabled.
-3. **Copy the Inference profile ID verbatim.** Select it and copy — do not
-   retype it, and do not reconstruct it from a docs page. It is long and
-   getting one character wrong produces an unhelpful error.
-
-**Paste it here, and into `.env`:**
+1. Bedrock console → **Model catalog** → open any Anthropic model.
+2. A yellow banner appears: *"Anthropic requires first-time customers to
+   submit use case details before invoking a model."* → **Submit use case
+   details**.
+3. Fill it honestly. It is shared with Anthropic.
+   - **Company name / website** — a real URL. It validates the format, so it
+     needs the `https://` prefix.
+   - **Industry** — Other → Student, if that is what you are.
+   - **Intended users** — External (this is for patients, not staff).
+   - **Describe your use cases** — **max 500 characters**, and it counts
+     strictly. Text that works, at 483 characters:
 
 ```
-BEDROCK_INFERENCE_PROFILE_ID=________________________________________
+Helps Indian patients understand hospital and pharmacy bills. It reads an uploaded bill image and matches each medicine against the NPPA's published DPCO ceiling prices (public government data), then shows which line items sit above the published ceiling, with the citation and the arithmetic. It also drafts a polite letter asking the hospital to clarify those charges. All verdicts come from deterministic code; the model only reads the document. Hackathon project, non-commercial.
 ```
 
-**Verify:** `.env` contains the line, and `.env` is NOT in git (it is
-gitignored; `git status` should not mention it).
+   Two things deliberately **not** claimed there, because both would be
+   false: that the tool detects fraud or overcharging (we never prove a price
+   is wrong, only that it is above a published ceiling), and that the model
+   decides anything (it reads; deterministic code decides).
+
+**Verify:** the yellow banner is gone from the model page.
 
 ---
 
-## 1.3 Report back
+## 1.2 Confirm a vision-capable Claude in ap-south-1
 
-Paste me:
+1. Region selector, top right → **Asia Pacific (Mumbai) ap-south-1**.
+2. Bedrock → **Model catalog** → find a **Claude Sonnet** model.
+3. Check it takes **image input**. On a model card this shows as an icon row
+   reading `T 🖼 → T`, or on the model's detail page as an **Input Modalities**
+   table with **Image** ticked.
 
-- the model you enabled and its status
-- the inference profile ID
-- the region you did it in
+**Vision is not optional** — the reader sends a photograph of a bill. A
+text-only model cannot do this job at all.
 
-**If 1.1 or 1.2 could not be completed, say so immediately** — that changes
-the region for the whole stack and I would rather rewrite the template now
-than after it is deployed.
+**Verify and write down:**
+
+```
+Model chosen        : ____________________
+Image input         : yes / no
+```
+
+---
+
+## 1.3 Copy the APAC inference profile ID
+
+We reach Claude through the **APAC geo cross-region inference profile**, not a
+bare model ID and not the global profile.
+
+1. Bedrock → left sidebar → **Infer → Inference profiles**.
+2. Find the row for your model with the **`apac.`** prefix.
+3. **Copy it with the button. Do not retype it.**
+
+For Claude Sonnet 4 the ID is:
+
+```
+apac.anthropic.claude-sonnet-4-20250514-v1:0
+```
+
+**Paste it into `.env` as `BEDROCK_INFERENCE_PROFILE_ID`.**
+
+### Why APAC and not Global
+
+From the AWS model card for Claude Sonnet 4:
+
+| From `ap-south-1` | In-Region | Geo (APAC) | Global |
+|---|---|---|---|
+| Supported? | no | **yes** | no |
+
+So from Mumbai, **geo is the only option** — the choice is made for us. It is
+also the one we would have chosen:
+
+- **Destinations from ap-south-1 are eight Asia-Pacific Regions only:** Tokyo,
+  Seoul, Osaka, **Mumbai**, **Hyderabad**, Singapore, Sydney, Melbourne. A
+  patient's bill cannot leave Asia-Pacific, and India itself is a possible
+  destination.
+- **That list never changes.** AWS guarantees it: *"if an inference profile is
+  tied to a geography (such as US, EU, or APAC), its destination Region list
+  will never change."* The global profile's list does change, and spans every
+  commercial Region.
+- Because the list is fixed, `infra/template.yaml` pins those eight Regions in
+  the IAM policy. **That policy is the data-residency control** — nothing else
+  enforces it.
+
+This matters more here than in most projects: what we send Bedrock is a
+photograph of a real medical bill, carrying a patient's name, registration
+number and a drug list that implies a diagnosis.
+
+---
+
+## 1.4 Test it in the playground before deploying anything
+
+**Do not skip this.** Every reading-quality number this project has describes
+fixtures we wrote ourselves. This is the first time a model sees a real bill
+image, it costs about two cents, and nothing is deployed yet.
+
+1. Bedrock → **Playground** (or **Open in playground** from the model page).
+2. Attach `eval/demo_bills/bill_02.jpg` — the mild scan.
+3. Ask: *"List every line item on this bill with its quantity, rate and
+   amount, and the printed total. Do not guess any value you cannot read."*
+4. Repeat with `eval/demo_bills/bill_05.jpg` — the fax-grade scan.
+5. Repeat with `eval/demo_bills/bill_06.pdf` — the retail layout with MRP and
+   PACK columns and no unit-price column.
+
+Ground truth for all three is in Section 2.2, generated from the fixtures.
+
+**Record what actually came back:**
+
+```
+bill_02.jpg (mild)   : ____ of 7 lines correct   total found: yes / no
+bill_05.jpg (heavy)  : ____ of 3 lines correct   total found: yes / no
+bill_06.pdf (retail) : ____ of 6 lines correct
+                       MRP column read?  yes / no
+                       PACK column read? yes / no
+                       subtotal/discount/net split? yes / no
+```
+
+**What each outcome changes:**
+
+- **Mild reads well, heavy fails.** Expected best case. Nothing changes.
+- **Mild reads badly too.** The crop-and-re-read pass becomes load-bearing
+  rather than a nicety, and Bedrock may need to be the primary reader with
+  Textract as the second opinion rather than the other way round.
+- **bill_06 returns MRP and PACK.** Class C becomes nearly free, and the
+  honest verdict on a real retail bill goes from six grays to six greens.
+
+Whatever the numbers are, they are the numbers. They replace the fixture
+figures in the video. See NOTES.md, "Which numbers are ours to claim".
+
+---
+
+## 1.5 Report back
+
+- the model you enabled, and that image input is supported
+- the `apac.` inference profile ID
+- the Region you did it in
+- the playground results from 1.4
+
+**If 1.1 does not clear, say so immediately** — it blocks Sections 2 and 3
+entirely, and it is not something waiting will fix.
 
 ---
 
@@ -258,7 +358,7 @@ first 100 pages/month are free for the first 3 months if the account is new.
 
 No code, no SDK, no deployment. The console does this by hand.
 
-1. Region selector → **us-east-1** (same region as Section 1).
+1. Region selector → **ap-south-1** (same region as Section 1).
 2. Search **Textract** → open it.
 3. Left sidebar → **Analyze Document** → choose **Expense analysis** (this is
    AnalyzeExpense, the API our reader uses — NOT plain text detection).
@@ -375,7 +475,7 @@ say so — a missing claim is fine, an unmeasured one is not. See NOTES.md,
 # Section 3 — Deploy the backend
 
 **Do Sections 0-2 first.** This section assumes the budget alarms exist and
-that you know whether Bedrock is available in us-east-1.
+that you know whether Bedrock is available in ap-south-1.
 
 **Cost: pennies.** Lambda, API Gateway and DynamoDB are all within free tier
 at demo volume. S3 holds a few MB for one day.
@@ -415,7 +515,7 @@ right region**:
 aws sts get-caller-identity && aws configure get region
 ```
 
-**Verify:** the region reads `us-east-1`, and it must match the region you
+**Verify:** the region reads `ap-south-1`, and it must match the region you
 enabled the model in at Section 1. Getting this wrong deploys into a region
 with no model access, and the failure appears later as an
 `AccessDeniedException` from Bedrock that looks like an IAM problem.
@@ -555,7 +655,7 @@ Answer the prompts:
 | Prompt | Answer |
 |---|---|
 | Stack Name | `billsahi` |
-| AWS Region | `us-east-1` (must match 3.2) |
+| AWS Region | `ap-south-1` (must match 3.2) |
 | Parameter BedrockInferenceProfileId | paste from Section 1.2, or leave blank |
 | Parameter FrontendOrigin | leave blank for now — Section 4 fills it in |
 | Parameter ReservedConcurrency | `5` |

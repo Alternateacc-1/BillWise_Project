@@ -24,20 +24,33 @@ no network at all. Verifier, Matcher and Auditor have no AWS variant — they
 are pure functions and stay that way, because they are the parts that decide
 what a patient is told.
 
-**Region:** everything in `us-east-1`, with Claude reached through a global
-cross-region inference profile.
+**Region:** everything in `ap-south-1` (Mumbai), with Claude reached through
+the **APAC geo** cross-region inference profile
+(`apac.anthropic.claude-sonnet-4-20250514-v1:0`). Textract, including
+AnalyzeExpense, is available in ap-south-1, so the whole stack sits in one
+Region. **We never split Regions:** a split stack means cross-region transfer
+charges, two sets of logs, two places for an IAM policy to be wrong, and a
+latency path nobody will debug at 2am.
 
-This was originally specified as `ap-south-1` (Mumbai), to sit near the
-Indian users the tool is for. Bedrock offered this account no Claude model
-there, so on 2026-09-19 the **whole stack** moved to `us-east-1` — the
-fallback agreed in advance precisely so it would not have to be decided
-under pressure. We never split regions: a split stack means cross-region
-transfer charges, two sets of logs, two places for an IAM policy to be
-wrong, and a latency path nobody will debug at 2am.
+From `ap-south-1`, geo is the **only** option — the model card shows In-Region
+and Global both unsupported from Mumbai. It is also the option we would have
+chosen, for a reason that matters here more than in most systems.
 
-**Say this plainly rather than quietly:** the deployed demo is further from
-its intended users than the design wants. That is a constraint of this
-account, not an architectural choice. See OPEN_QUESTIONS.md Q1.
+**Data residency is a design requirement, not a compliance checkbox.** What we
+send Bedrock is a photograph of a real medical bill: a patient's name,
+registration number, address, doctor, and a drug list that implies a
+diagnosis. The APAC profile routes only within eight Asia-Pacific Regions —
+Tokyo, Seoul, Osaka, **Mumbai**, **Hyderabad**, Singapore, Sydney, Melbourne —
+and AWS guarantees that a geo-tied profile's destination list never changes.
+The global profile, by contrast, routes to every commercial Region worldwide,
+and AWS notes that prompts and outputs may be stored in opt-in Regions for
+abuse detection.
+
+**The IAM policy is what enforces this.** `infra/template.yaml` pins the
+profile ARN and all eight Region-scoped foundation-model ARNs; no statement
+permits invoking the model anywhere else. Nothing else in the system would
+stop a bill leaving Asia-Pacific, so that policy is load-bearing rather than
+decorative. See OPEN_QUESTIONS.md Q1 and Q1a.
 
 ---
 

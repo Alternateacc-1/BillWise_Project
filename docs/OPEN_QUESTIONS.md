@@ -7,40 +7,47 @@ and when. Nothing here blocks Phase 0-3, which run entirely offline.
 
 ## Q1. Can ap-south-1 reach a vision-capable Claude model? (Phase 4)
 
-**Status: RESOLVED, 2026-09-19. The answer was NO.**
+**Status: RESOLVED, 2026-09-19. The answer is YES — after one wrong turn.**
 
-Bedrock offered no Claude model to this account in `ap-south-1` (Mumbai).
+**What happened.** The Bedrock console in ap-south-1 appeared to offer no
+Claude model, so the whole stack was migrated to `us-east-1`, per the fallback
+agreed in advance. Hours later the real cause surfaced: the **Anthropic
+use-case-details form**, a one-time submission that gates every Anthropic
+model **account-wide, in every Region**. With it submitted, Mumbai works. The
+stack moved back.
 
-**Branch taken: the whole stack moved to `us-east-1`.** This was the fallback
-already agreed before the checkpoint, precisely so the decision did not have
-to be made under time pressure with a console open. We did not split regions,
-and the reasons for that have not changed: a split stack means cross-region
-data transfer charges, two sets of CloudWatch logs, two places for an IAM
-policy to be wrong, and a latency path nobody will debug at 2am three days
-before submission.
+**The lesson, which is worth more than the outcome:**
 
-**What actually had to change.** Less than expected, because the region was
-already a single variable in the code:
+> "The model is not offered in this Region" and "this account may not call the
+> model anywhere yet" are **indistinguishable** from inside the console.
 
-  - `backend/app/config.py` -- the default, and a real bug found on the way:
-    it read only `AWS_REGION`, while `infra/template.yaml` sets
-    `AWS_REGION_NAME`. That worked on Lambda ONLY because the Lambda runtime
-    populates `AWS_REGION` itself, so the template's variable was dead config.
-    It now reads `AWS_REGION_NAME` first and falls back to `AWS_REGION`.
-    `AWS_REGION` cannot be set in the template -- it is a RESERVED Lambda
-    environment variable and CloudFormation rejects it.
-  - `infra/template.yaml` -- no hardcoded Region at all. It uses
-    `!Ref AWS::Region`, so the Region follows `sam deploy`. Nothing to change
-    except the IAM scoping below.
-  - `.env.example`, `docs/AWS_STEPS.md`, `docs/ARCHITECTURE.md`, `NOTES.md`.
+Check the account-level gate before drawing any conclusion about a Region.
+The round trip cost a few hours and two commits; concluding the same thing on
+Sunday would have cost the deployment.
 
-Every boto3 client is built in `aws_clients.py` from `config.AWS_REGION` and
-nothing else, so there remains exactly one place to change the Region.
+**Final configuration:**
 
-**Consequence worth noting for the write-up:** the demo runs in N. Virginia,
-not Mumbai, so latency to an Indian user is worse than the architecture
-intends. That is a deployment constraint of this account, not a design
-choice, and it should be said plainly rather than quietly.
+  - Whole stack in `ap-south-1`. Textract, including AnalyzeExpense, is
+    available there (verified against the AWS endpoints table), so nothing
+    forces a split. **We never split Regions.**
+  - Claude via the **APAC geo** profile
+    `apac.anthropic.claude-sonnet-4-20250514-v1:0`.
+  - From `ap-south-1` the model card shows **In-Region: no, Geo: yes,
+    Global: no** — geo is the only option, and also the right one.
+  - Image input supported; Converse supported.
+
+**Why geo beats global here, beyond it being the only choice.** Destinations
+from ap-south-1 are eight Asia-Pacific Regions: Tokyo, Seoul, Osaka, Mumbai,
+Hyderabad, Singapore, Sydney, Melbourne. The global profile routes to every
+commercial Region worldwide, and AWS notes that prompts and outputs may be
+stored in opt-in Regions for abuse detection. What we send Bedrock is a
+photograph of a real medical bill — a patient's name, registration number, and
+a drug list that implies a diagnosis. Keeping that inside Asia-Pacific is not
+a nicety.
+
+**Still open:** Sonnet 4 is a **legacy** model with EOL **2026-10-14**, under a
+month after submission. Fine for this project; check whether Sonnet 4.5 or 4.6
+offers an APAC profile from Mumbai before anyone builds on this.
 
 ---
 
@@ -48,8 +55,8 @@ choice, and it should be said plainly rather than quietly.
 
 **Status: RESOLVED, 2026-09-19.** Previously `Resource: "*"`.
 
-The intuitive tightening -- grant the inference profile ARN and nothing else --
-**is wrong and fails closed at the first call.** From the AWS documentation,
+The intuitive tightening — grant the inference profile ARN and nothing else —
+**is wrong and fails at the first call.** From the AWS documentation,
 "Prerequisites for inference profiles":
 
 > "When you specify an inference profile in the Resource field in the first
@@ -59,20 +66,17 @@ The intuitive tightening -- grant the inference profile ARN and nothing else --
 The profile is a routing target; the foundation model is what is actually
 invoked. Both resource types are required in the same statement.
 
-The policy now pins the profile to the exact ID supplied at deploy time and
-leaves the foundation models wildcarded, because the set of Regions a
-cross-region profile fans out to is not knowable from inside the template, and
-a global profile also routes through the empty-Region ARN form
-(`arn:aws:bedrock:::foundation-model/...`).
+Because the profile is **geo-tied**, the destination list is fixed and
+documented, so the policy now pins the profile ID **and** all eight
+Asia-Pacific Regions explicitly. **This is the data-residency control** — no
+statement permits invoking the model outside APAC.
 
-**Still open, deliberately:** tightening the foundation-model ARNs to the
-specific Regions the profile uses. Do that AFTER the first successful call,
-when the set is known from CloudTrail, not before -- guessing it is how you
-get an AccessDeniedException that looks like a model-access problem.
+Had we stayed on the global profile this would not have been possible: its
+destinations are all commercial Regions and they change over time, so the
+foundation-model ARNs would have had to stay wildcarded.
 
-Also note the action is `bedrock:InvokeModel*`, not `bedrock:InvokeModel`:
-the reader uses the **Converse** API, which authorises against
-`bedrock:InvokeModel`.
+Action is `bedrock:InvokeModel*`, not `bedrock:InvokeModel`: the reader uses
+the **Converse** API, which authorises against `bedrock:InvokeModel`.
 
 ---
 
