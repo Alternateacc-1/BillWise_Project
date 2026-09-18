@@ -187,14 +187,16 @@ BILLS = [
                  expect=[("R5", "green")], why="ceiling 2.05/tab"),
             Line("Amoxicillin 500mg Capsule", "10", "7.40",
                  expect=[("R5", "green")], why="ceiling 7.54/capsule"),
-            # PLANT: lands in the 0-25% amber band. Above the ceiling, but
-            # not by enough to clear the red margin -- exactly the case the
-            # GST and excess thresholds exist to absorb. Keeps the band's
-            # count exercised rather than permanently zero.
-            Line("Paracetamol 500mg Tablet", "20", "1.10",
+            # PLANT: lands in the 0-25% amber band. A BRANDED name, so the
+            # brand index supplies a pack size of 10 and the price is
+            # determinable. A generic line without a pack size would now go
+            # gray under the upper-bound gate -- correctly, but it would
+            # leave the band metric permanently empty.
+            Line("Acimol 500mg Tablet", "2", "11.50",
                  expect=[("R5", "amber")],
-                 why="PLANT: ceiling 0.93/tab, billed 1.10 = 18.3% over; "
-                     "inside the 25% red margin so it must stay amber"),
+                 why="PLANT: ceiling 0.93/tab, allowance 1.0416; strip of 10 "
+                     "at 11.50 = 1.15/tab = 10.4% over the allowance, inside "
+                     "the 25% red margin so it must stay amber"),
             Line("Pantoprazole 40mg Tablet", "10", "8.50",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
                  why="not a scheduled formulation we can match"),

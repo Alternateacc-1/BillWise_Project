@@ -50,12 +50,22 @@ class GrayDetail(str, Enum):
                           out which medicine it is, so there is no ceiling to
                           compare against.
 
+    PACK_SIZE_UNKNOWN  -- we read it and identified it, but the bill does not
+                          say whether "Qty 10" means ten tablets or ten
+                          strips, and the price is such that the answer
+                          decides the verdict. See the correctness argument in
+                          docs/ARCHITECTURE.md: when the price is under the
+                          allowance we can still say green, because it holds
+                          whatever the pack size is. When it is over, nothing
+                          can be concluded at all.
+
     Conflating them produced a real bug: the summary counted one thing and the
     cards said another.
     """
 
     COULD_NOT_READ = "could_not_read"
     COULD_NOT_IDENTIFY = "could_not_identify"
+    PACK_SIZE_UNKNOWN = "pack_size_unknown"
 
 
 class ReadingConfidence(str, Enum):

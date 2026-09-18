@@ -20,8 +20,8 @@
       "item_index": 3,
       "rule_id": "R5",
       "severity": "amber",
-      "item_name": "Paracetamol 500mg Tablet",
-      "why": "PLANT: ceiling 0.93/tab, billed 1.10 = 18.3% over; inside the 25% red margin so it must stay amber"
+      "item_name": "Acimol 500mg Tablet",
+      "why": "PLANT: ceiling 0.93/tab, allowance 1.0416; strip of 10 at 11.50 = 1.15/tab = 10.4% over the allowance, inside the 25% red margin so it must stay amber"
     },
     {
       "item_index": 4,

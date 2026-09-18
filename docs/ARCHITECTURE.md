@@ -256,6 +256,65 @@ Every verdict carries "prices as per NPPA data retrieved 18 Sept 2026".
 
 ---
 
+## The upper-bound gate — a correctness argument
+
+This is the strongest claim the system makes, and it is a proof rather than a
+heuristic, so it is written out here in full.
+
+### The problem
+
+A bill line reads `Paracetamol 500 mg Tablet | Qty 10 | ₹360.00`. The ceiling
+is ₹0.93 per **tablet**. Is ₹360 for ten tablets, or ten strips?
+
+**The bill does not say, and no amount of processing recovers it.** The
+information is not in the document. This is not an OCR limitation or a parsing
+gap — it is absent at the source.
+
+### The argument
+
+Let one billed unit contain `N` base units, where `N ≥ 1` and `N` is unknown.
+Then the real price per base unit is
+
+```
+    price_per_base_unit  =  line_total / (qty × N)
+                         ≤  line_total / qty          because N ≥ 1
+```
+
+So `line_total / qty` is an **upper bound** on the per-unit price — never the
+price itself. The two cases are **not symmetric**:
+
+| Case | What follows |
+|---|---|
+| bound **≤** allowance | The item is within the ceiling **for every possible N**. Green, and no later discovery of the pack size can overturn it. |
+| bound **>** allowance | **Nothing follows.** N=1 may be above the cap and N=10 comfortably under it. Gray. |
+
+So an item whose pack size is unknown can be **green or gray — never red, and
+never amber on price**. The verdict we can still give is the stronger one: a
+green reached this way holds universally, not just for the reading we happened
+to take.
+
+### What it cost, and why it was worth it
+
+The rule was written after a real wholesale invoice produced a **false red**:
+`₹36 per strip` measured against a `₹0.93 per tablet` ceiling looked like
+38.7×, which slipped under the 50× misread guard. The line was priced
+perfectly normally. The bill simply never said "strip".
+
+The gate costs coverage — most retail pharmacy lines state no pack size, so
+they now resolve green-or-gray rather than sometimes amber. Three things
+recover most of it:
+
+- the **brand index** supplies a pack size for branded names;
+- an **explicit volume** on the line ("Injection 500 ml") supplies it directly;
+- **R6 against a printed MRP** needs no pack size at all, because MRP and the
+  billed rate sit on the same row in the same unit.
+
+Regression tests: `test_wholesale_strip_price_is_never_red`,
+`test_under_the_allowance_is_green_whatever_the_pack_size`,
+`test_an_unknown_pack_size_can_never_produce_red_or_amber_on_price`.
+
+---
+
 ## Cost controls
 
 The project runs on $100 of credits and a cost mistake ends it. Expected

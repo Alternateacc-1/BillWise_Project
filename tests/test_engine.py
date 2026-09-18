@@ -12,6 +12,7 @@ from app.cli import run_audit
 from app.models import (
     BillInput,
     Flag,
+    GrayDetail,
     GrayReason,
     ItemCategory,
     MatchType,
@@ -225,10 +226,14 @@ def test_r1_tolerates_rounding_within_one_rupee():
 
 
 def _drug(index=1, **kwargs) -> NormalizedItem:
+    # pack_count 1 from bill_text = the pack size is CERTAIN, so these tests
+    # exercise the four red guards rather than the upper-bound gate, which
+    # has its own tests below.
     base = dict(
         index=index, category=ItemCategory.DRUG, match_type=MatchType.EXACT,
         salt_components=["PARACETAMOL"], strength_mg=[500.0], strength_kind="mg",
         dosage_form="tablet", unit_basis="tablet", form_modifier=None,
+        pack_count=Decimal("1"), pack_unit="tablet", pack_count_source="bill_text",
     )
     base.update(kwargs)
     return NormalizedItem(**base)
@@ -385,6 +390,105 @@ def test_a_stated_pack_size_produces_only_one_interpretation():
     )
     assert flag is not None
     assert len(flag.evidence["interpretations"]) == 1
+
+
+# --------------------------------------------------------------------------
+# The upper-bound gate: the strongest correctness claim in the project
+# --------------------------------------------------------------------------
+
+def _unknown_pack(**kwargs) -> NormalizedItem:
+    """A resolved drug whose pack size the bill never states."""
+    return _drug(pack_count=None, pack_unit="", pack_count_source="", **kwargs)
+
+
+def test_wholesale_strip_price_is_never_red():
+    """REGRESSION. A real wholesale line produced a false RED.
+
+    "Paracetamol 500 mg Tablet, Qty 10, Rs 360" is Rs 36 per STRIP -- an
+    ordinary business-to-business price. Measured against a Rs 0.93
+    per-TABLET ceiling it looked like 38.7x, which slipped under the 50x
+    misread guard and fired red. The bill never said whether 10 meant
+    tablets or strips.
+    """
+    flag = rule_r5_above_ceiling(
+        _item(quantity=Decimal("10"), unit_price=Decimal("40"),
+              discount=Decimal("40"), line_total=Decimal("360.00")),
+        _unknown_pack(), _ceiling(),
+    )
+    assert flag is not None
+    assert flag.severity is Severity.GRAY
+    assert flag.gray_detail is GrayDetail.PACK_SIZE_UNKNOWN
+    assert flag.severity is not Severity.RED
+
+
+def test_under_the_allowance_is_green_whatever_the_pack_size():
+    """The asymmetry. Under the allowance, the bound settles it for every N.
+
+    If one billed unit contains N >= 1 tablets, the real per-tablet price is
+    line_total/(qty*N) <= line_total/qty. So when the bound itself is under
+    the cap, every possible N is under the cap too.
+    """
+    assert rule_r5_above_ceiling(
+        _item(quantity=Decimal("20"), unit_price=Decimal("0.90"),
+              line_total=Decimal("18.00")),
+        _unknown_pack(), _ceiling(),
+    ) is None
+
+
+def test_over_the_allowance_with_an_unknown_pack_concludes_nothing():
+    flag = rule_r5_above_ceiling(
+        _item(quantity=Decimal("20"), unit_price=Decimal("1.50"),
+              line_total=Decimal("30.00")),
+        _unknown_pack(), _ceiling(),
+    )
+    assert flag.severity is Severity.GRAY
+    assert flag.gray_detail is GrayDetail.PACK_SIZE_UNKNOWN
+    assert "upper_bound_per_unit" in flag.evidence
+    assert "why_undetermined" in flag.evidence
+
+
+def test_an_unknown_pack_size_can_never_produce_red_or_amber_on_price():
+    """Swept across four orders of magnitude. No price may reach red or amber."""
+    for total in ["18.00", "30.00", "360.00", "3600.00", "36000.00"]:
+        flag = rule_r5_above_ceiling(
+            _item(quantity=Decimal("10"), unit_price=Decimal(total) / 10,
+                  line_total=Decimal(total)),
+            _unknown_pack(), _ceiling(),
+        )
+        if flag is not None:
+            assert flag.severity is Severity.GRAY, f"{total} produced {flag.severity}"
+
+
+def test_a_known_pack_size_still_reaches_red():
+    """The gate must not disarm the rule it protects."""
+    normalized = _drug(
+        salt_components=["AMOXICILLIN", "CLAVULANIC ACID"],
+        strength_mg=[500.0, 125.0], pack_count=Decimal("10"),
+        pack_unit="tablet", pack_count_source="brand_index",
+    )
+    ceiling = select_ceiling(
+        ["AMOXICILLIN", "CLAVULANIC ACID"], "tablet", [500.0, 125.0], "mg",
+        "tablet", Decimal("1"), None,
+    )
+    flag = rule_r5_above_ceiling(
+        _item(quantity=Decimal("2"), unit_price=Decimal("350"),
+              line_total=Decimal("700.00")),
+        normalized, ceiling,
+    )
+    assert flag.severity is Severity.RED
+
+
+def test_the_green_explanation_states_the_stronger_claim():
+    from app.pipeline.explain import explain
+    flags = audit(
+        [_item(quantity=Decimal("20"), unit_price=Decimal("0.90"),
+               line_total=Decimal("18.00"), name="Paracetamol 500mg Tablet")],
+        [_unknown_pack()], _stats(),
+    )
+    green = next(f for f in flags if f.severity is Severity.GREEN)
+    assert green.evidence["holds_for_every_pack_size"] is True
+    text = explain(green)
+    assert "however the quantity is counted" in text
 
 
 # --------------------------------------------------------------------------

@@ -208,6 +208,21 @@ def rule_r4_near_duplicates(items: list[VerifiedItem]) -> list[Flag]:
 # R5 -- above the published ceiling
 # --------------------------------------------------------------------------
 
+#: How well we know what one billed unit contains. This is the difference
+#: between a verdict and a guess.
+CERTAIN = "certain"          # the bill states the pack size outright
+BOUNDED = "bounded"          # inferred from a pack label; two readings, both computed
+UNKNOWN = "unknown"          # we do not know, and line_total/qty is only a CEILING
+
+
+def pack_certainty(normalized: NormalizedItem) -> str:
+    if normalized.pack_count_source == "bill_text" and normalized.pack_count:
+        return CERTAIN
+    if normalized.pack_count and normalized.pack_count > 0:
+        return BOUNDED
+    return UNKNOWN
+
+
 def _interpretations(item: VerifiedItem, normalized: NormalizedItem) -> list[dict]:
     """The two readings of an ambiguous quantity.
 
@@ -268,6 +283,66 @@ def rule_r5_above_ceiling(
 
     amber_at = config.amber_threshold(ceiling.per_base_unit)
     red_at = config.red_threshold(ceiling.per_base_unit)
+
+    # ----------------------------------------------------------------------
+    # THE UPPER-BOUND GATE. This is the strongest correctness claim in the
+    # project, and it exists because a bill that says "Qty 10" often does not
+    # say ten of WHAT.
+    #
+    # If one billed unit contains N base units, then
+    #
+    #     price per base unit  =  line_total / (qty x N)   for some N >= 1
+    #                          <= line_total / qty
+    #
+    # So line_total/qty is an UPPER BOUND on the real per-unit price, never
+    # the price itself. Two consequences, and they are not symmetric:
+    #
+    #   bound <= allowance  ->  the item is within the ceiling FOR EVERY
+    #                           possible N. We can say green and be right
+    #                           whatever the pack turns out to be.
+    #
+    #   bound >  allowance  ->  nothing follows. N=1 might be above the cap
+    #                           and N=10 comfortably under it. Any verdict
+    #                           here is a guess dressed as a finding.
+    #
+    # Treating the bound as if it were the price is what produced a RED flag
+    # on a real wholesale invoice line priced at Rs 36 per STRIP against a
+    # Rs 0.93 per-TABLET ceiling -- 38.7x, which slipped under the 50x
+    # misread guard. See test_wholesale_strip_price_is_never_red.
+    # ----------------------------------------------------------------------
+    if pack_certainty(normalized) == UNKNOWN:
+        upper_bound = min(i["per_unit"] for i in interpretations)
+        if upper_bound <= amber_at:
+            return None  # provably within the ceiling for every pack size
+        return Flag(
+            rule_id="R5",
+            severity=Severity.GRAY,
+            item_index=item.index,
+            gray_reason=GrayReason.COULD_NOT_VERIFY,
+            gray_detail=GrayDetail.PACK_SIZE_UNKNOWN,
+            evidence={
+                "ceiling_ex_gst": str(ceiling.price_ex_gst),
+                "ceiling_unit": format_unit(ceiling.unit_qty, ceiling.unit_basis),
+                "gst_percent": str(config.GST_PERCENT),
+                "allowance_per_unit": str(_money(amber_at)),
+                "upper_bound_per_unit": str(_money(upper_bound)),
+                "why_undetermined": (
+                    f"The bill shows a quantity of {item.quantity} but does not "
+                    f"say how many {ceiling.unit_basis}s are in one of them. At "
+                    f"{format_inr(_money(upper_bound))} per billed unit the price "
+                    f"is above the {format_inr(_money(amber_at))} allowed for a "
+                    f"single {ceiling.unit_basis}, but if one billed unit is a "
+                    f"pack, the per-{ceiling.unit_basis} price would be lower "
+                    f"and could be well within the ceiling."
+                ),
+                "reference": {
+                    "ref_id": ceiling.ref_id,
+                    "so_number": ceiling.so_number,
+                    "so_date": ceiling.so_date,
+                },
+                "checked_for": ["arithmetic", "duplication"],
+            },
+        )
 
     for interpretation in interpretations:
         per_unit = interpretation["per_unit"]
@@ -524,13 +599,21 @@ def audit(
                         evidence={
                             "ceiling_ex_gst": str(ceiling.price_ex_gst),
                             "ceiling_unit": format_unit(ceiling.unit_qty, ceiling.unit_basis),
+                            "allowance_per_unit": str(_money(
+                                config.amber_threshold(ceiling.per_base_unit)
+                            )),
+                            "gst_percent": str(config.GST_PERCENT),
+                            "pack_size_certainty": pack_certainty(norm),
+                            # A green reached through the upper-bound gate is
+                            # STRONGER than an ordinary one: it holds for every
+                            # possible pack size, so learning what the pack was
+                            # could never overturn it.
+                            "holds_for_every_pack_size":
+                                pack_certainty(norm) == UNKNOWN,
                             "so_number": ceiling.so_number,
                             "so_date": ceiling.so_date,
                             "ref_id": ceiling.ref_id,
                         },
-                        explanation=(
-                            "This item's price is within the published ceiling."
-                        ),
                     ))
 
         if not priced:

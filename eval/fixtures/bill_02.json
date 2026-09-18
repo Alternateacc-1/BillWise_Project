@@ -4,7 +4,7 @@
   "bill_date": "2026-09-13",
   "reader_a": {
     "source": "fixture_textract",
-    "printed_grand_total": "386.00",
+    "printed_grand_total": "387.00",
     "items": [
       {
         "index": 1,
@@ -26,10 +26,10 @@
       },
       {
         "index": 3,
-        "name": "Paracetamol 500mg Tablet",
-        "quantity": "20",
-        "unit_price": "1.10",
-        "line_total": "22.00",
+        "name": "Acimol 500mg Tablet",
+        "quantity": "2",
+        "unit_price": "11.50",
+        "line_total": "23.00",
         "confidence": "97",
         "page": 1
       },
@@ -64,7 +64,7 @@
   },
   "reader_b": {
     "source": "fixture_vision",
-    "printed_grand_total": "386.00",
+    "printed_grand_total": "387.00",
     "items": [
       {
         "index": 1,
@@ -86,10 +86,10 @@
       },
       {
         "index": 3,
-        "name": "Paracetamol 500mg Tablet",
-        "quantity": "20",
-        "unit_price": "1.10",
-        "line_total": "22.00",
+        "name": "Acimol 500mg Tablet",
+        "quantity": "2",
+        "unit_price": "11.50",
+        "line_total": "23.00",
         "confidence": "95",
         "page": 1
       },

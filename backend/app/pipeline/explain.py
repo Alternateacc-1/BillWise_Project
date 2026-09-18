@@ -112,6 +112,21 @@ def _r4(flag: Flag) -> str:
     )
 
 
+def _r5_gray_pack_size_unknown(flag: Flag) -> str:
+    e = flag.evidence
+    return (
+        f"We could not tell how many units this line is charging for. The "
+        f"published ceiling allows {format_inr(e.get('allowance_per_unit'))} per "
+        f"{e.get('ceiling_unit')} once GST is added, and this line works out to "
+        f"{format_inr(e.get('upper_bound_per_unit'))} per item billed — but "
+        f"if one item billed is a pack rather than a single "
+        f"{e.get('ceiling_unit')}, the real price per {e.get('ceiling_unit')} "
+        f"would be lower and may be well within the ceiling. Because the bill "
+        f"does not say which, we have not compared its price. It was still "
+        f"checked for duplication and arithmetic."
+    )
+
+
 def _r9(flag: Flag) -> str:
     # Three distinct situations, three distinct sentences. The auditor already
     # chose the right one; repeating the branch here would let them drift.
@@ -139,7 +154,21 @@ _TEMPLATES = {"R1": _r1, "R2": _r2, "R3": _r3, "R4": _r4, "R5": _r5, "R9": _r9}
 def explain(flag: Flag) -> str:
     """One flag's explanation. Never invents a number absent from evidence."""
     if flag.severity is Severity.GREEN:
+        if flag.evidence.get("holds_for_every_pack_size"):
+            # The strongest thing this system can say about a price. Worth
+            # saying in plain words rather than burying in an evidence key.
+            return (
+                "This item's price is within the published ceiling — and it "
+                "stays within it however the quantity is counted. Even if every "
+                f"unit billed were a single {flag.evidence.get('ceiling_unit')}, "
+                f"the price would still be under the "
+                f"{format_inr(flag.evidence.get('allowance_per_unit'))} allowed "
+                "once GST is added."
+            )
         return "This item's price is within the published ceiling."
+
+    if flag.rule_id == "R5" and flag.gray_detail is GrayDetail.PACK_SIZE_UNKNOWN:
+        return _r5_gray_pack_size_unknown(flag)
     template = _TEMPLATES.get(flag.rule_id)
     if template is None:
         return flag.explanation or ""
