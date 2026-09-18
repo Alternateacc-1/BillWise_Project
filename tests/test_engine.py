@@ -797,3 +797,75 @@ def test_a_bill_asking_for_more_than_its_lines_is_still_a_finding():
     r2 = [f for f in _run(bill) if f.rule_id == "R2"]
     assert r2, "a bill asking for Rs 100 more than its lines must be flagged"
     assert r2[0].amount_affected == Decimal("100.00")
+
+
+# --------------------------------------------------------------------------
+# Dosage-form abbreviation aliases (brand-index lookup only)
+# --------------------------------------------------------------------------
+
+def test_form_abbreviations_expand_for_lookup_only():
+    """CAP -> capsule, TAB -> tablet, as INDEX KEYS.
+
+    A real pharmacy bill writes "PANTOCID DSR CAP" while the brand index is
+    keyed "pantocid dsr capsule". Three of six lines on a measured bill were
+    lost to that spelling convention and labelled could_not_identify, which
+    blames us for something that is not our failure.
+    """
+    from app.pipeline.normalize import brand_lookup_aliases
+
+    assert brand_lookup_aliases("pantocid dsr cap") == ["pantocid dsr capsule"]
+    assert brand_lookup_aliases("sinalate tab") == ["sinalate tablet"]
+    assert brand_lookup_aliases("xyz inj") == ["xyz injection"]
+
+    # No abbreviation present -> nothing extra to try. Never returns the
+    # original, which would be a wasted second lookup of the same key.
+    assert brand_lookup_aliases("paracetamol 500mg tablet") == []
+    assert brand_lookup_aliases("medinoze nasal spray") == []
+
+
+def test_the_alias_table_cannot_cross_a_release_modifier():
+    """D5 MUST HOLD: form_modifier is product identity.
+
+    NPPA prices release variants separately -- dispersible aspirin is Rs 0.36
+    and plain aspirin is Rs 0.39 -- so an expansion that let a plain tablet
+    reach a modified-release ceiling would reintroduce the Phase 0b bug.
+
+    Two things prevent it, and this test pins both:
+
+    1. NO ALIAS EXPANDS TO A MODIFIED FORM. Every value in the table is a bare
+       dosage form. SR, ER and DT are release modifiers, not dosage forms, and
+       are deliberately absent from the table.
+    2. THE LOOKUP STAYS EXACT. "sinalate tab" produces the single key
+       "sinalate tablet" and is matched against the index by equality, so it
+       cannot reach "sinalate tablet sr" -- a different key entirely.
+    """
+    from app.pipeline.normalize import DOSAGE_FORM_ALIASES, brand_lookup_aliases
+
+    modifiers = ("sr", "er", "xr", "dt", "cr", "la", "md", "sustained",
+                 "extended", "dispersible", "modified")
+    for abbrev, expansion in DOSAGE_FORM_ALIASES.items():
+        assert not any(m in expansion.split() for m in modifiers), (
+            f"{abbrev!r} expands to {expansion!r}, which carries a release "
+            "modifier -- that is product identity, not a dosage form"
+        )
+
+    # A modifier present on the bill is CARRIED, never dropped: the key stays
+    # distinct from the plain form, so the two can never collide.
+    assert brand_lookup_aliases("glycomet tab sr") == ["glycomet tablet sr"]
+    assert "glycomet tablet" not in brand_lookup_aliases("glycomet tab sr")
+
+
+def test_expansion_never_rewrites_the_bills_own_text():
+    """The printed string must survive into the report untouched.
+
+    Expansion is a lookup alias. If it reached item.name, a flag would cite a
+    string that is not on the patient's bill, and the evidence trail would
+    quietly stop matching the page it came from.
+    """
+    from app.pipeline.normalize import normalize_item
+
+    item = VerifiedItem(index=1, name="PANTOCID DSR CAP", quantity=Decimal("8"),
+                        line_total=Decimal("134.48"),
+                        confidence=ReadingConfidence.HIGH)
+    normalize_item(item)
+    assert item.name == "PANTOCID DSR CAP"

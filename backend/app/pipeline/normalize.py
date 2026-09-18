@@ -61,6 +61,62 @@ FUZZY_BRAND_MIN = 92
 
 
 # --------------------------------------------------------------------------
+# Dosage-form abbreviations, for BRAND-INDEX LOOKUP ONLY.
+#
+# A bill writes "PANTOCID DSR CAP"; the brand index is keyed
+# "pantocid dsr capsule". The lookup missed on CAP vs capsule and the line was
+# labelled could_not_identify -- which blames US for a failure that is really
+# a spelling convention. Measured on a real retail pharmacy bill: three of six
+# lines were lost this way.
+#
+# DELIBERATELY AN EXPLICIT TABLE, NOT A NORMALISER. Every entry is an
+# unambiguous abbreviation of exactly one dosage form. There is no suffix
+# stripping and no fuzzy form inference, because "SR" and "ER" and "DT" are
+# NOT dosage forms -- they are RELEASE MODIFIERS, and collapsing them is the
+# bug that made dispersible aspirin (Rs 0.36) and plain aspirin (Rs 0.39)
+# collide in Phase 0b. form_modifier stays a match criterion.
+#
+# TO ADD AN ENTRY: it must expand to exactly one dosage form, with no reading
+# under which it means something else. If it does not, leave it out.
+#
+# THIS IS A LOOKUP ALIAS AND NOTHING ELSE. It never rewrites the bill's text.
+# item.name keeps the exact printed string, so every flag stays traceable to
+# what was actually on the page, and no expanded form reaches the auditor,
+# the report, or any evidence field.
+# --------------------------------------------------------------------------
+
+DOSAGE_FORM_ALIASES = {
+    "cap": "capsule",
+    "caps": "capsule",
+    "tab": "tablet",
+    "tabs": "tablet",
+    "tb": "tablet",
+    "inj": "injection",
+    "syp": "syrup",
+    "susp": "suspension",
+    "oint": "ointment",
+    "sup": "suppository",
+    "supp": "suppository",
+}
+
+
+def brand_lookup_aliases(name_norm: str) -> list[str]:
+    """Alternative INDEX KEYS for a normalised bill name. Never a new name.
+
+    Returns keys to try against brand_index.csv, most specific first, and
+    never includes the original. An empty list means no abbreviation was
+    present and there is nothing extra to try.
+    """
+    tokens = name_norm.split()
+    if not any(t in DOSAGE_FORM_ALIASES for t in tokens):
+        return []
+    expanded = [DOSAGE_FORM_ALIASES.get(t, t) for t in tokens]
+    candidate = " ".join(expanded)
+    return [candidate] if candidate != name_norm else []
+
+
+
+# --------------------------------------------------------------------------
 # Categorisation
 #
 # Keyword-driven and deliberately boring. A wrong category only ever changes
@@ -417,6 +473,19 @@ def normalize_item(item: VerifiedItem, brand_index: dict[str, dict] | None = Non
     row = index.get(name_norm)
     if row is not None:
         return _from_brand_row(item.index, row, MatchType.EXACT, "brand_exact_match")
+
+    # Tier 1b: the same EXACT lookup, with dosage-form abbreviations expanded.
+    # Still an exact key match -- "sinalate tab" tries only "sinalate tablet"
+    # and can never reach "sinalate tablet sr", because that is a different
+    # key. The alias table cannot widen a plain form into a modified-release
+    # one, which is what keeps D5 (form_modifier is product identity) intact.
+    for alias_key in brand_lookup_aliases(name_norm):
+        row = index.get(alias_key)
+        if row is not None:
+            return _from_brand_row(
+                item.index, row, MatchType.EXACT,
+                "brand_exact_match_via_form_abbreviation",
+            )
 
     # Tier 2: fuzzy >= 92, but ONLY if a strength in the raw bill text
     # corroborates the candidate. A name that merely looks similar is not
