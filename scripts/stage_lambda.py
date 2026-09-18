@@ -52,7 +52,12 @@ def main() -> int:
           f"{TARGET.relative_to(REPO_ROOT)}")
     print("  brand_index.csv deliberately NOT staged (36 MB). The engine")
     print("  degrades to generic-name resolution without it.")
-    print("\n  Now run:  sam build && sam deploy --guided")
+    # --use-container is NOT optional on Windows. A plain `sam build` installs
+    # wheels for the machine it runs on, so it would bundle Windows wheels
+    # into an arm64 Linux function -- which deploys successfully and then dies
+    # at import time on the first request. See AWS_STEPS.md 3.4.
+    print("\n  Now run:  sam build --use-container --template infra/template.yaml")
+    print("  then:     sam deploy --guided --stack-name billsahi")
     return 0
 
 

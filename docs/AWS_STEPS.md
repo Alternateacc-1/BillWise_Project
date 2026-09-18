@@ -515,21 +515,70 @@ aws --version && sam --version
 
 ## 3.2 Sign in
 
+**Two ways, depending on how you sign in to the console.** Your console shows
+an IAM user (`..._IAM` next to the account name), so it is almost certainly
+path B.
+
+> **Whichever you use: the credentials stay on your machine, in
+> `~/.aws/credentials`. Never paste an access key, secret key or session token
+> into a chat, a commit, a screenshot or an issue.** If one is ever exposed,
+> deactivate it in the IAM console immediately — exposure is not recoverable
+> by deleting the message.
+
+### Path A — IAM Identity Center (SSO)
+
+If your organisation set up Identity Center, or you sign in via a start URL
+like `https://d-xxxx.awsapps.com/start`:
+
 ```bash
 aws configure sso
 ```
 
-Follow the prompts, then confirm you are who you think you are **and in the
-right region**:
+Short-lived credentials, refreshed by `aws sso login`. Preferred when
+available, because nothing long-lived lands on disk.
+
+### Path B — IAM user access key
+
+If you sign in with a username and password directly to the console:
+
+1. Console → your name, top right → **Security credentials**.
+2. **Access keys** → **Create access key** → choose **Command Line Interface
+   (CLI)** → acknowledge → **Create**.
+3. **Download the .csv or copy both values now.** The secret is shown once and
+   never again.
+4. In your terminal:
 
 ```bash
-aws sts get-caller-identity && aws configure get region
+aws configure
 ```
 
-**Verify:** the region reads `us-east-1`, and it must match the region you
-enabled the model in at Section 1. Getting this wrong deploys into a region
-with no model access, and the failure appears later as an
-`AccessDeniedException` from Bedrock that looks like an IAM problem.
+   Answer: Access Key ID, Secret Access Key, default region `us-east-1`,
+   default output `json`.
+
+> **This creates a long-lived credential**, which is the security cost of this
+> path. Two things reduce it, and both are worth doing:
+> - **Delete the access key when the hackathon is over.** IAM → your user →
+>   Security credentials → Actions → Delete. It takes ten seconds.
+> - **Do not create a second key "just in case".** Unused keys are the ones
+>   that leak, because nobody notices they still work.
+
+### Verify, either path
+
+```bash
+aws sts get-caller-identity
+```
+
+```bash
+aws configure get region
+```
+
+**Verify:** the account number matches the one in your console, and the region
+reads `us-east-1`.
+
+The region **must** match where you enabled the model in Section 1. Getting
+this wrong deploys into a region with no model access, and it fails later as
+an `AccessDeniedException` from Bedrock that looks like an IAM problem — you
+will go hunting through policies for a bug that is not there.
 
 ---
 
@@ -576,6 +625,11 @@ docker info
 ```
 
 Prints a block of server info → **path A**. Errors or hangs → **path B**.
+
+> **Checked 2026-09-19 on this machine: Docker is installed and running
+> (server 29.5.2), so PATH A applies.** Path B is kept below because it is
+> verified and costs nothing to leave in — if Docker Desktop is not running
+> when you get here, start it rather than switching paths.
 
 ---
 
