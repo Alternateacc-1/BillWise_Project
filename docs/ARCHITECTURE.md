@@ -30,6 +30,44 @@ moves to `us-east-1` — we never split regions. See OPEN_QUESTIONS.md Q1.
 
 ---
 
+## TWO GUARANTEES, AND WE ONLY HARDEN ONE
+
+These are constantly conflated, including by us. They are not the same claim
+and they do not have the same achievability.
+
+### 1. "Never a false accusation" — achievable, and what we work on
+
+We will not tell someone their hospital charged above a published ceiling
+when it did not. This is a **soundness** property: everything we *do* assert
+is defensible.
+
+It is achievable because we are allowed to decline. Every hard case can be
+answered with gray. The upper-bound gate largely closed the biggest hole in
+it; the eval's zero-false-reds gate is how we keep it closed. **All hardening
+work targets this guarantee.**
+
+### 2. "A correct verdict on every line" — impossible, and not our goal
+
+This is a **completeness** property, and it is out of reach for reasons that
+are not engineering problems. Phantom billing is invisible to a bill. Pack
+size is often absent from the document. Most hospital charges have no
+published ceiling in the first place. See `LIMITS.md`.
+
+**We do not pursue it, and no claim we make should imply we have it.**
+
+### Why the distinction has to stay explicit
+
+The two trade against each other. Every guard that protects guarantee 1 costs
+coverage against guarantee 2 — the upper-bound gate turned a real finding
+amber-to-gray, deliberately. If the difference blurs under deadline, someone
+reasonably asks "why is so much gray?" and the tempting answer is to loosen a
+guard. That would trade the guarantee we can actually keep for one we can
+never have.
+
+**Gray is not a failure to reach guarantee 2. It is guarantee 1 working.**
+
+---
+
 ## The one rule that shapes everything else
 
 **The LLM never does arithmetic and never decides a verdict.** Code decides;
