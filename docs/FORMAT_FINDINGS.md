@@ -571,6 +571,76 @@ Class C we get for free.
 
 ---
 
+## bill_06.pdf on the deployed stack — the retail layout, answered
+
+The last open question from the Textract probe. `bill_06.pdf` is the layout
+copied from a real OPD pharmacy bill: MRP, PACK, QTY, TOTAL, no unit-price
+column, Discount and Round Off in the totals block.
+
+### Textract read it almost perfectly
+
+| # | Name | Qty | Line total | Correct? |
+|---|---|---|---|---|
+| 1 | PANTOCID DSR CAP | 8 | 134.48 | yes |
+| 2 | OFIVAY OZ TAB | 8 | 107.20 | yes |
+| 3 | SINALATE TAB | 8 | 54.00 | yes |
+| 4 | EFERIM SP TAB | 8 | 78.32 | yes |
+| 5 | BECOSULE CAP | 4 | 12.44 | yes |
+| 6 | MEDINOZE NASAL SPRAY | 1 | 67.50 | yes |
+
+**Six of six names, quantities and totals correct.** Sum 453.94, matching the
+printed Bill Amount exactly. On a clean PDF, Textract is excellent — the
+earlier failures were all on degraded photographs.
+
+### Three findings, all previously predicted, now confirmed on real OCR
+
+**1. MRP and PACK do NOT survive.** `unit_price` is `null` on all six lines.
+AnalyzeExpense returned the columns it recognises as line-item fields and
+dropped the rest. **Class C is NOT free** -- R6 needs work, not just wiring.
+
+**2. Textract takes the NET amount as the total.** `printed_grand_total` came
+back `431.00`, not the `453.94` subtotal. This is exactly the reading that
+triggers Class B, and it did:
+
+```
+R2 amber  whole bill  amount_affected 22.94
+```
+
+Rs 22.94 = Discount 22.70 + Round Off 0.24. **A false finding, on the
+deployed system, against a bill that is arithmetically perfect.** Predicted
+from the local probe; now measured live.
+
+The new misread invariant did not catch this and should not have: no line
+exceeds the bill total, and the numbers are all real. This is a genuine
+ledger-modelling gap, not a reading error.
+
+**3. Not one brand name resolved.** All six returned `name_did_not_resolve`:
+PANTOCID DSR, OFIVAY OZ, SINALATE, EFERIM SP, BECOSULE, MEDINOZE.
+
+**This settles the brand-index question empirically.** The measurement on
+2026-09-19 showed the 36 MB index changes NOTHING across all six fixtures --
+because the fixtures use generic names. A real retail bill is ENTIRELY brand
+names, and without the index none of them resolve to an NPPA formulation. The
+index is load-bearing exactly where the fixtures cannot see it, and it is
+currently NOT DEPLOYED.
+
+### What it would take for this bill to return six greens
+
+All three, in this order, and none is optional:
+
+1. **Class B / the ledger** -- stops the false Rs 22.94 question. This is the
+   only one that is actively WRONG today rather than merely silent.
+2. **Class A** -- a missing unit-price column must not make a line unreadable.
+   Today it produces `arithmetic_not_checkable:missing_values` AND
+   `outside_sanity_bounds` on every line.
+3. **Brand resolution** -- the DynamoDB brand index, which has never been
+   written. Without it the lines become readable but still unpriceable.
+
+Class A alone is not enough. That is new information: the local probe could
+not show it, because the local fixture bypasses brand resolution entirely.
+
+---
+
 ## Still to probe
 
 A bill in a regional script · handwritten annotations over a printed bill ·
