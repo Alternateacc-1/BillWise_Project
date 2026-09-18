@@ -41,7 +41,10 @@ Without this, CloudWatch cannot see billing metrics at all.
 **Verify:** reload the page. Both boxes are still ticked.
 
 > **Gotcha:** billing metrics only exist in **us-east-1**, no matter where
-> your stack runs. Ours runs in ap-south-1. If you go looking for a billing
+> your stack runs. Ours now runs there too, so this happens to line up --
+> but do not learn the wrong lesson from that. If you ever move the stack
+> back to an Indian region, billing metrics stay in us-east-1. If you go
+> looking for a billing
 > metric in the CloudWatch console, switch the region selector to N. Virginia
 > or you will find nothing and assume it is broken.
 
@@ -173,10 +176,10 @@ written.
 
 ---
 
-## 1.1 Enable a vision-capable Claude model in ap-south-1
+## 1.1 Enable a vision-capable Claude model in us-east-1
 
-1. Sign in. Set the region selector, top right, to **Asia Pacific (Mumbai)
-   ap-south-1**. Get this wrong and you will enable a model in the wrong
+1. Sign in. Set the region selector, top right, to **US East (N. Virginia)
+   us-east-1**. Get this wrong and you will enable a model in the wrong
    region and wonder why the code cannot see it.
 2. Search for **Bedrock** → open it.
 3. Left sidebar, near the bottom → **Model access**.
@@ -187,16 +190,21 @@ written.
 
 **Verify:** the model's status reads **Access granted**. Screenshot it.
 
-> **If no vision-capable Claude is offered in ap-south-1 at all**, stop and
-> tell me. That is the trigger for moving the WHOLE stack to us-east-1, which
-> is a decision already made (OPEN_QUESTIONS.md Q1) — we never split regions.
+> **This is already the fallback region.** The stack was originally
+> specified for `ap-south-1` (Mumbai); Bedrock offered this account no
+> Claude model there, so on 2026-09-19 the WHOLE stack moved here. See
+> `OPEN_QUESTIONS.md` Q1.
+>
+> **If no vision-capable Claude is offered in us-east-1 either**, stop and
+> tell me — do NOT go hunting for a third region on your own. We never
+> split regions, and the next move is a decision, not a click.
 
 ---
 
 ## 1.2 Copy the cross-region inference profile ID
 
 We call Claude through a **global cross-region inference profile**, not a bare
-model id — it is what lets ap-south-1 serve a request from wherever capacity
+model id — it is what lets us-east-1 serve a request from wherever capacity
 exists.
 
 1. Bedrock → left sidebar → **Inference and assessment** → **Cross-region
@@ -250,7 +258,7 @@ first 100 pages/month are free for the first 3 months if the account is new.
 
 No code, no SDK, no deployment. The console does this by hand.
 
-1. Region selector → **ap-south-1** (same region as Section 1).
+1. Region selector → **us-east-1** (same region as Section 1).
 2. Search **Textract** → open it.
 3. Left sidebar → **Analyze Document** → choose **Expense analysis** (this is
    AnalyzeExpense, the API our reader uses — NOT plain text detection).
@@ -367,7 +375,7 @@ say so — a missing claim is fine, an unmeasured one is not. See NOTES.md,
 # Section 3 — Deploy the backend
 
 **Do Sections 0-2 first.** This section assumes the budget alarms exist and
-that you know whether Bedrock is available in ap-south-1.
+that you know whether Bedrock is available in us-east-1.
 
 **Cost: pennies.** Lambda, API Gateway and DynamoDB are all within free tier
 at demo volume. S3 holds a few MB for one day.
@@ -407,8 +415,10 @@ right region**:
 aws sts get-caller-identity && aws configure get region
 ```
 
-**Verify:** the region reads `ap-south-1` (or `us-east-1` if Section 1 sent
-you there). Getting this wrong deploys into a region with no model access.
+**Verify:** the region reads `us-east-1`, and it must match the region you
+enabled the model in at Section 1. Getting this wrong deploys into a region
+with no model access, and the failure appears later as an
+`AccessDeniedException` from Bedrock that looks like an IAM problem.
 
 ---
 
@@ -545,7 +555,7 @@ Answer the prompts:
 | Prompt | Answer |
 |---|---|
 | Stack Name | `billsahi` |
-| AWS Region | `ap-south-1` (must match 3.2) |
+| AWS Region | `us-east-1` (must match 3.2) |
 | Parameter BedrockInferenceProfileId | paste from Section 1.2, or leave blank |
 | Parameter FrontendOrigin | leave blank for now — Section 4 fills it in |
 | Parameter ReservedConcurrency | `5` |

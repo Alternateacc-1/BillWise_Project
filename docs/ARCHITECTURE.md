@@ -24,9 +24,20 @@ no network at all. Verifier, Matcher and Auditor have no AWS variant — they
 are pure functions and stay that way, because they are the parts that decide
 what a patient is told.
 
-**Region:** everything in `ap-south-1`, with Claude reached through a global
-cross-region inference profile. If that proves impossible the whole stack
-moves to `us-east-1` — we never split regions. See OPEN_QUESTIONS.md Q1.
+**Region:** everything in `us-east-1`, with Claude reached through a global
+cross-region inference profile.
+
+This was originally specified as `ap-south-1` (Mumbai), to sit near the
+Indian users the tool is for. Bedrock offered this account no Claude model
+there, so on 2026-09-19 the **whole stack** moved to `us-east-1` — the
+fallback agreed in advance precisely so it would not have to be decided
+under pressure. We never split regions: a split stack means cross-region
+transfer charges, two sets of logs, two places for an IAM policy to be
+wrong, and a latency path nobody will debug at 2am.
+
+**Say this plainly rather than quietly:** the deployed demo is further from
+its intended users than the design wants. That is a constraint of this
+account, not an architectural choice. See OPEN_QUESTIONS.md Q1.
 
 ---
 

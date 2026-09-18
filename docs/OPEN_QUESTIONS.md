@@ -5,34 +5,74 @@ and when. Nothing here blocks Phase 0-3, which run entirely offline.
 
 ---
 
-## Q1. Can ap-south-1 reach a vision-capable Claude model? (Phase 4, BLOCKING)
+## Q1. Can ap-south-1 reach a vision-capable Claude model? (Phase 4)
 
-**Status:** open. Confirm at the Phase 4 AWS checkpoint.
+**Status: RESOLVED, 2026-09-19. The answer was NO.**
 
-**The decision already made:** keep the ENTIRE stack in `ap-south-1` (Mumbai)
-and reach Claude through a **global cross-region inference profile**, with the
-exact profile ID copied from the Bedrock console into `.env` as
-`BEDROCK_INFERENCE_PROFILE_ID`. It is never hand-typed and never guessed.
+Bedrock offered no Claude model to this account in `ap-south-1` (Mumbai).
 
-**The fallback, also already decided:** if ap-south-1 cannot reach a
-vision-capable Claude profile, move the **whole stack** to `us-east-1`. We do
-not split regions. A split stack means cross-region data transfer charges,
-two sets of CloudWatch logs, two places for an IAM policy to be wrong, and a
-latency path nobody will debug at 2am three days before submission.
+**Branch taken: the whole stack moved to `us-east-1`.** This was the fallback
+already agreed before the checkpoint, precisely so the decision did not have
+to be made under time pressure with a console open. We did not split regions,
+and the reasons for that have not changed: a split stack means cross-region
+data transfer charges, two sets of CloudWatch logs, two places for an IAM
+policy to be wrong, and a latency path nobody will debug at 2am three days
+before submission.
 
-**Why this is open:** Bedrock model availability differs by region and
-requires per-region model access to be enabled in the console. We have not
-touched an AWS account yet, so we do not know what this one can reach.
+**What actually had to change.** Less than expected, because the region was
+already a single variable in the code:
 
-**How to resolve (at the AWS checkpoint):**
-1. Bedrock console > Model access, in ap-south-1. Confirm a vision-capable
-   Claude model shows as access granted.
-2. Bedrock console > Inference and assessment > Cross-region inference. Copy
-   the global profile ID verbatim.
-3. Paste into `.env`. Run the reader smoke test in `docs/AWS_STEPS.md`.
-4. If step 1 or 2 fails, change `AWS_REGION` to `us-east-1` everywhere --
-   `.env`, `infra/template.yaml`, and the deploy commands -- and redeploy.
-   Record which branch was taken in `NOTES.md`.
+  - `backend/app/config.py` -- the default, and a real bug found on the way:
+    it read only `AWS_REGION`, while `infra/template.yaml` sets
+    `AWS_REGION_NAME`. That worked on Lambda ONLY because the Lambda runtime
+    populates `AWS_REGION` itself, so the template's variable was dead config.
+    It now reads `AWS_REGION_NAME` first and falls back to `AWS_REGION`.
+    `AWS_REGION` cannot be set in the template -- it is a RESERVED Lambda
+    environment variable and CloudFormation rejects it.
+  - `infra/template.yaml` -- no hardcoded Region at all. It uses
+    `!Ref AWS::Region`, so the Region follows `sam deploy`. Nothing to change
+    except the IAM scoping below.
+  - `.env.example`, `docs/AWS_STEPS.md`, `docs/ARCHITECTURE.md`, `NOTES.md`.
+
+Every boto3 client is built in `aws_clients.py` from `config.AWS_REGION` and
+nothing else, so there remains exactly one place to change the Region.
+
+**Consequence worth noting for the write-up:** the demo runs in N. Virginia,
+not Mumbai, so latency to an Indian user is worse than the architecture
+intends. That is a deployment constraint of this account, not a design
+choice, and it should be said plainly rather than quietly.
+
+---
+
+## Q1a. Is `bedrock:InvokeModel` correctly scoped? (Phase 4)
+
+**Status: RESOLVED, 2026-09-19.** Previously `Resource: "*"`.
+
+The intuitive tightening -- grant the inference profile ARN and nothing else --
+**is wrong and fails closed at the first call.** From the AWS documentation,
+"Prerequisites for inference profiles":
+
+> "When you specify an inference profile in the Resource field in the first
+> statement, you must also specify the foundation model in each Region
+> associated with it."
+
+The profile is a routing target; the foundation model is what is actually
+invoked. Both resource types are required in the same statement.
+
+The policy now pins the profile to the exact ID supplied at deploy time and
+leaves the foundation models wildcarded, because the set of Regions a
+cross-region profile fans out to is not knowable from inside the template, and
+a global profile also routes through the empty-Region ARN form
+(`arn:aws:bedrock:::foundation-model/...`).
+
+**Still open, deliberately:** tightening the foundation-model ARNs to the
+specific Regions the profile uses. Do that AFTER the first successful call,
+when the set is known from CloudTrail, not before -- guessing it is how you
+get an AccessDeniedException that looks like a model-access problem.
+
+Also note the action is `bedrock:InvokeModel*`, not `bedrock:InvokeModel`:
+the reader uses the **Converse** API, which authorises against
+`bedrock:InvokeModel`.
 
 ---
 

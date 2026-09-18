@@ -26,7 +26,28 @@ PROVIDER = os.getenv("PROVIDER", "local").strip().lower()
 if PROVIDER not in ("local", "aws"):
     raise ValueError(f"PROVIDER must be 'local' or 'aws', got {PROVIDER!r}")
 
-AWS_REGION = os.getenv("AWS_REGION", "ap-south-1").strip()
+#: THE region. Every boto3 client in aws_clients.py is built with this and
+#: nothing else, so there is exactly one place to change it.
+#:
+#: Two variable names, in priority order, and the order matters:
+#:   AWS_REGION_NAME -- what infra/template.yaml sets on Lambda. It cannot use
+#:                      AWS_REGION, because that is a RESERVED Lambda env var
+#:                      and CloudFormation rejects a template that sets it.
+#:   AWS_REGION      -- what .env sets locally, and what the Lambda runtime
+#:                      sets for itself automatically.
+#:
+#: Reading only AWS_REGION used to work on Lambda purely by accident: the
+#: runtime populates it, so the template's AWS_REGION_NAME was dead config
+#: that nothing read. That happened to be correct and was not robust.
+#:
+#: us-east-1, not ap-south-1: Bedrock had no Claude available to this account
+#: in Mumbai. The WHOLE stack moved -- we never split regions. See
+#: docs/OPEN_QUESTIONS.md Q1, now resolved.
+AWS_REGION = (
+    os.getenv("AWS_REGION_NAME")
+    or os.getenv("AWS_REGION")
+    or "us-east-1"
+).strip()
 
 #: Cross-region inference profile ID for Claude, copied verbatim from the
 #: Bedrock console. Empty in local mode. Never hand-typed or guessed -- see

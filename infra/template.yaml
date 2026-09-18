@@ -25,9 +25,12 @@ Parameters:
     Type: String
     Default: ""
     Description: >
-      Cross-region inference profile ID, copied VERBATIM from the Bedrock
-      console. Leave empty to run with Textract only -- the app degrades to a
-      single reader and applies a stricter confidence bar rather than failing.
+      Inference profile ID, copied VERBATIM from the Bedrock console in
+      us-east-1 (e.g. us.anthropic.claude-... or global.anthropic.claude-...).
+      Leave empty to run with Textract only -- the app degrades to a single
+      reader and applies a stricter confidence bar rather than failing.
+      When set it is PINNED INTO THE IAM POLICY, so a typo here surfaces as
+      AccessDeniedException on the first call, not as a wrong model.
 
   FrontendOrigin:
     Type: String
@@ -143,11 +146,40 @@ Resources:
         - !If
           - HasBedrockProfile
           - Statement:
-              - Sid: InvokeClaudeForReadingAndExplaining
+              # -------------------------------------------------------------
+              # SCOPED TO THE INFERENCE PROFILE, and it needs TWO resource
+              # types, not one. This is the least obvious IAM shape in the
+              # stack, so the reason is written down rather than rediscovered.
+              #
+              # AWS docs, "Prerequisites for inference profiles":
+              #   "When you specify an inference profile in the Resource field
+              #    in the first statement, you must also specify the
+              #    foundation model in each Region associated with it."
+              #
+              # So granting ONLY the profile ARN -- the intuitive "least
+              # privilege" move -- produces AccessDeniedException at the first
+              # call. The profile is a routing target; the model is what is
+              # actually invoked.
+              #
+              # The profile is pinned to the exact ID supplied at deploy time.
+              # The foundation models stay wildcarded because a cross-region
+              # profile fans out to a set of Regions that is not knowable from
+              # inside this template, and a global profile also routes through
+              # the empty-Region ARN form. Tightening those requires listing
+              # every Region the profile actually uses -- do it AFTER the
+              # first successful call, when the set is known, not before.
+              #
+              # InvokeModel* (not InvokeModel) because the reader uses the
+              # Converse API, which authorises against bedrock:InvokeModel.
+              # -------------------------------------------------------------
+              - Sid: InvokeClaudeThroughTheInferenceProfileOnly
                 Effect: Allow
                 Action:
-                  - bedrock:InvokeModel
-                Resource: "*"   # a cross-region profile fans out by design
+                  - bedrock:InvokeModel*
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/${BedrockInferenceProfileId}"
+                  - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/*"
+                  - !Sub "arn:${AWS::Partition}:bedrock:::foundation-model/*"
           - !Ref AWS::NoValue
       Events:
         Api:
