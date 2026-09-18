@@ -264,7 +264,7 @@ def test_r5_is_amber_inside_the_25_percent_band():
     )
     assert flag is not None
     assert flag.severity is Severity.AMBER
-    excess = flag.evidence["interpretations"][0]["excess_over_ceiling_pct"]
+    excess = flag.evidence["interpretations"][0]["excess_over_allowance_pct"]
     assert Decimal(excess) > 0
 
 
@@ -276,7 +276,7 @@ def test_r5_shows_the_full_arithmetic_and_excess_percentage():
     for key in ("ceiling_ex_gst", "gst_percent", "gst_multiplier",
                 "amber_threshold", "red_threshold", "arithmetic"):
         assert key in evidence, key
-    assert "excess_over_ceiling_pct" in evidence["interpretations"][0]
+    assert "excess_over_allowance_pct" in evidence["interpretations"][0]
     assert evidence["reference"]["so_number"]
     assert evidence["reference"]["so_date"]
 

@@ -50,7 +50,8 @@ def _r5(flag: Flag) -> str:
     if decisive:
         lines.append(
             f"This line works out to {format_inr(decisive.get('billed_per_unit'))} per unit, "
-            f"which is {decisive.get('excess_over_ceiling_pct')}% above the ceiling. "
+            f"which is {decisive.get('excess_over_allowance_pct')}% above the "
+            f"{format_inr(evidence.get('amber_threshold'))} allowed once GST is added. "
             f"Amount affected: {format_inr(flag.amount_affected)}."
         )
 

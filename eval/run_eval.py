@@ -110,7 +110,9 @@ def run_one(bill_id: str) -> dict:
         interpretations = f.evidence.get("interpretations", [])
         if not interpretations:
             continue
-        excess = min(Decimal(i["excess_over_ceiling_pct"]) for i in interpretations)
+        excess = min(
+            Decimal(i["excess_over_allowance_pct"]) for i in interpretations
+        )
         if Decimal("0") < excess <= config.RED_EXCESS_FRACTION * 100:
             amber_band.append({
                 "item_index": f.item_index,

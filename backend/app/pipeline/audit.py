@@ -271,9 +271,23 @@ def rule_r5_above_ceiling(
 
     for interpretation in interpretations:
         per_unit = interpretation["per_unit"]
-        excess = (per_unit - ceiling.per_base_unit) / ceiling.per_base_unit
+
+        # TWO BASES, and they are not interchangeable.
+        #
+        # The GATE is defined against the GST-INCLUSIVE allowance: red needs
+        # RED_EXCESS_FRACTION above `amber_at`, and amount_affected is
+        # measured from `amber_at`. So the percentage we SHOW must use that
+        # same base, or the number on the card is not the number we gated on.
+        #
+        # The ex-GST figure is kept because it is what a reader comparing
+        # against the published NPPA table will compute by hand, and omitting
+        # it would look like we were hiding the gap. Both are labelled.
+        excess_over_allowance = (per_unit - amber_at) / amber_at
+        excess_over_ceiling = (per_unit - ceiling.per_base_unit) / ceiling.per_base_unit
+
         interpretation["per_unit_str"] = str(_money(per_unit))
-        interpretation["excess_over_ceiling_pct"] = str(_pct(excess))
+        interpretation["excess_over_allowance_pct"] = str(_pct(excess_over_allowance))
+        interpretation["excess_over_ceiling_ex_gst_pct"] = str(_pct(excess_over_ceiling))
         interpretation["above_amber_threshold"] = per_unit > amber_at
         interpretation["above_red_threshold"] = per_unit > red_at
         interpretation["ratio_to_ceiling"] = str(
@@ -316,7 +330,17 @@ def rule_r5_above_ceiling(
                 "label": i["label"],
                 "description": i["description"],
                 "billed_per_unit": i["per_unit_str"],
-                "excess_over_ceiling_pct": i["excess_over_ceiling_pct"],
+                # The gate basis -- this is what the card displays.
+                "excess_over_allowance_pct": i["excess_over_allowance_pct"],
+                "excess_basis": (
+                    f"vs the GST-inclusive allowance of "
+                    f"{_money(amber_at)}/unit, which is what the "
+                    f"{_pct(config.RED_EXCESS_FRACTION)}% red threshold is "
+                    f"measured against"
+                ),
+                # Informational: what you get comparing straight to the
+                # published NPPA table, before GST is added.
+                "excess_over_ceiling_ex_gst_pct": i["excess_over_ceiling_ex_gst_pct"],
                 "ratio_to_ceiling": i["ratio_to_ceiling"],
                 "above_red_threshold": i["above_red_threshold"],
             }
