@@ -300,6 +300,46 @@ def test_withdrawn_retail_prices_get_their_own_reason_code(retail):
         assert r.price_ex_gst == ""
 
 
+def test_retail_unmappable_units_stay_usable_but_not_price_checkable(retail):
+    """An unreadable unit costs a retail row its numbers, not its existence.
+
+    "Injection" and "Gel" say nothing about what one unit is, but the price,
+    salt set and manufacturer are all sound and still serve as R7 context.
+    price_checkable=false already blocks any numeric comparison, so
+    quarantining as well would discard good evidence for no safety gain.
+    """
+    # Two exclusions, both deliberate:
+    #  - an EMPTY unit cell also normalises to `other`, but that is the
+    #    separate unit_missing fault and stays quarantined;
+    #  - a row can have BOTH an unmappable unit and a bad price (RETL-0225,
+    #    unit "Gel", price unparseable). The price fault quarantines it, and
+    #    rightly so.
+    # What is being asserted is that an unmappable unit ALONE never does.
+    unmappable = [
+        r for r in retail
+        if r.unit_basis == "other"
+        and r.unit_basis_raw
+        and r.quarantine_reason != pr.REASON_PRICE_UNPARSEABLE
+        and r.quarantine_reason != pr.REASON_PRICE_WITHDRAWN
+    ]
+    assert len(unmappable) > 100, "expected the unmappable-unit tail to be large"
+    for r in unmappable:
+        assert r.status == pr.STATUS_USABLE, f"{r.ref_id} should not be quarantined"
+        assert r.price_checkable == "false", f"{r.ref_id} must not be comparable"
+        assert r.price_ex_gst != ""
+
+
+def test_retail_quarantine_reasons_are_only_the_three_data_faults(retail):
+    """unit_unmappable must never quarantine a retail row."""
+    reasons = {r.quarantine_reason for r in retail if r.status == pr.STATUS_QUARANTINED}
+    assert reasons <= {
+        pr.REASON_PRICE_UNPARSEABLE,
+        pr.REASON_PRICE_WITHDRAWN,
+        pr.REASON_UNIT_MISSING,
+    }
+    assert pr.REASON_UNIT_UNMAPPABLE not in reasons
+
+
 def test_quarantined_rows_carry_a_known_reason(rows):
     known = {
         pr.REASON_PRICE_WITHDRAWN,

@@ -687,11 +687,23 @@ def parse_retail_csv() -> list[ReferenceRow]:
         # container is -- RETL-0434 was being priced per 1.4 gm of container.
         # A retail row whose unit cell does not state a basis stays `pack` and
         # is simply not price-checkable. Silence beats a fabricated quantity.
-        if status == STATUS_USABLE:
-            if not unit_raw:
-                status, reason = STATUS_QUARANTINED, REASON_UNIT_MISSING
-            elif basis == "other":
-                status, reason = STATUS_QUARANTINED, REASON_UNIT_UNMAPPABLE
+        if status == STATUS_USABLE and not unit_raw:
+            status, reason = STATUS_QUARANTINED, REASON_UNIT_MISSING
+
+        # NOTE: an unmappable unit does NOT quarantine a retail row.
+        #
+        # A row whose unit cell reads "Injection" or "Gel" has a perfectly
+        # good price, salt set and manufacturer -- it just does not say what
+        # one unit is. price_checkable=false already makes a numeric
+        # comparison impossible, so quarantining as well would throw away
+        # usable R7 context for no safety gain.
+        #
+        # This is deliberately NOT symmetric with the ceiling file, where the
+        # 4 unmappable rows stay quarantined. Ceiling rows exist only to BE a
+        # ceiling; a ceiling you cannot compare against has no other use.
+        # Retail rows exist to provide context, which survives the loss of a
+        # unit basis. Only price_unparseable, price_withdrawn and unit_missing
+        # quarantine a retail row.
 
         strength_mg, strength_kind = parse_strength(formulations)
 

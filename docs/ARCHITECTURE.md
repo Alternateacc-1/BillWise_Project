@@ -149,6 +149,68 @@ Every verdict carries "prices as per NPPA data retrieved 18 Sept 2026".
 
 ---
 
+## Cost controls
+
+The project runs on $100 of credits and a cost mistake ends it. Expected
+total spend is **$8–13**; the design keeps it there deliberately rather than
+by luck. Four of these are structural — they cost nothing to add and cannot
+be forgotten under deadline.
+
+### Offline by default
+
+`PROVIDER=local` is the default in `.env.example` **and** hard-defaulted in
+`config.py`, so an unset environment variable can never silently select the
+paid path. `eval/run_eval.py` pins `PROVIDER=local` explicitly and refuses to
+run otherwise: the eval suite is the thing most likely to be run in a loop,
+and it must never be able to spend money.
+
+This matters more than any other control, because **Textract is ~70–80% of
+the projected bill**. Building the engine, the rules and the eval entirely
+offline is what turns $8 into $1.50.
+
+### Reserved concurrency of 5
+
+Every Lambda that calls Textract or Bedrock carries
+`ReservedConcurrentExecutions: 5` in `infra/template.yaml`. A retry storm or a
+runaway client then costs five concurrent invocations' worth of API calls, not
+a thousand. It is a hard ceiling enforced by the platform rather than by our
+own retry logic being correct.
+
+Retry logic is capped at one attempt as well — but that is a code fix for a
+code risk. The concurrency limit is what holds when the code is wrong.
+
+### Reject before you pay
+
+Page count and upload size are checked **before any billable call is made**:
+bills over 10 pages and oversized uploads are rejected at the API boundary.
+Textract is priced per page, so a 400-page PDF is a $4 mistake from a single
+careless upload. The check is cheap, the failure mode is not.
+
+### No always-on resources
+
+The SAM template has **no VPC**, therefore no NAT Gateway (~$32–45/month, the
+classic hackathon killer). DynamoDB is on-demand, never provisioned. S3
+carries a 1-day lifecycle delete and CloudWatch a 7-day log retention. There
+is no OpenSearch, no vector store, no EC2, no Fargate. **Idle cost is
+effectively zero** — the stack can sit untouched between the demo and judging
+without accruing anything.
+
+### Guardrails outside the code
+
+`docs/AWS_STEPS.md` Section 0 sets up a $10 budget alerting at 50% and 100%,
+a $25 tripwire, and account-level billing alerts — **before any resource is
+created**. Free, and it means a runaway loop pages us at $5 rather than
+surfacing at $80.
+
+### What stays despite the cost
+
+**Both readers.** Running Textract and a Bedrock vision model over the same
+file and requiring them to agree is the most interesting thing this project
+does, and it is not where the money goes — the second reader is cents. Cost
+control never came at the expense of the verification design.
+
+---
+
 ## Phases 2–5
 
 Filled in as they land.
