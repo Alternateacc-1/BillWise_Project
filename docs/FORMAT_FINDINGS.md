@@ -641,6 +641,151 @@ not show it, because the local fixture bypasses brand resolution entirely.
 
 ---
 
+---
+
+# Adversarial audit (2026-09-19)
+
+Goal: **actively construct a bill that makes BillSahi emit a FALSE RED.** Not
+a regression suite -- an attack. Every bill below is CORRECTLY PRICED, so any
+red is a false accusation of a hospital or pharmacy.
+
+Harness: `eval/adversarial_audit.py`. Deliberately NOT in the eval gate --
+their expected outcome is "nothing fired", and encoding that as ground truth
+would turn an absence of evidence into a passing test.
+
+**Result: 0 false reds in 15 attacks. One false AMBER, on the most ordinary
+bill line in India.** The near-misses matter more than the total.
+
+## Round 1 -- attacks against the system as deployed
+
+| # | Attack | Outcome |
+|---|---|---|
+| A1 | Strip of 10 at ceiling read as ONE unit (8.9x, under the 50x guard) | gray `pack_size_unknown` |
+| A2 | Ratio engineered to 45x, just under the guard | gray `pack_size_unknown` |
+| A3 | OCR digit substitution 1 -> 7, SINGLE reader at 99% confidence | gray `pack_size_unknown` |
+| A4 | Decimal shift 1.10 -> 11.00, single reader | gray `pack_size_unknown` |
+| A5 | Ringer Lactate 500 ml bag vs the dearer-per-ml 100 ml ceiling | **green** (correct row selected) |
+| A6 | `ASPIRIN TAB` via the new alias table vs the cheaper DT row | gray `pack_size_unknown` |
+| A7 | GST-inclusive rate presented as ex-GST | **green** |
+| A8 | Bill-level discount against a compliant line | **2 green** |
+| A9 | Pack nesting where every interpretation looks excessive | gray `pack_size_unknown` |
+| A10 | Brand alias reaching a modified-release ceiling | gray (unresolved) |
+
+**The uncomfortable part of a clean sheet: SIX of ten were stopped by the SAME
+gate.** `pack_size_unknown` is doing nearly all the work, and Class C exists
+specifically to open it. A defence with one load-bearing member is not as
+strong as its score suggests.
+
+A5 and A7 are genuine passes worth noting. A5 selected the 500 ml row rather
+than the dearer-per-ml 100 ml row -- the Phase 0 regression holding under
+attack. A7 stayed green because a GST-inclusive rate compared against a
+GST-inclusive allowance is the CORRECT comparison; the error runs the other
+way (Class G, under-flagging), which is the direction we chose.
+
+## Round 2 -- attacking the system AFTER Class C lands
+
+Round 1 said almost nothing about the future, so round 2 supplies a known
+`pack_count` and re-runs. **The first attempt was INVALID and is recorded
+because the invalidity was itself the finding.**
+
+### NEAR-MISS 1: `pack_count` as `unit_qty` kills the ceiling lookup
+
+Setting `pack_count_source="bill_text"` -- exactly what Class C will do --
+made the CONTROL and the TRUE POSITIVE both come back gray. The pricing rule
+never ran, so "0 false reds" from that run meant nothing.
+
+Cause, at `audit.py:747`:
+
+```python
+unit_qty=norm.pack_count if norm.pack_count_source == "bill_text" else Decimal("1")
+```
+
+`unit_qty` means **the CEILING ROW's unit quantity** ("1 tablet", "500 ml"),
+not a pack count. Feeding it 10 searches for a ceiling priced per-ten-tablets,
+which does not exist:
+
+```
+unit_qty=1   -> FOUND 0.93
+unit_qty=10  -> NO CEILING FOUND
+unit_qty=15  -> NO CEILING FOUND
+```
+
+**Dead code today**, because nothing sets `pack_count_source="bill_text"` yet.
+It activates the instant Class C reads the PACK column, and would turn every
+packed tablet from green to GRAY -- the exact opposite of Class C's purpose.
+Not a false red. A false SILENCE, and a trap laid for the next change.
+
+### NEAR-MISS 2 -- **THE REAL FINDING**: a false amber on a compliant line
+
+With a working lookup and `pack_count=10` from the brand index:
+
+```
+THE BILL: one strip of 10 tablets at Rs 1.00/tablet = Rs 10.00   COMPLIANT
+          ceiling 0.93/tab, allowance 1.0416 -- the line is UNDER it
+
+per_billed_unit   divisor=1    per_unit=10.00   <- over allowance
+per_pack_unit     divisor=10   per_unit=1.00    <- compliant, and TRUE
+
+VERDICT: R5 AMBER, amount_affected Rs 0.00
+```
+
+**A perfectly compliant line, with a pack size we KNOW, flagged.** And flagged
+for Rs 0.00 -- Class H, still open, now shown firing on innocent lines rather
+than only on ambiguous ones.
+
+Reproduced across the round-2 set:
+
+| # | Attack | Outcome |
+|---|---|---|
+| C1 | **CONTROL: pack 10, priced AT ceiling** | **FALSE AMBER Rs 0.00** |
+| C2 | True positive, genuinely 4.8x over | amber Rs 39.58 (correct, but *downgraded from red*) |
+| C3 | Pack misread 100 -> 10 | false amber Rs 89.58 |
+| C4 | Pack misread 50 -> 10, under the 50x guard | false amber Rs 36.08 |
+| C5 | Same numbers, pack unknown (today) | gray `pack_size_unknown` |
+
+## THE CLASS, and the rule proposed
+
+**Class M -- an interpretation we have evidence AGAINST must not raise a flag.**
+
+`_interpretations()` always emits `per_billed_unit` (divisor = 1), treating
+the billed quantity as a count of base units. When `pack_count` is known,
+that reading is not merely unlikely -- **we hold evidence that contradicts
+it.** A strip of 10 is not 1 tablet, and we know it is 10.
+
+The gate currently asks "does ANY reading exceed the allowance?" It should ask
+"does any reading WE STILL BELIEVE exceed the allowance?"
+
+**Proposed rule:** when `pack_certainty` is CERTAIN or BOUNDED and
+`pack_count > 1`, the `per_billed_unit` interpretation is dropped, not merely
+outvoted. It survives only when `pack_count == 1`, where the two readings
+coincide anyway.
+
+**Why this is safe rather than a loosening.** It removes an interpretation
+that is *known false*, so it cannot manufacture a red that a true reading
+would not support. It NARROWS what the system will say, in the direction of
+silence -- the same direction as every other guard here. It also restores
+C2 to the red it should be: with the nonsense reading gone,
+`every_reading_above_red` becomes true on a line that genuinely is 4.8x over.
+
+**Consequence worth stating plainly:** this makes the system flag MORE on
+genuinely excessive lines with known pack sizes, and LESS on compliant ones.
+Both directions are improvements, but the first increases exposure and
+deserves its own eval pass before it ships.
+
+**NOT PATCHED. Awaiting approval**, per the audit's own rule: state the class,
+propose the general rule, change nothing.
+
+## What was NOT tried, and should be
+
+- Synonym-tier crossing where the tier-2 row is CHEAPER than the true tier-1
+  row (A6 was blocked by the pack gate before it could test the collision)
+- A bill where two different lines resolve to the same ceiling row
+- Negative quantities combined with a known pack size
+- A line whose `form_modifier` is present on the bill but absent from the
+  index row, and vice versa
+
+---
+
 ## Still to probe
 
 A bill in a regional script · handwritten annotations over a printed bill ·
