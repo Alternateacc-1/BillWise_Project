@@ -201,6 +201,20 @@ export default function App() {
     health()
       .then((h) => setReaderNote(h.reader))
       .catch(() => setReaderNote(""));
+
+    // ?bill=<id> opens an existing report directly, so a report can be
+    // revisited or shared. ?sample=<fixture> runs a specific bundled bill.
+    const params = new URLSearchParams(window.location.search);
+    const billId = params.get("bill");
+    const sample = params.get("sample");
+    if (billId) {
+      void load(billId).catch((e) => setError((e as Error).message));
+    } else if (sample) {
+      void createSample(sample)
+        .then((r) => load(r.bill_id))
+        .catch((e) => setError((e as Error).message));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function load(billId: string) {
@@ -283,9 +297,16 @@ export default function App() {
     }));
   }
 
+  // Only offer to review what a correction can actually FIX. Re-typing the
+  // name of a line whose pack size is unstated does not tell us how many
+  // tablets are in a strip, so asking would waste the user's time and imply
+  // we could act on the answer.
   const unverified =
     report?.by_item.filter(
-      (i) => i.severity === "gray" && i.gray_reason === "could_not_verify",
+      (i) =>
+        i.severity === "gray" &&
+        (i.gray_detail === "could_not_read" ||
+          i.gray_detail === "could_not_identify"),
     ) ?? [];
 
   // Three groups, in the order a worried person needs them: what to act on,
@@ -311,6 +332,9 @@ export default function App() {
   );
   const couldNotIdentify = notCompared.filter(
     (i) => i.gray_detail === "could_not_identify",
+  );
+  const packSizeUnknown = notCompared.filter(
+    (i) => i.gray_detail === "pack_size_unknown",
   );
 
   return (
@@ -532,6 +556,15 @@ export default function App() {
             defaultOpen={false}
           >
             <ItemList items={couldNotRead} />
+          </Group>
+
+          <Group
+            title="Price could not be determined"
+            subtitle="We know what these are and we read them correctly, but the bill does not say how many units each line covers — ten tablets or ten strips changes the per-unit price tenfold. Rather than guess, we have not compared them."
+            count={packSizeUnknown.length}
+            defaultOpen={false}
+          >
+            <ItemList items={packSizeUnknown} />
           </Group>
 
           <Group

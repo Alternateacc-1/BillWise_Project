@@ -141,11 +141,23 @@ def health() -> dict:
 
 
 @app.post("/bills/sample")
-def create_sample() -> dict:
-    bill = reader.read_sample()
+def create_sample(fixture: str | None = None) -> dict:
+    """Run a bundled sample bill.
+
+    `fixture` picks which one. It is validated against the known fixture
+    names, never used as a path, so it cannot be steered at the filesystem.
+    """
+    if fixture:
+        try:
+            bill = reader.load_fixture(fixture)
+        except reader.ReaderUnavailable as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    else:
+        bill = reader.read_sample()
+    chosen = fixture or reader.SAMPLE_BILL_ID
     bill.bill_id = _new_bill_id()
     report = _run_pipeline(bill)
-    _store(report, "ready", {"kind": "sample", "fixture": reader.SAMPLE_BILL_ID})
+    _store(report, "ready", {"kind": "sample", "fixture": chosen})
     return {"bill_id": report.bill_id, "status": "ready"}
 
 

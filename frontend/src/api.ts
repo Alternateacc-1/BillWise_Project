@@ -73,8 +73,13 @@ export type Report = {
 export const health = () =>
   request<{ status: string; provider: string; reader: string }>("/health");
 
-export const createSample = () =>
-  request<{ bill_id: string }>("/bills/sample", { method: "POST" });
+export const createSample = (fixture?: string) =>
+  request<{ bill_id: string }>(
+    fixture
+      ? `/bills/sample?fixture=${encodeURIComponent(fixture)}`
+      : "/bills/sample",
+    { method: "POST" },
+  );
 
 export async function uploadBill(file: File) {
   const form = new FormData();

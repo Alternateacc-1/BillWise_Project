@@ -303,6 +303,47 @@ def test_total_amount_affected_is_present_and_matches_the_letter(
     assert total in letter.replace(",", "")
 
 
+ALL_FIXTURES = ["bill_01", "bill_02", "bill_03", "bill_04", "bill_05"]
+
+
+@pytest.mark.parametrize("fixture", ALL_FIXTURES)
+def test_every_item_lands_in_exactly_one_ui_group(client, fixture):
+    """REGRESSION: an item disappeared from the report entirely.
+
+    The UI groups gray items by gray_detail. bill_02 has a pack_size_unknown
+    item, no other bundled bill does, and the partition test only ever ran
+    against bill_01 -- so a whole category rendered nowhere and nothing
+    failed. Every bill is checked now, and the detail values the UI knows
+    about are pinned.
+    """
+    UI_KNOWS = {"no_public_ceiling", "could_not_read", "could_not_identify",
+                "pack_size_unknown"}
+
+    bill_id = client.post(f"/bills/sample?fixture={fixture}").json()["bill_id"]
+    items = client.get(f"/bills/{bill_id}").json()["by_item"]
+
+    for item in items:
+        if item["severity"] != "gray":
+            continue
+        detail = item["gray_detail"] or (
+            "no_public_ceiling" if item["gray_reason"] == "no_public_ceiling"
+            else None
+        )
+        assert detail in UI_KNOWS, (
+            f"{fixture} item {item['index']} has gray detail {detail!r}, which "
+            f"no UI group renders -- it would vanish from the report"
+        )
+
+    gray = [i for i in items if i["severity"] == "gray"]
+    grouped = sum(
+        1 for i in gray
+        if i["gray_reason"] == "no_public_ceiling"
+        or i["gray_detail"] in {"could_not_read", "could_not_identify",
+                                "pack_size_unknown"}
+    )
+    assert grouped == len(gray), f"{fixture}: {len(gray) - grouped} item(s) ungrouped"
+
+
 def test_every_count_the_ui_renders_is_derivable_from_by_item(client, sample_bill):
     """No number shown anywhere may be asserted independently of the list it labels.
 
