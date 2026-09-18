@@ -39,6 +39,25 @@ class GrayReason(str, Enum):
     COULD_NOT_VERIFY = "could_not_verify"
 
 
+class GrayDetail(str, Enum):
+    """Why COULD_NOT_VERIFY applied. These are NOT the same failure.
+
+    COULD_NOT_READ     -- the two readers disagreed, or the arithmetic did not
+                          hold, or a value was outside sane bounds. We do not
+                          trust our own reading of the line.
+
+    COULD_NOT_IDENTIFY -- we read the line perfectly well, but could not work
+                          out which medicine it is, so there is no ceiling to
+                          compare against.
+
+    Conflating them produced a real bug: the summary counted one thing and the
+    cards said another.
+    """
+
+    COULD_NOT_READ = "could_not_read"
+    COULD_NOT_IDENTIFY = "could_not_identify"
+
+
 class ReadingConfidence(str, Enum):
     HIGH = "high"
     UNVERIFIED = "unverified_reading"
@@ -222,6 +241,7 @@ class Flag(BaseModel):
     suggested_question: str = ""
     explanation: str = ""
     gray_reason: GrayReason | None = None
+    gray_detail: GrayDetail | None = None
 
 
 class BillReport(BaseModel):

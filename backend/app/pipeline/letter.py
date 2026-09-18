@@ -34,9 +34,15 @@ def compose(report: BillReport) -> str:
     lines.append("To the Billing Department,")
     lines.append(f"{report.hospital_name or 'the hospital'}")
     lines.append("")
+    # NEVER the internal bill id. It is a random token that means nothing to
+    # the hospital and looks like a system leak in a letter a patient sends.
+    # The bill date is what identifies the bill to its issuer.
     lines.append(
-        f"I am writing about bill {report.bill_id}"
-        + (f" dated {report.bill_date}" if report.bill_date else "")
+        (
+            f"I am writing about my bill dated {report.bill_date}"
+            if report.bill_date
+            else "I am writing about a recent bill from your hospital"
+        )
         + ". I have reviewed it against the ceiling prices published by the "
         "National Pharmaceutical Pricing Authority, and a few items may need "
         "clarification. I may well have misread something, and I would be "

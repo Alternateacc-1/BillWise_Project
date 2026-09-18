@@ -250,9 +250,16 @@ def _serialise(report: BillReport) -> dict:
     for item in report.items:
         flags = report.flags_for(item.index)
         severity = report.severity_of(item.index)
-        gray_reason = next(
-            (f.gray_reason.value for f in flags if f.gray_reason), None
-        )
+
+        # ONE item, ONE headline verdict. An item that is both a duplicate
+        # (amber) and unpriceable (gray) is an amber item with a note -- not
+        # two cards contradicting each other. The gray note still travels, in
+        # `notes`, so nothing is hidden; it just stops competing for the
+        # headline. Enforced by test_an_item_never_has_more_than_one_headline.
+        headline = next((f for f in flags if f.severity is severity), None)
+        notes = [f for f in flags if f is not headline]
+
+        gray_flag = next((f for f in flags if f.gray_reason), None)
         by_item.append({
             "index": item.index,
             "name": item.name,
@@ -262,7 +269,14 @@ def _serialise(report: BillReport) -> dict:
             "page": item.page,
             "confidence": item.confidence.value,
             "severity": severity.value,
-            "gray_reason": gray_reason,
+            "gray_reason": gray_flag.gray_reason.value if gray_flag else None,
+            "gray_detail": (
+                gray_flag.gray_detail.value
+                if gray_flag and gray_flag.gray_detail else None
+            ),
+            "amount_affected": str(headline.amount_affected) if headline else "0",
+            "headline": headline.model_dump(mode="json") if headline else None,
+            "notes": [f.model_dump(mode="json") for f in notes],
             "flags": [f.model_dump(mode="json") for f in flags],
         })
 
@@ -287,14 +301,28 @@ def _serialise(report: BillReport) -> dict:
             Decimal("0"),
         )
     )
+    # The breakdown counts every item WITHOUT a price verdict, regardless of
+    # which bucket its headline landed in. An item can have no published
+    # ceiling AND be a duplicate: it belongs in "what we found" because the
+    # duplicate is actionable, and it still counts toward "10 of 16 charges
+    # have no published ceiling", because that is simply true.
+    #
+    # Counting only gray-BUCKETED items is what made the summary say
+    # "0 could not be confidently identified" while a card said exactly that.
+    not_compared = [e for e in by_item if e["gray_reason"]]
+    payload["not_compared_total"] = len(not_compared)
     payload["gray_breakdown"] = {
         "no_public_ceiling": sum(
-            1 for e in by_item
-            if e["severity"] == "gray" and e["gray_reason"] == "no_public_ceiling"
+            1 for e in not_compared if e["gray_reason"] == "no_public_ceiling"
         ),
-        "could_not_verify": sum(
-            1 for e in by_item
-            if e["severity"] == "gray" and e["gray_reason"] == "could_not_verify"
+        "could_not_read": sum(
+            1 for e in not_compared if e["gray_detail"] == "could_not_read"
+        ),
+        "could_not_identify": sum(
+            1 for e in not_compared if e["gray_detail"] == "could_not_identify"
         ),
     }
+
+    findings = [e for e in by_item if e["severity"] in ("red", "amber")]
+    payload["findings_count"] = len(findings) + len(report.flags_for(-1))
     return payload

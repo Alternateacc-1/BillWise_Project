@@ -38,7 +38,7 @@ function Badge({ severity }: { severity: string }) {
   );
 }
 
-function Evidence({ flag }: { flag: Flag }) {
+function Evidence({ flag, notes = [] }: { flag: Flag; notes?: Flag[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
@@ -49,15 +49,46 @@ function Evidence({ flag }: { flag: Flag }) {
         {open ? "Hide evidence" : `Show evidence (${flag.rule_id})`}
       </button>
       {open && (
-        <pre className="mt-2 overflow-x-auto rounded bg-slate-900 p-3 text-xs text-slate-100">
-          {JSON.stringify(flag.evidence, null, 2)}
-        </pre>
+        <div className="mt-2 space-y-2">
+          {/* Secondary findings live here rather than competing for the
+              item's headline verdict. Nothing is hidden; it is subordinate. */}
+          {notes.map((note, n) => (
+            <p key={n} className="text-xs text-slate-700">
+              <span className="font-medium">{note.rule_id}:</span>{" "}
+              {note.explanation}
+            </p>
+          ))}
+          <pre className="overflow-x-auto rounded bg-slate-900 p-3 text-xs text-slate-100">
+            {JSON.stringify(flag.evidence, null, 2)}
+          </pre>
+        </div>
       )}
     </div>
   );
 }
 
-function ItemCard({ item }: { item: ReportItem }) {
+function LetterButton({
+  onClick,
+  busy,
+  label,
+}: {
+  onClick: () => void;
+  busy: boolean;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={busy}
+      className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+    >
+      {busy ? "Working..." : label}
+    </button>
+  );
+}
+
+/** A finding worth acting on. Expanded by default -- this is the point. */
+function FindingCard({ item }: { item: ReportItem }) {
   return (
     <div className={`rounded border p-3 ${SEVERITY_STYLES[item.severity]}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -68,18 +99,60 @@ function ItemCard({ item }: { item: ReportItem }) {
           {item.line_total ? `Rs ${item.line_total}` : "Rs ?"}
         </span>
       </div>
-      <div className="mt-1">
+      <div className="mt-1 flex flex-wrap items-center gap-2">
         <Badge severity={item.severity} />
+        {item.amount_affected !== "0" && (
+          <span className="text-xs">
+            Amount affected: Rs {item.amount_affected}
+          </span>
+        )}
       </div>
-      {item.flags
-        .filter((f) => f.explanation)
-        .map((flag, n) => (
-          <div key={n} className="mt-2 text-sm">
-            <p>{flag.explanation}</p>
-            {Object.keys(flag.evidence).length > 0 && <Evidence flag={flag} />}
-          </div>
-        ))}
+      {item.headline && (
+        <p className="mt-2 text-sm">{item.headline.explanation}</p>
+      )}
+      {item.headline && Object.keys(item.headline.evidence).length > 0 && (
+        <Evidence flag={item.headline} notes={item.notes} />
+      )}
     </div>
+  );
+}
+
+function Group({
+  title,
+  subtitle,
+  count,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  count: number;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (count === 0) return null;
+  return (
+    <section className="rounded border border-slate-300">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between gap-2 p-3 text-left"
+      >
+        <span className="font-medium">
+          {title} <span className="text-slate-500">({count})</span>
+        </span>
+        <span className="text-sm text-slate-500">{open ? "Hide" : "Show"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-slate-200 p-3">
+          {/* Stated ONCE, here -- never repeated on every item below. */}
+          {subtitle && (
+            <p className="mb-3 text-sm text-slate-600">{subtitle}</p>
+          )}
+          {children}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -180,7 +253,41 @@ export default function App() {
   }
 
   const unverified =
-    report?.by_item.filter((i) => i.gray_reason === "could_not_verify") ?? [];
+    report?.by_item.filter(
+      (i) => i.severity === "gray" && i.gray_reason === "could_not_verify",
+    ) ?? [];
+
+  // Three groups, in the order a worried person needs them: what to act on,
+  // what is fine, what we could not check.
+  const findings = (report?.by_item ?? [])
+    .filter((i) => i.severity === "red" || i.severity === "amber")
+    .sort(
+      (a, b) => Number(b.amount_affected) - Number(a.amount_affected),
+    );
+  const clear = (report?.by_item ?? []).filter((i) => i.severity === "green");
+  const notCompared = (report?.by_item ?? []).filter(
+    (i) => i.severity === "gray",
+  );
+
+  const notComparedParts: string[] = [];
+  if (report && report.gray_breakdown.no_public_ceiling > 0) {
+    notComparedParts.push(
+      `${report.gray_breakdown.no_public_ceiling} have no published price ceiling in India — room rent, nursing, consumables and lab tests are not price-controlled, so there is nothing to compare them against`,
+    );
+  }
+  if (report && report.gray_breakdown.could_not_read > 0) {
+    notComparedParts.push(
+      `${report.gray_breakdown.could_not_read} could not be read reliably`,
+    );
+  }
+  if (report && report.gray_breakdown.could_not_identify > 0) {
+    notComparedParts.push(
+      `${report.gray_breakdown.could_not_identify} could not be identified`,
+    );
+  }
+  const notComparedSubtitle =
+    notComparedParts.join("; ") +
+    ". All of them were still checked for duplication and arithmetic.";
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl bg-white p-6 text-slate-900">
@@ -296,45 +403,59 @@ export default function App() {
       {/* ---------------------------------------------------------- report */}
       {view === "report" && report && (
         <div className="space-y-4">
+          {/* ---- the honest line, first thing anyone reads ---------------- */}
           <div className="rounded border border-slate-300 p-4">
             <p className="font-medium">{report.hospital_name}</p>
             <p className="text-sm text-slate-600">
               Bill date {report.bill_date}
             </p>
-            <p className="mt-2 text-sm">
-              {report.stats.auto_high}/{report.stats.total_items} lines verified
-              at high confidence &middot; bill total{" "}
-              <span className="font-medium">{report.stats.reconciliation}</span>
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              <span className="rounded border border-red-300 bg-red-50 px-2 py-1 text-red-900">
-                {report.counts.red} above ceiling
-              </span>
-              <span className="rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-900">
-                {report.counts.amber} need clarification
-              </span>
-              <span className="rounded border border-green-300 bg-green-50 px-2 py-1 text-green-900">
-                {report.counts.green} within ceiling
-              </span>
-              <span className="rounded border border-slate-300 bg-slate-50 px-2 py-1 text-slate-700">
-                {report.counts.gray} not compared
-              </span>
-            </div>
-            <p className="mt-3 text-xs text-slate-600">
-              Of the {report.counts.gray} not compared,{" "}
-              {report.gray_breakdown.no_public_ceiling} have no public price
-              ceiling at all (room, nursing, consumables, lab tests) — we
-              checked those for arithmetic and duplication only.{" "}
-              {report.gray_breakdown.could_not_verify} could not be confidently
-              identified.
-            </p>
-            <p className="mt-2 text-sm">
-              Total amount affected across all points raised:{" "}
-              <span className="font-medium">
+
+            <p className="mt-3">
+              We found{" "}
+              <span className="font-semibold">
+                {report.findings_count}{" "}
+                {report.findings_count === 1 ? "thing" : "things"}
+              </span>{" "}
+              worth asking about, worth{" "}
+              <span className="font-semibold">
                 Rs {report.total_amount_affected}
               </span>
+              .
+            </p>
+            <p className="mt-1 text-sm text-slate-700">
+              {report.gray_breakdown.no_public_ceiling} of the{" "}
+              {report.stats.total_items} charges have no published ceiling in
+              India, so we checked those for duplication and arithmetic only.
+            </p>
+
+            {/* The primary action, before sixteen cards rather than after. */}
+            <div className="mt-4">
+              <LetterButton
+                onClick={onLetter}
+                busy={busy}
+                label="Write a clarification letter"
+              />
+            </div>
+
+            <p className="mt-3 text-xs text-slate-500">
+              {report.stats.auto_high}/{report.stats.total_items} lines read at
+              high confidence &middot; bill total {report.stats.reconciliation}{" "}
+              &middot; prices as per NPPA data retrieved{" "}
+              {report.reference_retrieved_on}
             </p>
           </div>
+
+          {letter && (
+            <div className="rounded border border-slate-300 p-4">
+              <p className="mb-2 text-sm font-medium">Clarification letter</p>
+              <textarea
+                readOnly
+                value={letter}
+                rows={18}
+                className="w-full rounded border border-slate-300 p-3 font-mono text-xs"
+              />
+            </div>
+          )}
 
           {report.bill_level_flags.map((flag, n) => (
             <div
@@ -347,45 +468,85 @@ export default function App() {
             </div>
           ))}
 
-          <div className="space-y-2">
-            {report.by_item.map((item) => (
-              <ItemCard key={item.index} item={item} />
-            ))}
-          </div>
-
-          <div className="rounded border border-slate-300 p-4">
-            <button
-              onClick={onLetter}
-              disabled={busy}
-              className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {busy ? "Working..." : "Write a clarification letter"}
-            </button>
-            {letter && (
-              <textarea
-                readOnly
-                value={letter}
-                rows={18}
-                className="mt-3 w-full rounded border border-slate-300 p-3 font-mono text-xs"
-              />
-            )}
-          </div>
-
-          <p className="text-xs text-slate-500">
-            Prices as per NPPA data retrieved {report.reference_retrieved_on}.
-          </p>
-
-          <button
-            onClick={() => {
-              setReport(null);
-              setLetter("");
-              setEdits({});
-              setView("upload");
-            }}
-            className="rounded border border-slate-300 px-4 py-2 text-sm"
+          {/* ---- 1. what we found ---------------------------------------- */}
+          <Group
+            title="What we found"
+            count={findings.length}
+            defaultOpen={true}
           >
-            Check another bill
-          </button>
+            <div className="space-y-2">
+              {findings.map((item) => (
+                <FindingCard key={item.index} item={item} />
+              ))}
+            </div>
+          </Group>
+
+          {/* ---- 2. checked, no issue ------------------------------------ */}
+          <Group
+            title="Checked, no issue"
+            subtitle="These are priced within the published ceiling."
+            count={clear.length}
+            defaultOpen={false}
+          >
+            <ul className="divide-y divide-slate-200 text-sm">
+              {clear.map((item) => (
+                <li
+                  key={item.index}
+                  className="flex justify-between gap-3 py-1.5"
+                >
+                  <span>
+                    {item.index}. {item.name}
+                  </span>
+                  <span className="font-mono text-slate-600">
+                    Rs {item.line_total}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Group>
+
+          {/* ---- 3. not compared ----------------------------------------- */}
+          <Group
+            title="Not compared"
+            subtitle={notComparedSubtitle}
+            count={notCompared.length}
+            defaultOpen={false}
+          >
+            <ul className="divide-y divide-slate-200 text-sm">
+              {notCompared.map((item) => (
+                <li
+                  key={item.index}
+                  className="flex justify-between gap-3 py-1.5"
+                >
+                  <span>
+                    {item.index}. {item.name}
+                  </span>
+                  <span className="font-mono text-slate-600">
+                    Rs {item.line_total}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Group>
+
+          <div className="flex flex-wrap gap-2 pt-2">
+            <LetterButton
+              onClick={onLetter}
+              busy={busy}
+              label="Write a clarification letter"
+            />
+            <button
+              onClick={() => {
+                setReport(null);
+                setLetter("");
+                setEdits({});
+                setView("upload");
+              }}
+              className="rounded border border-slate-300 px-4 py-2 text-sm"
+            >
+              Check another bill
+            </button>
+          </div>
         </div>
       )}
     </div>

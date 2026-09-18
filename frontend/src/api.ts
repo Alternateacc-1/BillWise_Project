@@ -24,6 +24,7 @@ export type Flag = {
   suggested_question: string;
   explanation: string;
   gray_reason: string | null;
+  gray_detail: string | null;
 };
 
 export type ReportItem = {
@@ -36,6 +37,10 @@ export type ReportItem = {
   confidence: string;
   severity: "red" | "amber" | "green" | "gray";
   gray_reason: string | null;
+  gray_detail: string | null;
+  amount_affected: string;
+  headline: Flag | null;
+  notes: Flag[];
   flags: Flag[];
 };
 
@@ -47,7 +52,13 @@ export type Report = {
   by_item: ReportItem[];
   counts: Record<string, number>;
   bill_level_flags: Flag[];
-  gray_breakdown: { no_public_ceiling: number; could_not_verify: number };
+  gray_breakdown: {
+    no_public_ceiling: number;
+    could_not_read: number;
+    could_not_identify: number;
+  };
+  not_compared_total: number;
+  findings_count: number;
   total_amount_affected: string;
   stats: {
     total_items: number;

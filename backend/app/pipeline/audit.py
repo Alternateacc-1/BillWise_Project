@@ -28,6 +28,7 @@ from .. import config
 from ..models import (
     CeilingMatch,
     Flag,
+    GrayDetail,
     GrayReason,
     ItemCategory,
     NO_CEILING_CATEGORIES,
@@ -49,6 +50,14 @@ def _money(value: Decimal) -> Decimal:
 
 def _pct(value: Decimal) -> Decimal:
     return (value * 100).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+
+def format_unit(qty: Decimal, basis: str) -> str:
+    """"tablet", not "1 tablet". "500 ml" when the quantity carries meaning."""
+    if qty == 1:
+        return basis
+    normalised = qty.normalize()
+    return f"{normalised:f} {basis}"
 
 
 # --------------------------------------------------------------------------
@@ -290,7 +299,7 @@ def rule_r5_above_ceiling(
     evidence = {
         "ceiling_ex_gst": str(ceiling.price_ex_gst),
         "ceiling_per_base_unit": str(ceiling.per_base_unit.quantize(Decimal("0.0001"))),
-        "ceiling_unit": f"{ceiling.unit_qty} {ceiling.unit_basis}",
+        "ceiling_unit": format_unit(ceiling.unit_qty, ceiling.unit_basis),
         "gst_percent": str(config.GST_PERCENT),
         "gst_multiplier": str(config.gst_multiplier()),
         "amber_threshold": str(_money(amber_at)),
@@ -369,7 +378,7 @@ def rule_r5_above_ceiling(
         suggested_question=(
             "Could you share how the rate for this item was arrived at? "
             f"The published ceiling price is Rs {ceiling.price_ex_gst} per "
-            f"{ceiling.unit_qty} {ceiling.unit_basis} excluding taxes, under "
+            f"{format_unit(ceiling.unit_qty, ceiling.unit_basis)} excluding taxes, under "
             f"S.O. {ceiling.so_number} dated {ceiling.so_date}."
         ),
     )
@@ -401,14 +410,31 @@ def rule_r9_gray(item: VerifiedItem, normalized: NormalizedItem) -> Flag:
         )
 
     detail = list(normalized.notes)
+
+    # Reading and identification are different failures and must not be
+    # reported as one. "The two readers disagreed" is not "we do not know what
+    # this medicine is", and a user can act on the first but not the second.
     if not item.is_high:
         detail.append("reading_not_high_confidence")
+        gray_detail = GrayDetail.COULD_NOT_READ
+        explanation = (
+            "We could not read this line reliably, so we have not compared "
+            "its price. It was still checked for duplication and arithmetic."
+        )
+    else:
+        gray_detail = GrayDetail.COULD_NOT_IDENTIFY
+        explanation = (
+            "We read this line clearly, but could not identify which medicine "
+            "it is, so we have not compared its price. It was still checked "
+            "for duplication and arithmetic."
+        )
 
     return Flag(
         rule_id="R9",
         severity=Severity.GRAY,
         item_index=item.index,
         gray_reason=GrayReason.COULD_NOT_VERIFY,
+        gray_detail=gray_detail,
         evidence={
             "category": normalized.category.value,
             "match_type": normalized.match_type.value,
@@ -416,11 +442,7 @@ def rule_r9_gray(item: VerifiedItem, normalized: NormalizedItem) -> Flag:
             "detail": detail,
             "checked_for": ["arithmetic", "duplication"],
         },
-        explanation=(
-            "We could not confidently identify this item, so we have not "
-            "compared its price. It was still checked for duplication and "
-            "arithmetic."
-        ),
+        explanation=explanation,
     )
 
 
@@ -476,7 +498,7 @@ def audit(
                         item_index=item.index,
                         evidence={
                             "ceiling_ex_gst": str(ceiling.price_ex_gst),
-                            "ceiling_unit": f"{ceiling.unit_qty} {ceiling.unit_basis}",
+                            "ceiling_unit": format_unit(ceiling.unit_qty, ceiling.unit_basis),
                             "so_number": ceiling.so_number,
                             "so_date": ceiling.so_date,
                             "ref_id": ceiling.ref_id,

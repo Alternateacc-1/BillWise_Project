@@ -13,7 +13,7 @@ Language rules, non-negotiable (docs/ARCHITECTURE.md):
 
 from __future__ import annotations
 
-from ..models import Flag, GrayReason, Severity
+from ..models import Flag, GrayDetail, GrayReason, Severity
 
 #: Words that must never appear in anything the user reads. Asserted by a test
 #: over every generated explanation.
@@ -111,16 +111,22 @@ def _r4(flag: Flag) -> str:
 
 
 def _r9(flag: Flag) -> str:
-    # The two gray reasons say opposite things and are worded to match.
+    # Three distinct situations, three distinct sentences. The auditor already
+    # chose the right one; repeating the branch here would let them drift.
     if flag.gray_reason is GrayReason.NO_PUBLIC_CEILING:
         return (
             "No public price ceiling exists for this item, so there is no "
             "published rate to compare it against. We checked it for "
             "duplication and arithmetic only."
         )
+    if flag.gray_detail is GrayDetail.COULD_NOT_READ:
+        return (
+            "We could not read this line reliably, so we have not compared "
+            "its price. It was still checked for duplication and arithmetic."
+        )
     return (
-        "We could not confidently identify this item, so we have not compared "
-        "its price against any published ceiling. It was still checked for "
+        "We read this line clearly, but could not identify which medicine it "
+        "is, so we have not compared its price. It was still checked for "
         "duplication and arithmetic."
     )
 
