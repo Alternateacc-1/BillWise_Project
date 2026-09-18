@@ -61,12 +61,83 @@ def format_unit(qty: Decimal, basis: str) -> str:
     return f"{normalised:f} {basis}"
 
 
+
+def _readers_disagreed_on_numbers(item: VerifiedItem) -> bool:
+    """Did the two readers differ on quantity, rate or line total?
+
+    A name disagreement is not enough to silence R1 -- the arithmetic does not
+    depend on the name. A NUMBER disagreement is, because we then do not know
+    which number to do arithmetic with.
+    """
+    return any(
+        r.startswith(("readers_disagree_on_quantity",
+                      "readers_disagree_on_unit_price",
+                      "readers_disagree_on_line_total"))
+        for r in item.reasons
+    )
+
+
+def _line_exceeds_whole_bill(
+    item: VerifiedItem, grand_total: Decimal | None
+) -> bool:
+    """A single line cannot be worth more than the entire bill.
+
+    When it appears to be, OUR READING is wrong -- not the bill. Measured on
+    the deployed stack 2026-09-19: Textract read 72.00 as "7200", and a
+    Rs 7,200 line appeared on a Rs 190 bill. Reporting that as a Rs 7,130
+    arithmetic discrepancy blames the pharmacy for our own lost decimal point.
+
+    Deliberately generous: only fires when the line EXCEEDS the printed total,
+    not when it is merely a large share of it. A single expensive item can
+    legitimately dominate a bill.
+    """
+    if grand_total is None or item.line_total is None:
+        return False
+    return item.line_total > grand_total
+
+
 # --------------------------------------------------------------------------
 # R1 -- line arithmetic
 # --------------------------------------------------------------------------
 
-def rule_r1_line_arithmetic(item: VerifiedItem) -> Flag | None:
+def rule_r1_line_arithmetic(
+    item: VerifiedItem, grand_total: Decimal | None = None
+) -> Flag | None:
+    """Check qty x rate == line total, but ONLY on a line we trust.
+
+    THE CONFIDENCE GATE IS NOT OPTIONAL, and it was missing until 2026-09-19.
+    Measured on the deployed stack: Textract read 7.20 as "7" and 72.00 as
+    "7200" -- a lost decimal point, a 100x error -- and this rule faithfully
+    reported a Rs 7,130 discrepancy on a bill whose true total was Rs 190.
+
+    The arithmetic was correct. The input was nonsense. R5 already refuses to
+    price a line whose confidence is unverified_reading; this rule did not
+    refuse to do arithmetic on one, and THAT ASYMMETRY WAS THE BUG. The
+    two-reader check protects the price rules by catching name disagreement,
+    but two readers cannot disagree about numbers that are internally
+    consistent nonsense, so nothing protected the arithmetic rules.
+
+    A line we could not read reliably cannot support a claim about its own
+    arithmetic. It is already reported as could_not_read; adding a confident
+    rupee figure on top of that says two contradictory things at once.
+
+    THE GATE IS NOT `is_high`, AND THAT MATTERS. verify.py sets HIGH only when
+    `agrees and arithmetic is True and bounds_ok`, so a line whose arithmetic
+    fails is NEVER high confidence -- gating on it would make this rule dead
+    code that can only fire where there is nothing to report. The first
+    attempt at this fix did exactly that and the eval caught it immediately.
+
+    The gate is instead the two things that distinguish a real arithmetic
+    error from a misread:
+      1. the readers AGREED on the numbers -- if they disagree we do not know
+         what the numbers are, so we cannot say the arithmetic is wrong;
+      2. the line is PLAUSIBLE -- see _line_is_implausible().
+    """
     if item.quantity is None or item.unit_price is None or item.line_total is None:
+        return None
+    if _readers_disagreed_on_numbers(item):
+        return None
+    if _line_exceeds_whole_bill(item, grand_total):
         return None
     computed = item.quantity * item.unit_price - item.discount + item.tax
     difference = computed - item.line_total
@@ -103,7 +174,22 @@ def rule_r1_line_arithmetic(item: VerifiedItem) -> Flag | None:
 # R2 -- bill reconciliation
 # --------------------------------------------------------------------------
 
-def rule_r2_bill_total(stats: ReadingStats) -> Flag | None:
+def rule_r2_bill_total(
+    stats: ReadingStats, any_line_implausible: bool = False
+) -> Flag | None:
+    """Reconcile the line sum against the printed total, when both are trusted.
+
+    ABSTAINS when any line was read unreliably. A sum is only as sound as its
+    weakest term: one misread line total poisons it completely, and the
+    resulting "discrepancy" is our own reading error reported as the bill's.
+
+    Measured 2026-09-19 on the deployed stack: a single lost decimal
+    (72.00 -> 7200) produced a false Rs 7,018 reconciliation failure on a
+    Rs 190 bill. Class A's rule at bill level -- a check that cannot run
+    should abstain, not fail.
+    """
+    if any_line_implausible:
+        return None
     if stats.reconciliation is not Reconciliation.MISMATCH:
         return None
     if stats.sum_of_line_totals is None or stats.printed_grand_total is None:
@@ -559,7 +645,14 @@ def audit(
     by_index = {n.index: n for n in normalized}
     flags: list[Flag] = []
 
-    bill_total_flag = rule_r2_bill_total(stats)
+    # A line worth more than the whole bill is a misread, and it poisons both
+    # the line arithmetic and the reconciliation. Computed once, used by both.
+    grand_total = stats.printed_grand_total
+    any_line_implausible = any(
+        _line_exceeds_whole_bill(i, grand_total) for i in items
+    )
+
+    bill_total_flag = rule_r2_bill_total(stats, any_line_implausible)
     if bill_total_flag:
         flags.append(bill_total_flag)
 
@@ -569,7 +662,7 @@ def audit(
     for item in items:
         norm = by_index.get(item.index) or NormalizedItem(index=item.index)
 
-        arithmetic_flag = rule_r1_line_arithmetic(item)
+        arithmetic_flag = rule_r1_line_arithmetic(item, grand_total)
         if arithmetic_flag:
             flags.append(arithmetic_flag)
 

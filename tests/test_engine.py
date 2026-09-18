@@ -605,3 +605,106 @@ def test_config_thresholds_are_the_approved_values():
     assert config.RED_MIN_AMOUNT_AFFECTED == Decimal("50")
     assert config.RED_MAX_RATIO == Decimal("50")
     assert config.PROVIDER == "local"
+
+
+# --------------------------------------------------------------------------
+# A misread line must not become an accusation.
+#
+# These pin behaviour measured on the DEPLOYED stack on 2026-09-19, which is
+# the only reason they exist as concrete numbers rather than invented ones.
+# --------------------------------------------------------------------------
+
+def _bill_from(items, printed_total):
+    from app.models import ReaderOutput
+    return BillInput(
+        bill_id="t", hospital_name="", bill_date="",
+        reader_a=ReaderOutput(source="textract", items=items,
+                              printed_grand_total=printed_total),
+    )
+
+
+def _run(bill):
+    from app.pipeline.audit import audit
+    from app.pipeline.normalize import normalize_bill
+    from app.pipeline.verify import verify_bill
+    verified, stats = verify_bill(bill)
+    return audit(verified, normalize_bill(verified), stats)
+
+
+def test_a_lost_decimal_point_does_not_become_an_arithmetic_accusation():
+    """REGRESSION, from real Textract output on eval/demo_bills/bill_05.jpg.
+
+    Textract read 7.20 as "7" and 72.00 as "7200" -- a lost decimal point, a
+    100x error. R1 then reported a Rs 7,130 discrepancy and R2 a Rs 7,018 one,
+    on a bill whose printed total is Rs 190. Total amount affected came to
+    Rs 14,148.80 on a Rs 190 bill.
+
+    Both were arithmetically correct and both blamed the pharmacy for our own
+    reading error. A single line cannot be worth more than the whole bill;
+    when it appears to be, WE are wrong.
+    """
+    items = [
+        ReaderItem(index=1, name="Paracetamol 500mg Tablet",
+                   quantity=Decimal("10"), unit_price=Decimal("0.88"),
+                   line_total=Decimal("8.80"), confidence=Decimal("99.27")),
+        ReaderItem(index=2, name="Amaricillin 500mg Cap",
+                   quantity=Decimal("10"), unit_price=Decimal("7"),
+                   line_total=Decimal("7200"), confidence=Decimal("97.85")),
+    ]
+    flags = _run(_bill_from(items, Decimal("190")))
+
+    assert not [f for f in flags if f.rule_id == "R1"], (
+        "R1 fired on a line worth more than the entire bill"
+    )
+    assert not [f for f in flags if f.rule_id == "R2"], (
+        "R2 reconciled against a sum poisoned by a misread line"
+    )
+    assert sum(Decimal(str(f.amount_affected)) for f in flags) == 0
+
+    misread = [f for f in flags if f.item_index == 2]
+    assert misread and misread[0].severity is Severity.GRAY
+    assert misread[0].gray_detail is GrayDetail.COULD_NOT_READ
+
+
+def test_a_genuine_arithmetic_error_is_still_caught():
+    """The counterpart. The gate must not silence real findings.
+
+    The first version of this fix gated R1 on `is_high`, which is CIRCULAR:
+    verify.py only grants HIGH when `arithmetic is True`, so R1 could never
+    fire on a line that had an arithmetic error -- it became dead code. The
+    eval caught it. This test makes that mistake impossible to repeat.
+
+    Here both readers agree on every number and the line is plausible, so the
+    discrepancy is the BILL's and we say so.
+    """
+    items = [
+        ReaderItem(index=1, name="Pantop 40mg Tablet", quantity=Decimal("10"),
+                   unit_price=Decimal("12.50"), line_total=Decimal("130.00"),
+                   confidence=Decimal("95")),
+    ]
+    flags = _run(_bill_from(items, Decimal("130.00")))
+
+    r1 = [f for f in flags if f.rule_id == "R1"]
+    assert r1, "a real arithmetic error on a well-read line must still flag"
+    assert r1[0].amount_affected == Decimal("5.00")
+
+
+def test_r1_abstains_when_the_readers_disagree_on_the_numbers():
+    """A name disagreement is not enough to silence R1 -- arithmetic does not
+    depend on the name. A NUMBER disagreement is, because we then do not know
+    which number to compute with."""
+    from app.models import ReaderOutput
+    a = ReaderItem(index=1, name="Paracetamol 500mg Tablet",
+                   quantity=Decimal("10"), unit_price=Decimal("12.50"),
+                   line_total=Decimal("130.00"), confidence=Decimal("95"))
+    b = ReaderItem(index=1, name="Paracetamol 500mg Tablet",
+                   quantity=Decimal("10"), unit_price=Decimal("12.50"),
+                   line_total=Decimal("125.00"), confidence=Decimal("95"))
+    bill = BillInput(
+        bill_id="t", hospital_name="", bill_date="",
+        reader_a=ReaderOutput(source="textract", items=[a],
+                              printed_grand_total=Decimal("130.00")),
+        reader_b=ReaderOutput(source="vision", items=[b],
+                              printed_grand_total=Decimal("130.00")),
+    )
+    assert not [f for f in _run(bill) if f.rule_id == "R1"]
