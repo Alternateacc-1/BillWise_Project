@@ -1,0 +1,43 @@
+# --- secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials
+aws_credentials
+.aws/
+
+# --- python ---
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# --- node / frontend ---
+node_modules/
+frontend/dist/
+.vite/
+
+# --- downloaded data (not ours to redistribute) ---
+data/raw/brands/
+
+# --- local runtime artefacts ---
+data/blobs/
+*.sqlite
+*.sqlite3
+*.db
+.aws-sam/
+samconfig.toml
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

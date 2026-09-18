@@ -1,0 +1,750 @@
+{
+  "ceiling": {
+    "0.1 ml": {
+      "ml": 2
+    },
+    "1 Capsule": {
+      "capsule": 86
+    },
+    "1 Capsule)( Pack": {
+      "capsule": 2
+    },
+    "1 Condom": {
+      "unit": 1
+    },
+    "1 Dose": {
+      "dose": 2
+    },
+    "1 GM": {
+      "gm": 32
+    },
+    "1 GM)( Pack": {
+      "gm": 1
+    },
+    "1 Gum": {
+      "unit": 2
+    },
+    "1 IUD": {
+      "unit": 2
+    },
+    "1 Lozenges": {
+      "unit": 2
+    },
+    "1 ML": {
+      "ml": 220
+    },
+    "1 ML (10 ML & more pack)": {
+      "ml": 2
+    },
+    "1 ML (Less than 10 ML Pack)": {
+      "ml": 1
+    },
+    "1 ML)( Pack": {
+      "ml": 10
+    },
+    "1 Pastille": {
+      "unit": 2
+    },
+    "1 Pessary": {
+      "unit": 1
+    },
+    "1 Suppository": {
+      "suppository": 5
+    },
+    "1 Tablet": {
+      "tablet": 334
+    },
+    "1 Tablet)( Pack": {
+      "tablet": 18
+    },
+    "1 Unit": {
+      "unit": 2
+    },
+    "1 gm or 1 ml": {
+      "other": 1
+    },
+    "1 gm or 1 ml)( Pack": {
+      "other": 1
+    },
+    "10 ml Pack": {
+      "ml": 1
+    },
+    "10 ml Pack)( Pack": {
+      "ml": 1
+    },
+    "1000ml Glass": {
+      "ml": 3
+    },
+    "1000ml Non-Glass": {
+      "ml": 3
+    },
+    "100ml Glass": {
+      "ml": 3
+    },
+    "100ml Non-Glass": {
+      "ml": 3
+    },
+    "2 ML Pack": {
+      "ml": 4
+    },
+    "20 ML Pack)(1 ML Pack": {
+      "other": 1
+    },
+    "250ml Glass": {
+      "ml": 3
+    },
+    "250ml Non-Glass": {
+      "ml": 3
+    },
+    "500ml Glass": {
+      "ml": 3
+    },
+    "500ml Non-Glass": {
+      "ml": 3
+    },
+    "Combi Pack": {
+      "pack": 5
+    },
+    "Cubic Meter": {
+      "cubic_meter": 3
+    },
+    "Each Dose)( Pack": {
+      "dose": 1
+    },
+    "Each Pack": {
+      "ml": 4,
+      "pack": 11
+    },
+    "Each Pack (0.5ml)": {
+      "ml": 3
+    },
+    "Each Pack (1 ml)": {
+      "ml": 1
+    },
+    "Each Pack (10 ML)": {
+      "ml": 2
+    },
+    "Each Pack (1000 ml)": {
+      "ml": 1
+    },
+    "Each Pack (1000 ml))( Pack": {
+      "ml": 1
+    },
+    "Each Pack (20 ml)": {
+      "ml": 2
+    },
+    "Each Pack (3 ml)": {
+      "ml": 1
+    },
+    "Each Pack (30 ml)": {
+      "ml": 2
+    },
+    "Each Pack (4 ml)": {
+      "ml": 1
+    },
+    "Each Pack (5 ml)": {
+      "ml": 4
+    },
+    "Each Pack (500 ml)": {
+      "ml": 1
+    },
+    "Each Pack (500 ml))( Pack": {
+      "ml": 1
+    },
+    "Each Pack (7 ml)": {
+      "ml": 1
+    },
+    "Each Pack)( Pack": {
+      "pack": 1
+    },
+    "Each Vial": {
+      "vial": 81
+    },
+    "Each Vial)( Pack": {
+      "vial": 11
+    },
+    "Per 0.1 ml": {
+      "ml": 1
+    },
+    "Per 0.5 ml": {
+      "ml": 1
+    },
+    "Per Dose": {
+      "dose": 7
+    },
+    "Per Metered Dose": {
+      "dose": 5
+    },
+    "Per Metered Dose)( Pack": {
+      "dose": 2
+    },
+    "Per mg of Phospholipids in the pack": {
+      "other": 1
+    }
+  },
+  "retail_new_drug": {
+    "(Eye drops)": {
+      "other": 1
+    },
+    "1": {
+      "other": 1
+    },
+    "1 Capsule": {
+      "capsule": 225
+    },
+    "1 Cmbikit": {
+      "other": 1
+    },
+    "1 GM": {
+      "gm": 15
+    },
+    "1 Gm": {
+      "gm": 3
+    },
+    "1 Gram": {
+      "gm": 12
+    },
+    "1 Injection": {
+      "other": 1
+    },
+    "1 Kit": {
+      "unit": 1
+    },
+    "1 ML": {
+      "ml": 105
+    },
+    "1 ML Pack": {
+      "ml": 1
+    },
+    "1 Metered Dose": {
+      "other": 1
+    },
+    "1 Orally Disintegrating Strip": {
+      "other": 1
+    },
+    "1 Orally disintegrating Strips": {
+      "other": 3
+    },
+    "1 Pack": {
+      "pack": 3
+    },
+    "1 Sachet": {
+      "unit": 3
+    },
+    "1 Strip": {
+      "other": 1
+    },
+    "1 Suppository": {
+      "suppository": 4
+    },
+    "1 Tablet": {
+      "tablet": 2428
+    },
+    "1 Tablets": {
+      "tablet": 13
+    },
+    "1 Vaginal Film": {
+      "other": 1
+    },
+    "1 Vial": {
+      "vial": 35
+    },
+    "1 capsule": {
+      "capsule": 8
+    },
+    "1 gm": {
+      "gm": 13
+    },
+    "1 gm Sachet": {
+      "gm": 1
+    },
+    "1 gram": {
+      "gm": 2
+    },
+    "1 kit": {
+      "unit": 2
+    },
+    "1 meterede dose": {
+      "other": 1
+    },
+    "1 ml": {
+      "ml": 171
+    },
+    "1 ml/ Suspension": {
+      "ml": 3
+    },
+    "1 ml/ drop": {
+      "ml": 1
+    },
+    "1 ml/ suspension": {
+      "ml": 1
+    },
+    "1 pack": {
+      "pack": 1
+    },
+    "1 sachet": {
+      "unit": 1
+    },
+    "1 tablet": {
+      "tablet": 27
+    },
+    "1 vial": {
+      "vial": 18
+    },
+    "10 Capsule": {
+      "capsule": 4
+    },
+    "10 ML vial": {
+      "ml": 1
+    },
+    "10 Tablet": {
+      "tablet": 7
+    },
+    "10 Tablets": {
+      "tablet": 6
+    },
+    "10 tablet": {
+      "tablet": 2
+    },
+    "10 tablets": {
+      "tablet": 7
+    },
+    "10' Tablet": {
+      "other": 1
+    },
+    "10's Tablets": {
+      "tablet": 3
+    },
+    "100 ml": {
+      "ml": 1
+    },
+    "100ml Pack": {
+      "ml": 1
+    },
+    "15 GM": {
+      "gm": 1
+    },
+    "15 Tablet": {
+      "tablet": 1
+    },
+    "15gm onitment": {
+      "gm": 1
+    },
+    "1ML": {
+      "ml": 3
+    },
+    "1Vial": {
+      "vial": 1
+    },
+    "1gm": {
+      "gm": 3
+    },
+    "1gm Sachet": {
+      "gm": 1
+    },
+    "1ml": {
+      "ml": 6
+    },
+    "2 ML": {
+      "ml": 2
+    },
+    "2 ML (Each Pack)": {
+      "ml": 2
+    },
+    "2 ML Pack": {
+      "ml": 2
+    },
+    "2 ml Pack": {
+      "ml": 1
+    },
+    "20 ML Vial": {
+      "ml": 2
+    },
+    "200 metred dose": {
+      "other": 1
+    },
+    "200ml Pack": {
+      "ml": 1
+    },
+    "25 GM": {
+      "gm": 1
+    },
+    "25 ML vial": {
+      "ml": 1
+    },
+    "28 Tablets": {
+      "tablet": 1
+    },
+    "28's Tablet": {
+      "tablet": 9
+    },
+    "28’s Tablets": {
+      "tablet": 3
+    },
+    "2gm Sachet": {
+      "gm": 1
+    },
+    "2ml pack size Repsule": {
+      "ml": 2
+    },
+    "30 GM": {
+      "gm": 1
+    },
+    "30ml Lotion": {
+      "ml": 1
+    },
+    "40 GM": {
+      "gm": 1
+    },
+    "5 ML/Vial": {
+      "ml": 2
+    },
+    "5000ml Pack": {
+      "ml": 1
+    },
+    "500ml Pack": {
+      "ml": 1
+    },
+    "55 GM": {
+      "gm": 1
+    },
+    "5ML": {
+      "ml": 1
+    },
+    "5ml Ampoule": {
+      "ml": 1
+    },
+    "60 GM": {
+      "gm": 1
+    },
+    "<empty>": {
+      "other": 2
+    },
+    "Capsule": {
+      "capsule": 88
+    },
+    "Capsules": {
+      "capsule": 2
+    },
+    "Combi Pack of 6 Tablets": {
+      "pack": 1
+    },
+    "Combi kit pack": {
+      "other": 1
+    },
+    "Cream": {
+      "other": 11
+    },
+    "Drop": {
+      "other": 1
+    },
+    "Drops": {
+      "other": 14
+    },
+    "Dry Syrup": {
+      "other": 1
+    },
+    "Each 200ml Pack": {
+      "ml": 1
+    },
+    "Each 2ml Pack": {
+      "ml": 1
+    },
+    "Each 50 ml Pack": {
+      "ml": 1
+    },
+    "Each Combi Pack": {
+      "pack": 1
+    },
+    "Each Pack": {
+      "pack": 25
+    },
+    "Each Pack (10 gram)": {
+      "pack": 1
+    },
+    "Each Pack (120mg/3 ml)": {
+      "pack": 1
+    },
+    "Each Pack (15 gram)": {
+      "pack": 1
+    },
+    "Each Pack (20 gram)": {
+      "pack": 1
+    },
+    "Each Pack (2gm)": {
+      "gm": 1
+    },
+    "Each Pack (30 gram)": {
+      "pack": 1
+    },
+    "Each Strip": {
+      "other": 1
+    },
+    "Each Strip of 6 Tablets": {
+      "other": 1
+    },
+    "Each pack": {
+      "pack": 3
+    },
+    "Each pack of 1.25ml": {
+      "pack": 1
+    },
+    "Each vial": {
+      "vial": 1
+    },
+    "Eye Drops": {
+      "other": 3
+    },
+    "Eye drop": {
+      "other": 2
+    },
+    "Gargle": {
+      "other": 2
+    },
+    "Gel": {
+      "other": 13
+    },
+    "I Vial": {
+      "other": 1
+    },
+    "I ml": {
+      "other": 1
+    },
+    "Infusion": {
+      "other": 12
+    },
+    "Inhaler": {
+      "other": 1
+    },
+    "Injection": {
+      "other": 45
+    },
+    "Injetion": {
+      "other": 1
+    },
+    "Kit": {
+      "unit": 1
+    },
+    "Large Volume Parentral (Infusion)": {
+      "other": 1
+    },
+    "Liquid": {
+      "other": 1
+    },
+    "Ointment": {
+      "other": 9
+    },
+    "Oral Liquid / Reday to Drink oral solution": {
+      "other": 1
+    },
+    "Oral Solution": {
+      "other": 3
+    },
+    "Oral Suspension": {
+      "other": 6
+    },
+    "Oral Suspenssion": {
+      "other": 1
+    },
+    "Pack of 100ml": {
+      "pack": 1
+    },
+    "Pack of 55gm": {
+      "pack": 1
+    },
+    "Patch": {
+      "other": 4
+    },
+    "Per 100ml Pack": {
+      "ml": 3
+    },
+    "Per 1ml Pack": {
+      "ml": 1
+    },
+    "Per 2 ml": {
+      "ml": 1
+    },
+    "Per 200ml Pack": {
+      "ml": 1
+    },
+    "Per 2ml Respule": {
+      "ml": 1
+    },
+    "Per 500ml Pack": {
+      "ml": 1
+    },
+    "Per Combi Pack": {
+      "pack": 1
+    },
+    "Per DPI": {
+      "other": 2
+    },
+    "Per GM for 25gm Pack": {
+      "gm": 1
+    },
+    "Per GM for 55gm Pack": {
+      "gm": 1
+    },
+    "Per Gm": {
+      "gm": 4
+    },
+    "Per Gram": {
+      "gm": 1
+    },
+    "Per MDI": {
+      "other": 1
+    },
+    "Per ML": {
+      "ml": 4
+    },
+    "Per Metered dose": {
+      "dose": 1
+    },
+    "Per Pack": {
+      "pack": 4
+    },
+    "Per Pack having 2 prefilled syringe of 1 ML Each": {
+      "pack": 1
+    },
+    "Per Pulmule 2 ml": {
+      "other": 1
+    },
+    "Per Strip": {
+      "other": 1
+    },
+    "Per Tablet": {
+      "tablet": 1
+    },
+    "Per Vial": {
+      "vial": 2
+    },
+    "Per ml": {
+      "ml": 16
+    },
+    "Per ml Spray": {
+      "ml": 1
+    },
+    "Per ml Suspension": {
+      "ml": 1
+    },
+    "Per pack of 120 MDI": {
+      "pack": 1
+    },
+    "Powder for Oral Suspension": {
+      "other": 1
+    },
+    "Respules": {
+      "other": 1
+    },
+    "Sachet": {
+      "unit": 1
+    },
+    "Solution": {
+      "other": 3
+    },
+    "Spray": {
+      "other": 2
+    },
+    "Sryup": {
+      "other": 1
+    },
+    "Strip": {
+      "other": 10
+    },
+    "Suppository": {
+      "suppository": 1
+    },
+    "Suspanssion": {
+      "other": 1
+    },
+    "Suspension": {
+      "other": 36
+    },
+    "Suspension (60 ml)": {
+      "other": 1
+    },
+    "Suspenssion": {
+      "other": 1
+    },
+    "Syrup": {
+      "other": 6
+    },
+    "Tablet": {
+      "tablet": 269
+    },
+    "Tablets": {
+      "tablet": 1
+    },
+    "Topical Spray": {
+      "other": 2
+    },
+    "Tube": {
+      "other": 1
+    },
+    "Vial": {
+      "vial": 4
+    },
+    "injection": {
+      "other": 3
+    },
+    "ophthalmic solution": {
+      "other": 1
+    },
+    "per 100 ml pack": {
+      "ml": 2
+    },
+    "per 2ml respule": {
+      "ml": 1
+    },
+    "per gm": {
+      "gm": 1
+    },
+    "per ml": {
+      "ml": 1
+    },
+    "per vial": {
+      "vial": 3
+    },
+    "per vial of 2ml": {
+      "vial": 1
+    },
+    "syrup": {
+      "other": 1
+    }
+  },
+  "special_feature": {
+    "1 ML": {
+      "ml": 1
+    },
+    "1 ML)( Pack": {
+      "ml": 5
+    },
+    "1000ml Non Glass with special features": {
+      "ml": 3
+    },
+    "100ml Non Glass with special features": {
+      "ml": 1
+    },
+    "250ml Non Glass with special features": {
+      "ml": 1
+    },
+    "500ml Non Glass with special features": {
+      "ml": 3
+    },
+    "Each 100 ml pack having special features": {
+      "ml": 1
+    },
+    "Each 1000 ml pack having special features": {
+      "ml": 1
+    },
+    "Each 250 ml pack having special features": {
+      "ml": 1
+    },
+    "Each 500 ml pack having special features": {
+      "ml": 1
+    },
+    "Per Dual chamber bag with special feature)( Pack": {
+      "pack": 4
+    }
+  }
+}

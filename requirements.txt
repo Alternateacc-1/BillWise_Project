@@ -1,0 +1,30 @@
+# BillSahi backend. Python 3.12 (matches the AWS Lambda runtime ceiling).
+# All packages are free and OSI-licensed.
+#
+# Versions below are the ones actually resolved and tested on 2026-09-18 --
+# read out of the venv, never hand-written. To upgrade: install unpinned in a
+# scratch venv, run the full test suite, then re-freeze.
+
+# --- data preparation (Phase 0) ---
+pdfplumber==0.11.10        # MIT  - special-feature PDF table extraction
+
+# --- matching (Phase 1) ---
+rapidfuzz==3.14.6          # MIT  - fuzzy name matching, native, no network
+
+# --- api (Phase 3) ---
+fastapi==0.141.1           # MIT
+uvicorn==0.53.0            # BSD-3
+pydantic==2.13.5           # MIT
+python-multipart==0.0.32   # Apache-2.0 - multipart upload parsing
+mangum==0.22.0             # ISC  - FastAPI -> Lambda adapter
+
+# --- aws adapters (Phase 4) ---
+boto3==1.43.97             # Apache-2.0
+
+# --- demo bill generation (Phase 2) ---
+reportlab==5.0.1           # BSD-3
+pillow==12.3.0             # MIT-CMU
+
+# --- dev / test ---
+pytest==9.1.1              # MIT
+httpx==0.28.1              # BSD-3

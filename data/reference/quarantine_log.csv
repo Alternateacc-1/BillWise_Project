@@ -1,0 +1,237 @@
+ref_id,source,reason,formulation_raw,unit_basis_raw,price_cell_raw
+CEIL-0138,ceiling,unit_unmappable,Tramadol,20 ML Pack)(1 ML Pack,1.59
+CEIL-0593,ceiling,unit_unmappable,LIDOCAINE,1 gm or 1 ml)( Pack,1.11
+CEIL-0721,ceiling,unit_unmappable,PERMETHRIN,1 gm or 1 ml,1.03
+CEIL-0833,ceiling,unit_unmappable,SURFACTANT,Per mg of Phospholipids in the pack,80.89
+RETL-0008,retail_new_drug,unit_unmappable,Amoxycillin +Clavulanic Acid Dry Syrup/Suspension (Clamchek Forte D.S.),Sryup,2.85
+RETL-0011,retail_new_drug,unit_unmappable,Ceftriaxone Sodium + Sulbactum Sodium Injection,Injection,110.99
+RETL-0013,retail_new_drug,unit_unmappable,Paracetamol Drops (Macfast Drops),Drops,1.21
+RETL-0014,retail_new_drug,unit_unmappable,Cefixime Drops (Cefolac Drops),Drops,3.49
+RETL-0049,retail_new_drug,unit_unmappable,Cefixime Oral Suspension IP 100 mg,Suspension,2.11
+RETL-0052,retail_new_drug,unit_unmappable,Superspas-RF Injection.,Injection,8.06
+RETL-0056,retail_new_drug,unit_unmappable,Choline Salicylate + Lignocain Hcl gel,Gel,3.26
+RETL-0068,retail_new_drug,unit_unmappable,Artesunate Injection,Injection,180.04
+RETL-0073,retail_new_drug,unit_unmappable,"Nadifloxacin, Mometasone Furoate and Miconazole Nitrate Cream",Tube,6.37
+RETL-0074,retail_new_drug,unit_unmappable,Paracetamol 250 mg & Mefenamic Acid 100 mg Suspension,Suspension,0.59
+RETL-0079,retail_new_drug,unit_unmappable,Zydol-P suspension,Suspension,0.45
+RETL-0094,retail_new_drug,unit_unmappable,Lilxapla (Oxaliplatin) injection 100mg/vial,Injection,4178.11
+RETL-0095,retail_new_drug,unit_unmappable,Pacimol MF Suspension,Suspension,0.59
+RETL-0096,retail_new_drug,unit_unmappable,Dicyclomine HCl- 10mg & Diclofenac Sodium 25mg Iinjection,Injection,8.06
+RETL-0098,retail_new_drug,unit_unmappable,Cyclosporine Microemulsion Eye Drops (Cyclodrop),Drop,109.6
+RETL-0101,retail_new_drug,unit_unmappable,Cetirizine HCL + Paracetamol +Phenylepherin HCL Suspension,Suspension,0.35
+RETL-0110,retail_new_drug,unit_unmappable,Paracetamol infusion 1000mg/100ml,Infusion,2.1
+RETL-0111,retail_new_drug,unit_unmappable,Paracetamol infusion 1000mg/100ml,Infusion,2.1
+RETL-0117,retail_new_drug,unit_unmappable,Gatifloxacin 3mg + Prednisolone Acetate 10mg + Benzalkonium Chloride Drops 0.01% (Eye drops).,(Eye drops),2.47
+RETL-0123,retail_new_drug,unit_unmappable,(Zuventdine OZ ointment),Ointment,3
+RETL-0131,retail_new_drug,unit_unmappable,(Clobetavate NM 10gms cream).,Cream,2.06
+RETL-0132,retail_new_drug,unit_unmappable,(Cyclosporine eye Drop 0.05%),Eye drop,266.25
+RETL-0134,retail_new_drug,unit_unmappable,Clobetavate GM 10gm cream,Cream,1.77
+RETL-0136,retail_new_drug,unit_unmappable,Ceftriaxone & Sulbactam injection,Injection,38.77
+RETL-0140,retail_new_drug,unit_unmappable,Ceftriaxone + Sulbactam Injection (XONE SB 250mg injection),Injection,38.77
+RETL-0141,retail_new_drug,unit_unmappable,Ceftriaxone + Sulbactam Injection (XONE SB 1 gm),Injection,98.69
+RETL-0143,retail_new_drug,unit_unmappable,Cefixime Drops/ Oral Suspension (Novafex Drops),Drops,3.7
+RETL-0145,retail_new_drug,unit_unmappable,Trusten O Dry Syrup,Syrup,1.39
+RETL-0152,retail_new_drug,unit_unmappable,Ranitidine Oral Solution,Solution,0.52
+RETL-0153,retail_new_drug,unit_unmappable,Ranitidine Oral Solution,Solution,0.52
+RETL-0154,retail_new_drug,unit_unmappable,Brimonidine tartrate + Timllol maleate Eye Drops,Drops,108.4
+RETL-0155,retail_new_drug,unit_unmappable,Cyclosporine Eye Drop 0.1%,Drops,212.88
+RETL-0171,retail_new_drug,unit_unmappable,Diclotal – AQ injection,Injection,14
+RETL-0172,retail_new_drug,unit_unmappable,Novafex 100 Dry Syrup,Suspension,2.1
+RETL-0175,retail_new_drug,unit_unmappable,"Salbutamol Sulphate Inhaler 100mcg/dose, 200metered dose with dose counter",200 metred dose,121.08
+RETL-0180,retail_new_drug,unit_unmappable,Emeset Fast 4mg,Strip,5.56
+RETL-0181,retail_new_drug,unit_unmappable,Emeset Fast 8mg,Strip,12.61
+RETL-0182,retail_new_drug,unit_unmappable,Azithromycin Oral Suspension,Suspension,2.68
+RETL-0183,retail_new_drug,unit_unmappable,Koolpara DS suspension,Suspension (60 ml),26.5
+RETL-0188,retail_new_drug,unit_unmappable,Zincoderm- S 6% Ointment,Ointment,3.27
+RETL-0189,retail_new_drug,unit_unmappable,Zincoderm – N ointment,Ointment,3
+RETL-0190,retail_new_drug,unit_unmappable,Zincoderm – NM cream,Cream,2.27
+RETL-0191,retail_new_drug,unit_unmappable,Rovate GM Neo Cream,Cream,2.27
+RETL-0194,retail_new_drug,unit_unmappable,OLTEF 100 suspension,Suspension,1.03
+RETL-0195,retail_new_drug,unit_unmappable,Trusten S Injection,Injection,98.69
+RETL-0197,retail_new_drug,unit_unmappable,Galoxin OZ suspension,Suspension,0.99
+RETL-0200,retail_new_drug,unit_unmappable,Paracetamol Infusion 1% w/v,Infusion,2.1
+RETL-0201,retail_new_drug,unit_unmappable,Mannitol Injection,Injection,26.25
+RETL-0202,retail_new_drug,unit_unmappable,Mannitol Injection,Injection,91.88
+RETL-0203,retail_new_drug,unit_unmappable,Domperidone Oral Dro,Drops,4.51
+RETL-0213,retail_new_drug,unit_unmappable,Diclofenac Sodium Injection (Superspas –AQ Injection),Injection,14.3
+RETL-0216,retail_new_drug,unit_unmappable,Clotrimazole Cream,Cream,2.82
+RETL-0218,retail_new_drug,unit_unmappable,Paracetamol Infusion 10mg/ml,Infusion,2.1
+RETL-0223,retail_new_drug,unit_unmappable,Vanking Infusion,Infusion,256.3
+RETL-0224,retail_new_drug,unit_unmappable,Diclofenac Transdermal Patch,Patch,42
+RETL-0225,retail_new_drug,price_unparseable,Pantop OX Gel 200ml (Anesthetic Antacid Gel),Gel,
+RETL-0226,retail_new_drug,unit_unmappable,Pantop MPS Liquid 200ml (Antacid Antigas Liquid),Liquid,0.29
+RETL-0227,retail_new_drug,unit_unmappable,Delcid O suspension,Suspension,0.38095
+RETL-0228,retail_new_drug,unit_unmappable,Fluconazole Injection USP 2mg/ml,Injection,1.06
+RETL-0239,retail_new_drug,unit_unmappable,Sodium Fusidate and Beclomethasone Dipropionate cream,Cream,9.42
+RETL-0242,retail_new_drug,unit_unmappable,Cefaclass Injection,Injection,41.96
+RETL-0243,retail_new_drug,unit_unmappable,Cefaclass Dry Syrup,Dry Syrup,1.39
+RETL-0245,retail_new_drug,unit_unmappable,HAEMIRON XT suspension,Suspension,135
+RETL-0246,retail_new_drug,unit_unmappable,Emeset Fast 2mg,Strip,8.04
+RETL-0249,retail_new_drug,unit_unmappable,Paracetamol Paediatric Oral Suspension,Suspension,0.94
+RETL-0251,retail_new_drug,unit_unmappable,Mikagem-500 injection,Injection,54.87
+RETL-0252,retail_new_drug,unit_unmappable,Mikagem-100 injection,Injection,15.98
+RETL-0253,retail_new_drug,unit_unmappable,Linseed Oil + Diclofenac + Methyl Salicylate & Menthol Gel,Gel,2.11
+RETL-0254,retail_new_drug,unit_unmappable,Linseed Oil + Diclofenac + Methyl Salicylate & Menthol Gel,Gel,2.11
+RETL-0258,retail_new_drug,unit_unmappable,Ifimol IV 100ml Infusion I.V.,Infusion,2.06
+RETL-0264,retail_new_drug,unit_unmappable,Clobetasol + Neomycin + Miconazole Cream,Cream,2.27
+RETL-0265,retail_new_drug,unit_unmappable,Azithromycin Oral Suspension 200mg/5ml,Suspension,2.68
+RETL-0266,retail_new_drug,unit_unmappable,ATM Junior Suspension,Suspension,2.68
+RETL-0270,retail_new_drug,unit_unmappable,Halobetasol Propionate and Salicylic Acid Ointment,Ointment,9.99
+RETL-0271,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strips 4 mg,Strip,9.11
+RETL-0272,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strips 4 mg,Strip,9.11
+RETL-0273,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strips 4 mg,Strip,9.11
+RETL-0274,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strips 4 mg,Strip,9.11
+RETL-0275,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strips 4 mg,Strip,9.11
+RETL-0276,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strip 8mg,Strip,14.14
+RETL-0277,retail_new_drug,unit_unmappable,Ondansetron Orally Disintegrating Strip 8mg,Strip,14.14
+RETL-0278,retail_new_drug,unit_unmappable,Meganeuron Forte Injection,Injection,26.5
+RETL-0279,retail_new_drug,unit_unmappable,Lipid based Amphotericin B Gel 0.1% tube,Gel,200
+RETL-0281,retail_new_drug,unit_unmappable,Azithromycin and Dexamethosone Phosphate Eye Drops,Eye drop,76.02
+RETL-0286,retail_new_drug,unit_unmappable,Sodium Chloride + Sodium Citrate + Potassium Chloride + Dextrose Anhydrous Oral Liquid / Oral Rehydration Salt Elecxir (Ready to Drink Oral Rehydration salt (ORS),Oral Liquid / Reday to Drink oral solution,0.14
+RETL-0287,retail_new_drug,unit_unmappable,Clobetasol Propionate + Salicylic Acid Ointment,Ointment,4.33
+RETL-0288,retail_new_drug,unit_unmappable,Dextrometharphan HBr+Chlorphenaramine Maleate syrup (Sudin D+),Syrup,50
+RETL-0289,retail_new_drug,unit_unmappable,Diclofenac sodium + Benzyl Alcohol injection (New Rhumacort),injection,14.3
+RETL-0292,retail_new_drug,unit_unmappable,Ampilox CV 457 syrup,syrup,3.03
+RETL-0301,retail_new_drug,unit_unmappable,Terbinaforce-Lite Cream,Cream,3.32
+RETL-0302,retail_new_drug,unit_unmappable,Pegylated Liposomal Doxorubicin injection,injection,754.26
+RETL-0304,retail_new_drug,unit_unmappable,Travoprost & Timolol Maleate ophthalmic solution,ophthalmic solution,131
+RETL-0306,retail_new_drug,unit_unmappable,Adapalene 0.1% w/w and Benzoyl Peroxide 2.5% w/w Gel,Gel,18.1
+RETL-0310,retail_new_drug,unit_unmappable,Dextromethorphan Hydrobromide 10mg + Chlorpheniramine Maleate 2mg syrup,Syrup,0.5
+RETL-0311,retail_new_drug,unit_unmappable,Paclitaxel (Protein bound particle) for injectable suspension,Injection,11590
+RETL-0313,retail_new_drug,unit_unmappable,(Volitra AQ) injection,Injection,14.3
+RETL-0321,retail_new_drug,unit_unmappable,Clindamycin Phosphate + Hydrous Benzoyl Peroxide Gel,Gel,13.31
+RETL-0324,retail_new_drug,unit_unmappable,(Paralup IV) injection,Injection,206
+RETL-0340,retail_new_drug,unit_unmappable,Diclonac Injection,injection,14.3
+RETL-0343,retail_new_drug,unit_unmappable,(VOMI Spray),Spray,199
+RETL-0393,retail_new_drug,unit_unmappable,Arbivit – 3 Forte Drops,Drops,4.33
+RETL-0394,retail_new_drug,unit_unmappable,Zytaz-T Injection,Injection,268.45
+RETL-0563,retail_new_drug,price_withdrawn,Metformin + Glimepiride + Pioglitazone Tablets,1 Tablet,
+RETL-0564,retail_new_drug,price_withdrawn,Metformin + Glimepiride + Pioglitazone Tablets,1 Tablet,
+RETL-0613,retail_new_drug,unit_missing,Olmesartan Medoxomil + Amlodipine + Tablet,,12.87
+RETL-0653,retail_new_drug,unit_unmappable,Vitamin D3 (Cholecalciferol) (D-RISE SURE),1 Orally Disintegrating Strip,24.76
+RETL-0899,retail_new_drug,unit_missing,"Diphtheria Toxoid + Tetanus Toxoid + Inactivated w-B. pertussis bulk + Hib (PRP- TT) (Hib PRP Conjugated with carrier protein Tetanus Toxoid) + Aluminium content (A13+) (as Aluminium Phosphate Gel) + Thiomersal 0.025mg,",,340.15
+RETL-0913,retail_new_drug,unit_unmappable,Escitalopram Oxalate + Clonazepam (Recita LD) Tablet,10' Tablet,5.88
+RETL-0971,retail_new_drug,unit_unmappable,Melzap ODS 0.5 Orally disintegrating Strips,1 Orally disintegrating Strips,5.33
+RETL-0972,retail_new_drug,unit_unmappable,Melzap ODS 1 Orally disintegrating Strips,1 Orally disintegrating Strips,7.25
+RETL-0973,retail_new_drug,unit_unmappable,Melzap ODS 2 Orally disintegrating Strips,1 Orally disintegrating Strips,13.05
+RETL-1013,retail_new_drug,unit_unmappable,"Clarithromycin tablet, Esomeprazole Tablet, Amoxycillin Tablet",Per Strip,136.8
+RETL-1185,retail_new_drug,unit_unmappable,Clarithromycin + Esomeprazole + Amoxicillin Tablet,Each Strip of 6 Tablets,148.32
+RETL-1269,retail_new_drug,unit_unmappable,Sucralfate + Oxetacaine Suspension,Suspension,0.95
+RETL-1281,retail_new_drug,unit_unmappable,Linezolid + Dextrose Water for Injection (GAL-LINI I. V.),1 Injection,342.08
+RETL-1499,retail_new_drug,unit_unmappable,Ciprofloxacin + Dexamethasone Eye Drops,Drops,1.69
+RETL-1504,retail_new_drug,unit_unmappable,Dexamethasone +Chloramphenicol Eye Drops,Drops,4.09
+RETL-1505,retail_new_drug,unit_unmappable,Dexamethasone +Chloramphenicol Eye Drops,Drops,4.09
+RETL-1533,retail_new_drug,unit_unmappable,Ceftriaxone & Tazabactam for Injection 1125mg,Injection,146.32
+RETL-1536,retail_new_drug,unit_unmappable,Moxifloxacin + Dexamethasone Phosphate Ophthalmic Solution,Drops,19.10
+RETL-1544,retail_new_drug,unit_unmappable,Levetiracetam Infusion 500mg/100ml,Injection,91.56
+RETL-1545,retail_new_drug,unit_unmappable,Levetiracetam Infusion 1000mg/100ml,Injection,148.72
+RETL-1585,retail_new_drug,unit_unmappable,Amoxycillin Oral Suspension,Oral Suspension,0.80
+RETL-1597,retail_new_drug,unit_unmappable,Amoxycillin + Potassium Clavulanate Oral Suspenssion,Suspanssion,3.54
+RETL-1599,retail_new_drug,unit_unmappable,Povidone Iodine Gargle,Gargle,1.72
+RETL-1614,retail_new_drug,unit_unmappable,Iron with Folic Acid & Cyanocobalamin Syrup,Syrup,0.16
+RETL-1615,retail_new_drug,unit_unmappable,Iron Vitamin B12 and Folic Acid Syrup,Syrup,0.16
+RETL-1620,retail_new_drug,unit_unmappable,Trastuzumab injection,Injection,15526.97
+RETL-1630,retail_new_drug,unit_unmappable,Povidone-Iodine gargle 0.5% w/v,Gargle,0.66
+RETL-1685,retail_new_drug,unit_unmappable,Levetiracetam Infusion 500mg/100ml,Injetion,91.56
+RETL-1686,retail_new_drug,unit_unmappable,Methotrexate Topical Gel,Gel,13.21
+RETL-1688,retail_new_drug,unit_unmappable,Paracetamol Infusion IP 1%w/v,Injection,295.58
+RETL-1689,retail_new_drug,unit_unmappable,Levetiracetam in 0.82% Sodium Chloride Injection,Injection,91.56
+RETL-1690,retail_new_drug,unit_unmappable,Levetiracetam in 0.75% Sodium Chloride Injection,Injection,148.72
+RETL-1712,retail_new_drug,unit_unmappable,Tacrolimus Ointment,Ointment,35.44
+RETL-1713,retail_new_drug,unit_unmappable,Tacrolimus Ointment,Ointment,16.41
+RETL-1716,retail_new_drug,unit_unmappable,"Lignocaine Hydrochloride, Chlorhexidine Gluconate & Metronnidazole Gel",Gel,3.48
+RETL-1717,retail_new_drug,unit_unmappable,Beclomethasone Dipropionate + Clotrimazole Cream base,Cream,5.2
+RETL-1761,retail_new_drug,unit_unmappable,Paracetamol Infusion,Infusion,3.05
+RETL-1775,retail_new_drug,unit_unmappable,Cyclosporine Eye Drop,Drops,51.29
+RETL-1776,retail_new_drug,unit_unmappable,Amoxycillin + Potassium Clavulanate Oral Suspenssion,Suspension,3.36
+RETL-1777,retail_new_drug,unit_unmappable,Povidone-Iodine + Ornidazole Ointment,Ointment,3.78
+RETL-1778,retail_new_drug,unit_unmappable,Povidone Iodine + Propanol Solution,Solution,230.00
+RETL-1780,retail_new_drug,unit_unmappable,Diclofenac Diethylamine + Methyl Salicylate + Menthol Gel,Gel,3.69
+RETL-1790,retail_new_drug,unit_unmappable,Diclofenac Water for injection,Injection,20.27
+RETL-1791,retail_new_drug,unit_unmappable,Amoxycillin + Potassium Clavulanate Oral Suspenssion,Suspenssion,3.68
+RETL-1807,retail_new_drug,unit_unmappable,Diclofenac Diethylamine + Methyl Salicylate + Menthol Spray,Spray,2.93
+RETL-1810,retail_new_drug,unit_unmappable,Diclofenac Patch,Patch,31.25
+RETL-1823,retail_new_drug,unit_unmappable,Levofloxacin 5mg/ml Infusion,Large Volume Parentral (Infusion),1.32
+RETL-1829,retail_new_drug,unit_unmappable,Diclofenac Patch,Patch,40.18
+RETL-1839,retail_new_drug,unit_unmappable,Ceftriaxone & Tazabactam for Injection 1125mg,Injection,167.87
+RETL-1841,retail_new_drug,unit_unmappable,Amoxycillin + Potassium Clavulanate Oral Suspenssion,Oral Suspenssion,7.42
+RETL-1853,retail_new_drug,unit_unmappable,Human Normal Immunoglobulin for Intravenous use IP 5% (Ig M Enriched),Injection,177.85
+RETL-1857,retail_new_drug,unit_unmappable,Glycopyrrolate + Formoterol Fumarate + Budesonide Inhalation,Inhaler,8.63
+RETL-1887,retail_new_drug,unit_unmappable,"Dextromethorphan hydrobromide, Chlorpheniramine Meleate & Phenylephrine Hydrochloride Surup",Syrup,0.86
+RETL-1890,retail_new_drug,unit_unmappable,Paracetamol Infusion Ip,Injection,5.00
+RETL-1897,retail_new_drug,unit_unmappable,Ivermectin & Albendazole Oral Suspension,Suspension,2.20
+RETL-1900,retail_new_drug,unit_unmappable,Travoprost & Timolol Maleate Eye Drops,Eye Drops,123.68
+RETL-1901,retail_new_drug,unit_unmappable,Dorzolamide & Timolol Eye Drops,Eye Drops,63.67
+RETL-1902,retail_new_drug,unit_unmappable,Brimonidine Tartrate & Timolol Maleate Ophthalmic Solution,Eye Drops,49.04
+RETL-1906,retail_new_drug,unit_unmappable,Vitamin D3 Oral Solution,Oral Solution,11.70
+RETL-1907,retail_new_drug,unit_unmappable,Vitamin D3 Oral Solution,Oral Solution,11.70
+RETL-1908,retail_new_drug,unit_unmappable,Calcium & Vitamin D3 Suspension,Suspension,0.51
+RETL-1910,retail_new_drug,unit_unmappable,Diclofenac Diethylamine + Methyl Salicylate + Linseed Oil+ Menthol Spray,Topical Spray,2.69
+RETL-1911,retail_new_drug,unit_unmappable,Diclofenac Diethylamine + Virgin Linseed Oil+ Methyl Salicylate +Menthol,Gel,2.83
+RETL-1917,retail_new_drug,unit_unmappable,"Diclofenac Diethylamine, Methyl Salicylate, Menthol & Absolute Alcohol Topical Spray",Topical Spray,3.22
+RETL-1968,retail_new_drug,unit_unmappable,Linezolid for Oral Suspension (combipack with Steril Water),Oral Suspension,3.40
+RETL-1974,retail_new_drug,unit_unmappable,Amoxycillin + Potassium Clavulanate Oral Suspension,Oral Suspension,3.90
+RETL-1977,retail_new_drug,unit_unmappable,Sucralfate & Oxetacaine Oral Suspension,Suspension,1.76
+RETL-1980,retail_new_drug,unit_unmappable,Ceftriaxone & Tazabactam for Injection,Injection,168.43
+RETL-1991,retail_new_drug,unit_unmappable,Ferrous Ascorbate and Folic Acid Oral Drops,Suspension,5.06
+RETL-1992,retail_new_drug,unit_unmappable,Ferrous Ascorbate and Folic Acid Suspension IP,Suspension,0.87
+RETL-1995,retail_new_drug,unit_unmappable,Ceftraxone & Tazobactam Injection,Injection,168.43
+RETL-1998,retail_new_drug,unit_unmappable,Diclofenac Injection IP,Injection,20.72
+RETL-1999,retail_new_drug,unit_unmappable,"Diclofenac, Virgin Linseed Oil, Methyl Salicylate, Menthol & Capsaicin Gel",Gel,3.12
+RETL-2014,retail_new_drug,unit_unmappable,Budesonide & Formoterol Fumarate Respirator Suspension,Suspension,22.75
+RETL-2015,retail_new_drug,unit_unmappable,Ceftriaxone & Sulbactam water for injection,Injection,143.52
+RETL-2016,retail_new_drug,unit_unmappable,Ceftriaxone & Tazobactam for Injection 1125mg,Injection,168.43
+RETL-2017,retail_new_drug,unit_unmappable,Ofloxacin and Metronidazole suspension,Oral Suspension,0.70
+RETL-2021,retail_new_drug,unit_unmappable,Cefixime and Potassium Clavulanate Oral Suspension,Suspension,2.70
+RETL-2028,retail_new_drug,unit_unmappable,Mefenamic Acid and Paracetamol Oral Suspension,Suspension,0.76
+RETL-2029,retail_new_drug,unit_unmappable,"Sodium Alginate, Sodium Bicarbonate & Calcium Carbonate Oral Suspension",Oral Suspension,0.87
+RETL-2030,retail_new_drug,unit_unmappable,"Sodium Alginate, Sodium Bicarbonate & Calcium Carbonate Oral Suspension",Suspension,0.88
+RETL-2031,retail_new_drug,unit_unmappable,Povidone-Iodine Ointment USP,Ointment,1.66
+RETL-2032,retail_new_drug,unit_unmappable,Cefixime and Ofloxacin suspension,Suspension,1.77
+RETL-2035,retail_new_drug,unit_unmappable,Amoxycillin and Potassium Clavulanate Oral Suspension IP,Oral Suspension,168.43
+RETL-2037,retail_new_drug,unit_unmappable,Vitamin D3 Oral Solution,Suspension,11.78
+RETL-2038,retail_new_drug,unit_unmappable,"Purified Freeze-Dried Human Coagulation Factor VIII, Virus Inactivated IP 1000IU in a vial (Immunate)",Injection,11606.67
+RETL-2084,retail_new_drug,unit_unmappable,Trastuzumab for Injection 150mg,Injection,15554.49
+RETL-2094,retail_new_drug,unit_unmappable,Budesonide Nebuliser suspension BP 0.5mg/2ml,Suspension,18.01
+RETL-2096,retail_new_drug,unit_unmappable,Azithromycin Oral Suspension,Suspension,2.16
+RETL-2102,retail_new_drug,unit_unmappable,"Beclometasone Dipropionate, Neomycin Sulphate & Clotrimazole Cream",Cream,5.65
+RETL-2110,retail_new_drug,unit_unmappable,Paracetamol Infusion IP (1%w/v),Injection,3.02
+RETL-2113,retail_new_drug,unit_unmappable,Amoxycillin & Potassium Clavulanate Oral Suspension IP,Suspension,3.24
+RETL-2117,retail_new_drug,unit_unmappable,"Diclofenac, Methyl Salicylate & Menthol Gel",Gel,3.93
+RETL-2120,retail_new_drug,unit_unmappable,Paracetamol Infusion IP (1%w/v),Infusion,3.10
+RETL-2121,retail_new_drug,unit_unmappable,Ceftriaxone & Sulbactam Injection,Injection,147.20
+RETL-2132,retail_new_drug,unit_unmappable,"Baclomethasone Dipropionate, Clotrimazole & Neomycin Sulphate Cream",Cream,6.33
+RETL-2136,retail_new_drug,unit_unmappable,Cyclosporine Eye Drop,Drops,96.15
+RETL-2137,retail_new_drug,unit_unmappable,Ibuprofen Solution for Infusion 400mg/100ml,Infusion,122.19
+RETL-2152,retail_new_drug,unit_unmappable,Trastuzumab 375mg Injection,Injection,12420.28
+RETL-2154,retail_new_drug,unit_unmappable,Cholecalciferol (Vitamin D3) Oral Solution 60000IU,Oral Solution,12.03
+RETL-2159,retail_new_drug,unit_unmappable,Ibuprofen and Paracetamol Suspension,Suspension,0.41
+RETL-2162,retail_new_drug,unit_unmappable,Pracetamol & Mefenamic Acid Suspension,Suspension,0.75
+RETL-2169,retail_new_drug,unit_unmappable,Amoxycillin and Potassium Clavulanate Oral Suspension IP,Suspension,168.43
+RETL-2190,retail_new_drug,unit_unmappable,Amoxycillin and Potassium Clavulanate Oral Suspension IP,Powder for Oral Suspension,168.43
+RETL-2195,retail_new_drug,unit_unmappable,Ceftazidime and Avibactam powder for concentrate for solution for infusion,Infusion,2500.00
+RETL-2196,retail_new_drug,unit_unmappable,Moxifloxacin Hydrochloride and Loteprednol Ophthalmic Suspension,Suspension,27.43
+RETL-2197,retail_new_drug,unit_unmappable,Amoxycillin and Potassium Clavulanate Oral Suspension IP,Suspension,168.43
+RETL-2200,retail_new_drug,unit_unmappable,Amoxycillin and Potassium Clavulanate Oral Suspension IP,Suspension,168.43
+RETL-2201,retail_new_drug,unit_unmappable,Lidocaine Patch 5%,Patch,44.64
+RETL-2215,retail_new_drug,unit_unmappable,Levetiracetam Infusion,Infusion,0.90
+RETL-2218,retail_new_drug,unit_unmappable,Levetiracetam Infusion,Infusion,1.44
+RETL-2314,retail_new_drug,unit_unmappable,Indacaterol and Budesonide Inhalation,Per MDI,35.22
+RETL-2315,retail_new_drug,unit_unmappable,Indacaterol and Budesonide Powder for Inhalation,Per DPI,36.22
+RETL-2316,retail_new_drug,unit_unmappable,Indacaterol and Budesonide Powder for Inhalation,Per DPI,60.71
+RETL-2338,retail_new_drug,unit_unmappable,"Ferrous Fumarate, Folic Acid and Cyanocobalamin Syrup",I ml,0.55
+RETL-2375,retail_new_drug,unit_unmappable,"Chlorhexidine gluconate, Metronidazole and Lignocaine Hydrochloride Gel",1,3.75
+RETL-2397,retail_new_drug,unit_unmappable,Formoterol Fumarate and Budesonide Respirator Suspension,Per Pulmule 2 ml,56.2
+RETL-2549,retail_new_drug,unit_unmappable,"Combi pack of Clarithromycin Tablets IP, Esomeprazole Tablets IP & moxicillin Tablets USP",Each Strip,151.98
+RETL-2612,retail_new_drug,unit_unmappable,Combikit of Atazanavir + Ritonavir & Emtricitabine + Tenofovir Alafenamide Tablet,1 Cmbikit,112.60
+RETL-2944,retail_new_drug,unit_unmappable,Ceftazidime and Avibactam powder for concentrate for solution for infusion,I Vial,1572.59
+RETL-3000,retail_new_drug,unit_unmappable,"Combi pack of Clarithromycin Tablets IP, Esomeprazole Tablets IP & Amoxicillin Tablets USP",Combi kit pack,166.73
+RETL-3037,retail_new_drug,unit_unmappable,Levosalbutamol & Ipratropium Bromide Inhalation solution,Respules,5.75
+RETL-3038,retail_new_drug,unit_unmappable,Ceftraxone & Tazobactam Injection,Injection,66.92
+RETL-3039,retail_new_drug,unit_unmappable,Ceftraxone & Tazobactam Injection,Injection,111.16
+RETL-3049,retail_new_drug,unit_unmappable,Gentamicin & Dexamethasone Eye Drops,Drops,2.01
+RETL-3251,retail_new_drug,price_unparseable,"Sodium Alginate, Sodium Bicarbonate & Calcium carbonate Oral Liquid",Pack of 100ml,
+RETL-3353,retail_new_drug,unit_unmappable,Clotrimazole Vaginal Film,1 Vaginal Film,6.01
+RETL-3415,retail_new_drug,unit_unmappable,"Budesonide, Glycopyrronium & Formoterol fumarate dihydrate inhalation",1 Metered Dose,6.11
+RETL-3458,retail_new_drug,unit_unmappable,Glycopyrronium & Formoterol Fumarate inhaler,1 meterede dose,4.08
+RETL-3867,retail_new_drug,unit_unmappable,"Combikit of Clarithromycin Tablets IP, Pantoprazole Tablets IP and Amoxicillin Tablets USP",1 Strip,122.56
