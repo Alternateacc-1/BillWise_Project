@@ -4,7 +4,7 @@
   "bill_date": "2026-09-13",
   "reader_a": {
     "source": "fixture_textract",
-    "printed_grand_total": "387.00",
+    "printed_grand_total": "409.00",
     "items": [
       {
         "index": 1,
@@ -26,6 +26,15 @@
       },
       {
         "index": 3,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "20",
+        "unit_price": "1.10",
+        "line_total": "22.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 4,
         "name": "Acimol 500mg Tablet",
         "quantity": "2",
         "unit_price": "11.50",
@@ -34,7 +43,7 @@
         "page": 1
       },
       {
-        "index": 4,
+        "index": 5,
         "name": "Pantoprazole 40mg Tablet",
         "quantity": "10",
         "unit_price": "8.50",
@@ -43,7 +52,7 @@
         "page": 1
       },
       {
-        "index": 5,
+        "index": 6,
         "name": "Cotton Roll 100gm",
         "quantity": "1",
         "unit_price": "85.00",
@@ -52,7 +61,7 @@
         "page": 1
       },
       {
-        "index": 6,
+        "index": 7,
         "name": "Micropore Tape",
         "quantity": "2",
         "unit_price": "45.00",
@@ -64,7 +73,7 @@
   },
   "reader_b": {
     "source": "fixture_vision",
-    "printed_grand_total": "387.00",
+    "printed_grand_total": "409.00",
     "items": [
       {
         "index": 1,
@@ -86,6 +95,15 @@
       },
       {
         "index": 3,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "20",
+        "unit_price": "1.10",
+        "line_total": "22.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 4,
         "name": "Acimol 500mg Tablet",
         "quantity": "2",
         "unit_price": "11.50",
@@ -94,7 +112,7 @@
         "page": 1
       },
       {
-        "index": 4,
+        "index": 5,
         "name": "Pantoprazole 40mg Tablet",
         "quantity": "10",
         "unit_price": "8.50",
@@ -103,7 +121,7 @@
         "page": 1
       },
       {
-        "index": 5,
+        "index": 6,
         "name": "Cotton Roll 100gm",
         "quantity": "1",
         "unit_price": "85.00",
@@ -112,7 +130,7 @@
         "page": 1
       },
       {
-        "index": 6,
+        "index": 7,
         "name": "Micropore Tape",
         "quantity": "2",
         "unit_price": "45.00",

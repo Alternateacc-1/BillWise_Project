@@ -69,9 +69,11 @@ def run_one(bill_id: str) -> dict:
     # separately so a right-verdict-wrong-reason case is reported honestly
     # rather than silently passing.
     produced = {(f.item_index, f.rule_id, f.severity.value) for f in flags}
+    # Any rule may now carry a gray reason -- R5 does when the pack size is
+    # unknown -- so collect from all of them, not just R9.
     gray_reasons = {
-        f.item_index: (f.gray_reason.value if f.gray_reason else None)
-        for f in flags if f.rule_id == "R9"
+        f.item_index: f.gray_reason.value
+        for f in flags if f.gray_reason is not None
     }
 
     caught, missed, wrong_reason = [], [], []

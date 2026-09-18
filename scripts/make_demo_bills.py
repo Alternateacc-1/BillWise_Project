@@ -192,6 +192,19 @@ BILLS = [
             # determinable. A generic line without a pack size would now go
             # gray under the upper-bound gate -- correctly, but it would
             # leave the band metric permanently empty.
+            # PLANT: the SAME molecule at the SAME per-tablet price as the
+            # Acimol line below -- but generic, so nothing supplies a pack
+            # size and the upper-bound gate cannot conclude anything. The two
+            # lines side by side are the clearest statement of what the gate
+            # does: identical prices, one determinable, one not.
+            # This line showed AMBER before the gate and shows GRAY after.
+            Line("Paracetamol 500mg Tablet", "20", "1.10",
+                 expect=[("R5", "gray")],
+                 expect_gray_reason="could_not_verify",
+                 why="PLANT: 1.10/tab is over the 1.0416 allowance, but with "
+                     "no pack size the real per-tablet price is unknowable. "
+                     "Was amber before the upper-bound gate; gray is correct."),
+
             Line("Acimol 500mg Tablet", "2", "11.50",
                  expect=[("R5", "amber")],
                  why="PLANT: ceiling 0.93/tab, allowance 1.0416; strip of 10 "
