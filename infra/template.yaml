@@ -14,9 +14,12 @@ Description: >
 #   DynamoDB        -> PAY_PER_REQUEST. Never provisioned.
 #   S3              -> lifecycle deletes uploads after 1 day.
 #   Logs            -> 7-day retention. Log storage is a slow leak otherwise.
-#   Concurrency     -> capped at 5 on the function that calls Textract and
-#                      Bedrock, so a retry storm costs five calls, not a
-#                      thousand. A hard platform limit, not our retry logic
+#   Concurrency     -> see the ReservedConcurrency parameter. On an account
+#                      whose total Lambda concurrency is still the new-account
+#                      default, AWS REFUSES any reservation, and the account
+#                      limit is itself a harder cap than the one we wanted.
+#                      Either way a retry storm costs a handful of calls, not
+#                      a thousand -- a platform limit, not our retry logic
 #                      being correct.
 # ---------------------------------------------------------------------------
 
@@ -41,8 +44,23 @@ Parameters:
 
   ReservedConcurrency:
     Type: Number
-    Default: 5
-    Description: Hard ceiling on concurrent executions. See cost notes.
+    Default: 0
+    MinValue: 0
+    Description: >
+      Hard ceiling on concurrent executions, or 0 to set NO reservation.
+
+      Default 0, and that is not laziness. AWS refuses any reservation that
+      would drop the account's UNRESERVED concurrency below 10. A new account
+      often has a total concurrency limit of 10, so reserving even 1 is
+      rejected with "decreases account's UnreservedConcurrentExecution below
+      its minimum value of [10]" and the whole stack rolls back.
+
+      On such an account the cost control is not lost: the ACCOUNT limit is
+      already a harder cap than the 5 we wanted. A retry storm cannot exceed
+      the account's own ceiling.
+
+      Set this to 5 only after raising the account's Lambda concurrency quota
+      (Service Quotas -> Lambda -> Concurrent executions) well above 10.
 
 Globals:
   Function:
@@ -84,6 +102,11 @@ Conditions:
   # CorsConfiguration is omitted until Section 4 supplies a real one. The app
   # enforces CORS itself either way; the gateway config is an optimisation.
   HasFrontendOrigin: !Not [!Equals [!Ref FrontendOrigin, ""]]
+  # 0 means "do not reserve". The property must then be OMITTED entirely --
+  # passing 0 would mean "reserve zero concurrency", i.e. the function can
+  # never run at all. AWS::NoValue removes the property; 0 would disable the
+  # API. That distinction is the whole reason this condition exists.
+  HasReservedConcurrency: !Not [!Equals [!Ref ReservedConcurrency, 0]]
 
 Resources:
 
@@ -139,7 +162,10 @@ Resources:
       CodeUri: ../backend/
       Handler: app.main.handler
       Description: BillSahi API - reads, verifies and audits a bill
-      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      ReservedConcurrentExecutions: !If
+        - HasReservedConcurrency
+        - !Ref ReservedConcurrency
+        - !Ref AWS::NoValue
       Policies:
         # Least privilege, written out rather than using a managed policy so
         # that every permission granted is visible on one screen.
