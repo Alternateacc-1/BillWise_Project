@@ -24,33 +24,41 @@ no network at all. Verifier, Matcher and Auditor have no AWS variant — they
 are pure functions and stay that way, because they are the parts that decide
 what a patient is told.
 
-**Region:** everything in `ap-south-1` (Mumbai), with Claude reached through
-the **APAC geo** cross-region inference profile
-(`apac.anthropic.claude-sonnet-4-20250514-v1:0`). Textract, including
-AnalyzeExpense, is available in ap-south-1, so the whole stack sits in one
-Region. **We never split Regions:** a split stack means cross-region transfer
-charges, two sets of logs, two places for an IAM policy to be wrong, and a
-latency path nobody will debug at 2am.
+**Region:** everything in `us-east-1` (N. Virginia), with Claude reached
+through the **US geo** cross-region inference profile
+(`us.anthropic.claude-sonnet-4-6`). Textract, including AnalyzeExpense, runs
+there at 5 TPS. The whole stack sits in one Region. **We never split Regions:**
+a split stack means cross-region transfer charges, two sets of logs, two
+places for an IAM policy to be wrong, and a latency path nobody will debug at
+2am.
 
-From `ap-south-1`, geo is the **only** option — the model card shows In-Region
-and Global both unsupported from Mumbai. It is also the option we would have
-chosen, for a reason that matters here more than in most systems.
+**This was originally specified as `ap-south-1` (Mumbai)**, to sit near the
+Indian users the tool is for, and the reversal is worth explaining because the
+intuitive answer is wrong.
 
-**Data residency is a design requirement, not a compliance checkbox.** What we
-send Bedrock is a photograph of a real medical bill: a patient's name,
+Claude Sonnet 4.6 supports **no geo inference profile from `ap-south-1`** —
+only the global profile, which routes to 33 Regions across three continents.
+From `us-east-1` the US geo profile is available, and it routes to exactly
+three: `us-east-1`, `us-east-2`, `us-west-2`. AWS guarantees a geo-tied
+profile's destination list never changes.
+
+So **the Region that keeps a patient's bill in the smallest, most predictable
+set of places is N. Virginia, not Mumbai.** Choosing India would have meant
+choosing worldwide routing.
+
+**Data residency is a design requirement here, not a compliance checkbox.**
+What we send Bedrock is a photograph of a real medical bill: a patient's name,
 registration number, address, doctor, and a drug list that implies a
-diagnosis. The APAC profile routes only within eight Asia-Pacific Regions —
-Tokyo, Seoul, Osaka, **Mumbai**, **Hyderabad**, Singapore, Sydney, Melbourne —
-and AWS guarantees that a geo-tied profile's destination list never changes.
-The global profile, by contrast, routes to every commercial Region worldwide,
-and AWS notes that prompts and outputs may be stored in opt-in Regions for
-abuse detection.
+diagnosis. `infra/template.yaml` pins the profile ARN and the three
+Region-scoped foundation-model ARNs; no statement permits invoking the model
+anywhere else. Nothing else in the system would stop a bill leaving, so that
+policy is load-bearing rather than decorative.
 
-**The IAM policy is what enforces this.** `infra/template.yaml` pins the
-profile ARN and all eight Region-scoped foundation-model ARNs; no statement
-permits invoking the model anywhere else. Nothing else in the system would
-stop a bill leaving Asia-Pacific, so that policy is load-bearing rather than
-decorative. See OPEN_QUESTIONS.md Q1 and Q1a.
+**The cost, stated plainly rather than quietly:** the deployed demo is further
+from its intended users than the design wants, and latency is worse for an
+Indian patient than an Indian Region would give. That is a consequence of
+model availability, not an architectural preference. See OPEN_QUESTIONS.md Q1
+and Q1a.
 
 ---
 

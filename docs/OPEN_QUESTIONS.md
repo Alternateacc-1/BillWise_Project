@@ -5,49 +5,51 @@ and when. Nothing here blocks Phase 0-3, which run entirely offline.
 
 ---
 
-## Q1. Can ap-south-1 reach a vision-capable Claude model? (Phase 4)
+## Q1. Which Region, and which inference profile? (Phase 4)
 
-**Status: RESOLVED, 2026-09-19. The answer is YES — after one wrong turn.**
+**Status: RESOLVED, 2026-09-19.** Final: **`us-east-1`**, Claude via the **US
+geo** profile `us.anthropic.claude-sonnet-4-6`.
 
-**What happened.** The Bedrock console in ap-south-1 appeared to offer no
-Claude model, so the whole stack was migrated to `us-east-1`, per the fallback
-agreed in advance. Hours later the real cause surfaced: the **Anthropic
-use-case-details form**, a one-time submission that gates every Anthropic
-model **account-wide, in every Region**. With it submitted, Mumbai works. The
-stack moved back.
+**The Region went us-east-1 -> ap-south-1 -> us-east-1 across two days.** Both
+reversals taught something worth keeping.
 
-**The lesson, which is worth more than the outcome:**
+### Lesson 1: an account-level gate looks exactly like a Region limitation
+
+The first move was triggered by "Bedrock offers no Claude in ap-south-1". That
+was **wrong**. The real blocker was the Anthropic **use-case-details form** — a
+one-time submission that gates every Anthropic model **account-wide, in every
+Region**.
 
 > "The model is not offered in this Region" and "this account may not call the
 > model anywhere yet" are **indistinguishable** from inside the console.
 
 Check the account-level gate before drawing any conclusion about a Region.
-The round trip cost a few hours and two commits; concluding the same thing on
-Sunday would have cost the deployment.
 
-**Final configuration:**
+### Lesson 2: the privacy-preferring Region is not the intuitive one
 
-  - Whole stack in `ap-south-1`. Textract, including AnalyzeExpense, is
-    available there (verified against the AWS endpoints table), so nothing
-    forces a split. **We never split Regions.**
-  - Claude via the **APAC geo** profile
-    `apac.anthropic.claude-sonnet-4-20250514-v1:0`.
-  - From `ap-south-1` the model card shows **In-Region: no, Geo: yes,
-    Global: no** — geo is the only option, and also the right one.
-  - Image input supported; Converse supported.
+Having fixed the gate, Mumbai worked, and the stack moved back — the tool is
+for Indian patients, so an Indian Region seemed obviously right. Then the
+model card settled it the other way:
 
-**Why geo beats global here, beyond it being the only choice.** Destinations
-from ap-south-1 are eight Asia-Pacific Regions: Tokyo, Seoul, Osaka, Mumbai,
-Hyderabad, Singapore, Sydney, Melbourne. The global profile routes to every
-commercial Region worldwide, and AWS notes that prompts and outputs may be
-stored in opt-in Regions for abuse detection. What we send Bedrock is a
-photograph of a real medical bill — a patient's name, registration number, and
-a drug list that implies a diagnosis. Keeping that inside Asia-Pacific is not
-a nicety.
+| | from `ap-south-1` | from `us-east-1` |
+|---|---|---|
+| Sonnet 4.6 In-Region | no | no |
+| Sonnet 4.6 **Geo** | **no** | **yes** (`us.`) |
+| Sonnet 4.6 Global | yes | yes |
+| Destinations available | **33 Regions** (global only) | **3 Regions** (us-east-1, us-east-2, us-west-2) |
+| Textract AnalyzeExpense | 1 TPS | 5 TPS |
 
-**Still open:** Sonnet 4 is a **legacy** model with EOL **2026-10-14**, under a
-month after submission. Fine for this project; check whether Sonnet 4.5 or 4.6
-offers an APAC profile from Mumbai before anyone builds on this.
+**Choosing India would have meant choosing worldwide routing for a medical
+document.** N. Virginia keeps a patient's bill in three known Regions instead
+of thirty-three. The privacy argument and the "sit near your users" argument
+point in opposite directions here, and privacy won.
+
+**What it costs:** latency to Indian users is worse than an Indian Region
+would give. That is a consequence of model availability, not a preference, and
+`ARCHITECTURE.md` says so plainly.
+
+**Still worth revisiting** if Anthropic later offers a geo profile from
+`ap-south-1` — that would make Mumbai strictly better on both axes.
 
 ---
 
@@ -66,14 +68,15 @@ The intuitive tightening — grant the inference profile ARN and nothing else �
 The profile is a routing target; the foundation model is what is actually
 invoked. Both resource types are required in the same statement.
 
-Because the profile is **geo-tied**, the destination list is fixed and
-documented, so the policy now pins the profile ID **and** all eight
-Asia-Pacific Regions explicitly. **This is the data-residency control** — no
-statement permits invoking the model outside APAC.
+Because the profile is **geo-tied**, its destination list is fixed and
+documented, so the policy pins the profile ID **and** the three
+Region-scoped foundation-model ARNs. **This is the data-residency control** —
+no statement permits invoking the model outside those Regions.
 
-Had we stayed on the global profile this would not have been possible: its
-destinations are all commercial Regions and they change over time, so the
-foundation-model ARNs would have had to stay wildcarded.
+On the global profile this would have been impossible: 33 destinations that
+change over time, so the foundation-model ARNs would have to stay wildcarded.
+**The choice of profile is therefore a security decision, not just a routing
+one** — it determines whether least privilege is achievable at all.
 
 Action is `bedrock:InvokeModel*`, not `bedrock:InvokeModel`: the reader uses
 the **Converse** API, which authorises against `bedrock:InvokeModel`.

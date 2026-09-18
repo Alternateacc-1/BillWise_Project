@@ -40,23 +40,30 @@ if PROVIDER not in ("local", "aws"):
 #: runtime populates it, so the template's AWS_REGION_NAME was dead config
 #: that nothing read. That happened to be correct and was not robust.
 #:
-#: ap-south-1 (Mumbai), which is where a tool for Indian patients belongs.
+#: us-east-1 (N. Virginia). FINAL, after a round trip through ap-south-1.
 #:
-#: This briefly moved to us-east-1 on the belief that Bedrock had no Claude in
-#: Mumbai. It does. The real blocker was the Anthropic USE-CASE-DETAILS form,
-#: which gates every Anthropic model ACCOUNT-WIDE and looks exactly like a
-#: regional availability problem from inside the console. Worth remembering:
-#: "the model is not offered here" and "this account may not call the model
-#: anywhere yet" present identically.
+#: The original target was Mumbai, to sit near the Indian users this tool is
+#: for. Two facts settled it the other way, both verified on AWS model cards:
+#:   1. Claude Sonnet 4.6 supports NO geo profile from ap-south-1 -- only the
+#:      GLOBAL profile, which routes to 33 Regions worldwide. From us-east-1
+#:      the US geo profile is available: 3 Regions, and AWS guarantees a
+#:      geo-tied destination list never changes.
+#:   2. Textract AnalyzeExpense runs at 5 TPS in us-east-1, 1 TPS in Mumbai.
+#: So us-east-1 gives BETTER data containment than Mumbai would have for this
+#: model. The cost is latency to Indian users -- a real trade, stated plainly
+#: in docs/ARCHITECTURE.md.
 #:
-#: Claude is reached from here through the APAC GEO inference profile, which
-#: routes only within Asia-Pacific. Textract, including AnalyzeExpense, is
-#: available in ap-south-1. The whole stack is in one Region -- we never split.
-#: See docs/OPEN_QUESTIONS.md Q1.
+#: THE DETOUR IS WORTH REMEMBERING. This moved to us-east-1, back to Mumbai,
+#: and back again in one day. The first move was triggered by "Bedrock has no
+#: Claude in Mumbai", which was WRONG: the real blocker was the Anthropic
+#: USE-CASE-DETAILS form, which gates every Anthropic model ACCOUNT-WIDE.
+#: "The model is not offered in this Region" and "this account may not call
+#: the model anywhere yet" look IDENTICAL in the console. Check the
+#: account-level gate before concluding anything about a Region.
 AWS_REGION = (
     os.getenv("AWS_REGION_NAME")
     or os.getenv("AWS_REGION")
-    or "ap-south-1"
+    or "us-east-1"
 ).strip()
 
 #: Cross-region inference profile ID for Claude, copied verbatim from the

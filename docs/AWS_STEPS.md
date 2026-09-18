@@ -41,12 +41,12 @@ Without this, CloudWatch cannot see billing metrics at all.
 **Verify:** reload the page. Both boxes are still ticked.
 
 > **Gotcha:** billing metrics only exist in **us-east-1**, no matter where
-> your stack runs. Ours runs in ap-south-1, so these do NOT line up. If you
-> go looking for a billing metric in the CloudWatch console, switch the
-> region selector to N. Virginia or you will find nothing and assume it is
-> broken.
+> your stack runs. Ours happens to run there too, so for us they line up —
+> but do not learn the wrong lesson from that coincidence. If this stack ever
+> moves to another Region, billing metrics **stay** in us-east-1, and a
+> CloudWatch console pointed anywhere else will show nothing and look broken.
 >
-> This one is genuinely fixed in AWS and is not a setting you control.
+> This is fixed in AWS and is not a setting you control.
 
 ---
 
@@ -220,9 +220,9 @@ Helps Indian patients understand hospital and pharmacy bills. It reads an upload
 
 ---
 
-## 1.2 Confirm a vision-capable Claude in ap-south-1
+## 1.2 Confirm a vision-capable Claude in us-east-1
 
-1. Region selector, top right → **Asia Pacific (Mumbai) ap-south-1**.
+1. Region selector, top right → **US East (N. Virginia) us-east-1**.
 2. Bedrock → **Model catalog** → find a **Claude Sonnet** model.
 3. Check it takes **image input**. On a model card this shows as an icon row
    reading `T 🖼 → T`, or on the model's detail page as an **Input Modalities**
@@ -240,49 +240,60 @@ Image input         : yes / no
 
 ---
 
-## 1.3 Copy the APAC inference profile ID
+## 1.3 Copy the US geo inference profile ID
 
-We reach Claude through the **APAC geo cross-region inference profile**, not a
-bare model ID and not the global profile.
+We reach Claude through the **US geo cross-region inference profile**, not a
+bare model ID and **not the global profile**.
 
 1. Bedrock → left sidebar → **Infer → Inference profiles**.
-2. Find the row for your model with the **`apac.`** prefix.
+2. Find the row for your model with the **`us.`** prefix.
 3. **Copy it with the button. Do not retype it.**
 
-For Claude Sonnet 4 the ID is:
+For Claude Sonnet 4.6 the ID is:
 
 ```
-apac.anthropic.claude-sonnet-4-20250514-v1:0
+us.anthropic.claude-sonnet-4-6
 ```
+
+The short form is correct — this model generation has no date or version
+suffix, unlike older ones such as
+`us.anthropic.claude-sonnet-4-20250514-v1:0`.
 
 **Paste it into `.env` as `BEDROCK_INFERENCE_PROFILE_ID`.**
 
-### Why APAC and not Global
+### Why the US profile and not Global
 
-From the AWS model card for Claude Sonnet 4:
+Both work from `us-east-1`. The difference is where a patient's bill can go.
 
-| From `ap-south-1` | In-Region | Geo (APAC) | Global |
-|---|---|---|---|
-| Supported? | no | **yes** | no |
+| | `us.` geo | `global.` |
+|---|---|---|
+| Destinations from us-east-1 | **3**: us-east-1, us-east-2, us-west-2 | **33**, across Americas, EMEA and Asia Pacific |
+| List changes over time? | **Never** (AWS guarantees it for geo-tied profiles) | Yes, as AWS adds Regions |
+| Can you state where data went? | Yes | No |
 
-So from Mumbai, **geo is the only option** — the choice is made for us. It is
-also the one we would have chosen:
+Because the geo list is fixed, `infra/template.yaml` pins those three Regions
+in the IAM policy. **That policy is the data-residency control** — nothing else
+in the system stops a bill leaving them. On the global profile this is
+impossible: the destination list changes, so the foundation-model ARNs would
+have to stay wildcarded.
 
-- **Destinations from ap-south-1 are eight Asia-Pacific Regions only:** Tokyo,
-  Seoul, Osaka, **Mumbai**, **Hyderabad**, Singapore, Sydney, Melbourne. A
-  patient's bill cannot leave Asia-Pacific, and India itself is a possible
-  destination.
-- **That list never changes.** AWS guarantees it: *"if an inference profile is
-  tied to a geography (such as US, EU, or APAC), its destination Region list
-  will never change."* The global profile's list does change, and spans every
-  commercial Region.
-- Because the list is fixed, `infra/template.yaml` pins those eight Regions in
-  the IAM policy. **That policy is the data-residency control** — nothing else
-  enforces it.
-
-This matters more here than in most projects: what we send Bedrock is a
+This matters more here than in most projects. What we send Bedrock is a
 photograph of a real medical bill, carrying a patient's name, registration
 number and a drug list that implies a diagnosis.
+
+> **On the region choice generally.** The original target was `ap-south-1`
+> (Mumbai), to sit near the Indian users this tool is for. Two facts decided
+> against it, both from AWS model cards rather than assumption:
+>
+> 1. **Claude Sonnet 4.6 supports no geo profile from `ap-south-1`** — only
+>    the global one. So Mumbai would have meant 33 destination Regions, while
+>    N. Virginia means 3. The privacy-preferring choice is the US Region, which
+>    is not the intuitive answer.
+> 2. **Textract `AnalyzeExpense` runs at 5 TPS in `us-east-1`, 1 TPS in
+>    Mumbai.**
+>
+> The cost is real: latency to Indian users is worse than the design wants.
+> That is stated plainly in `docs/ARCHITECTURE.md` rather than glossed over.
 
 ---
 
@@ -330,7 +341,7 @@ figures in the video. See NOTES.md, "Which numbers are ours to claim".
 ## 1.5 Report back
 
 - the model you enabled, and that image input is supported
-- the `apac.` inference profile ID
+- the `us.` inference profile ID
 - the Region you did it in
 - the playground results from 1.4
 
@@ -358,7 +369,7 @@ first 100 pages/month are free for the first 3 months if the account is new.
 
 No code, no SDK, no deployment. The console does this by hand.
 
-1. Region selector → **ap-south-1** (same region as Section 1).
+1. Region selector → **us-east-1** (same region as Section 1).
 2. Search **Textract** → open it.
 3. Left sidebar → **Analyze Document** → choose **Expense analysis** (this is
    AnalyzeExpense, the API our reader uses — NOT plain text detection).
@@ -475,7 +486,7 @@ say so — a missing claim is fine, an unmeasured one is not. See NOTES.md,
 # Section 3 — Deploy the backend
 
 **Do Sections 0-2 first.** This section assumes the budget alarms exist and
-that you know whether Bedrock is available in ap-south-1.
+that you know whether Bedrock is available in us-east-1.
 
 **Cost: pennies.** Lambda, API Gateway and DynamoDB are all within free tier
 at demo volume. S3 holds a few MB for one day.
@@ -515,7 +526,7 @@ right region**:
 aws sts get-caller-identity && aws configure get region
 ```
 
-**Verify:** the region reads `ap-south-1`, and it must match the region you
+**Verify:** the region reads `us-east-1`, and it must match the region you
 enabled the model in at Section 1. Getting this wrong deploys into a region
 with no model access, and the failure appears later as an
 `AccessDeniedException` from Bedrock that looks like an IAM problem.
@@ -655,7 +666,7 @@ Answer the prompts:
 | Prompt | Answer |
 |---|---|
 | Stack Name | `billsahi` |
-| AWS Region | `ap-south-1` (must match 3.2) |
+| AWS Region | `us-east-1` (must match 3.2) |
 | Parameter BedrockInferenceProfileId | paste from Section 1.2, or leave blank |
 | Parameter FrontendOrigin | leave blank for now — Section 4 fills it in |
 | Parameter ReservedConcurrency | `5` |

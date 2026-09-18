@@ -163,37 +163,31 @@ Resources:
               #
               # The profile is pinned to the exact ID supplied at deploy time.
               #
-              # The foundation models are pinned to the EIGHT Asia-Pacific
-              # Regions the APAC geo profile routes to from ap-south-1:
-              #   Tokyo, Seoul, Osaka, Mumbai, Hyderabad, Singapore, Sydney,
-              #   Melbourne.
+              # The foundation models are pinned to the THREE Regions the
+              # US geo profile routes to from us-east-1: us-east-1,
+              # us-east-2, us-west-2.
               # That list is safe to hardcode because AWS guarantees it:
               #   "if an inference profile is tied to a geography (such as US,
               #    EU, or APAC), its destination Region list will never change."
-              # A GLOBAL profile would have to stay wildcarded instead, since
-              # its destinations are every commercial Region and DO change.
+              # The GLOBAL profile would have to stay wildcarded instead --
+              # its destinations are 33 Regions and they DO change.
               #
               # This is also the data-residency control. A patient's bill
-              # cannot be routed outside Asia-Pacific, because no policy here
-              # permits invoking the model anywhere else.
+              # cannot be routed outside these three Regions, because no
+              # policy here permits invoking the model anywhere else.
               #
               # InvokeModel* (not InvokeModel) because the reader uses the
               # Converse API, which authorises against bedrock:InvokeModel.
               # -------------------------------------------------------------
-              - Sid: InvokeClaudeThroughTheApacProfileOnly
+              - Sid: InvokeClaudeThroughTheUsGeoProfileOnly
                 Effect: Allow
                 Action:
                   - bedrock:InvokeModel*
                 Resource:
                   - !Sub "arn:${AWS::Partition}:bedrock:*:${AWS::AccountId}:inference-profile/${BedrockInferenceProfileId}"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-northeast-1::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-northeast-2::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-northeast-3::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-south-1::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-south-2::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-southeast-1::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-southeast-2::foundation-model/*"
-                  - !Sub "arn:${AWS::Partition}:bedrock:ap-southeast-4::foundation-model/*"
+                  - !Sub "arn:${AWS::Partition}:bedrock:us-east-1::foundation-model/*"
+                  - !Sub "arn:${AWS::Partition}:bedrock:us-east-2::foundation-model/*"
+                  - !Sub "arn:${AWS::Partition}:bedrock:us-west-2::foundation-model/*"
           - !Ref AWS::NoValue
       Events:
         Api:
