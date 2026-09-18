@@ -1,0 +1,125 @@
+{
+  "bill_id": "bill_03",
+  "hospital_name": "Sunrise Multispeciality Hospital (sample)",
+  "bill_date": "2026-09-14",
+  "reader_a": {
+    "source": "fixture_textract",
+    "printed_grand_total": "3600.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Registration Charges",
+        "quantity": "1",
+        "unit_price": "250.00",
+        "line_total": "250.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Consultation - Cardiology",
+        "quantity": "1",
+        "unit_price": "900.00",
+        "line_total": "900.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "ECG",
+        "quantity": "1",
+        "unit_price": "400.00",
+        "line_total": "400.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "X-Ray Chest PA View",
+        "quantity": "1",
+        "unit_price": "550.00",
+        "line_total": "550.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "Lipid Profile",
+        "quantity": "1",
+        "unit_price": "1200.00",
+        "line_total": "1200.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Creatinine - Serum",
+        "quantity": "1",
+        "unit_price": "300.00",
+        "line_total": "300.00",
+        "confidence": "97",
+        "page": 1
+      }
+    ]
+  },
+  "reader_b": {
+    "source": "fixture_vision",
+    "printed_grand_total": "3600.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Registration Charges",
+        "quantity": "1",
+        "unit_price": "250.00",
+        "line_total": "250.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Consultation - Cardiology",
+        "quantity": "1",
+        "unit_price": "900.00",
+        "line_total": "900.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "ECG",
+        "quantity": "1",
+        "unit_price": "400.00",
+        "line_total": "400.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "X Ray Chest PA View",
+        "quantity": "1",
+        "unit_price": "550.00",
+        "line_total": "550.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "Lipid Profile",
+        "quantity": "1",
+        "unit_price": "1200.00",
+        "line_total": "1200.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Creatinine - Serum",
+        "quantity": "1",
+        "unit_price": "300.00",
+        "line_total": "300.00",
+        "confidence": "95",
+        "page": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "bill_id": "bill_05",
+  "description": "Pharmacy - poor quality scan",
+  "expected": [
+    {
+      "item_index": 1,
+      "rule_id": "R5",
+      "severity": "green",
+      "item_name": "Paracetamol 500mg Tablet",
+      "why": "ceiling 0.93/tab"
+    },
+    {
+      "item_index": 2,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Surgical Gloves Pair",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 3,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Amox1cill1n 5OOmg Cap",
+      "gray_reason": "could_not_verify",
+      "why": "PLANT: OCR garbling, readers disagree"
+    }
+  ],
+  "allowed_red_item_indexes": []
+}

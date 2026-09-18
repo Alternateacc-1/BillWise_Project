@@ -1,0 +1,71 @@
+{
+  "bill_id": "bill_05",
+  "hospital_name": "Sunrise Multispeciality Hospital (sample)",
+  "bill_date": "2026-09-16",
+  "reader_a": {
+    "source": "fixture_textract",
+    "printed_grand_total": "190.80",
+    "items": [
+      {
+        "index": 1,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "10",
+        "unit_price": "0.88",
+        "line_total": "8.80",
+        "confidence": "93",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Surgical Gloves Pair",
+        "quantity": "5",
+        "unit_price": "22.00",
+        "line_total": "110.00",
+        "confidence": "90",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Amox1cill1n 5OOmg Cap",
+        "quantity": "10",
+        "unit_price": "7.20",
+        "line_total": "72.00",
+        "confidence": "44",
+        "page": 1
+      }
+    ]
+  },
+  "reader_b": {
+    "source": "fixture_vision",
+    "printed_grand_total": "190.80",
+    "items": [
+      {
+        "index": 1,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "10",
+        "unit_price": "0.88",
+        "line_total": "8.80",
+        "confidence": "91",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Surgical Gloves Pair",
+        "quantity": "5",
+        "unit_price": "22.00",
+        "line_total": "110.00",
+        "confidence": "88",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Amoxicilln 500rng Cap",
+        "quantity": "10",
+        "unit_price": "7.20",
+        "line_total": "75.00",
+        "confidence": "39",
+        "page": 1
+      }
+    ]
+  }
+}

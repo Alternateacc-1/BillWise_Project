@@ -1,0 +1,50 @@
+{
+  "bill_id": "bill_02",
+  "description": "Pharmacy - Discharge Medication",
+  "expected": [
+    {
+      "item_index": 1,
+      "rule_id": "R5",
+      "severity": "green",
+      "item_name": "Paracetamol 650mg Tablet",
+      "why": "ceiling 2.05/tab"
+    },
+    {
+      "item_index": 2,
+      "rule_id": "R5",
+      "severity": "green",
+      "item_name": "Amoxicillin 500mg Capsule",
+      "why": "ceiling 7.54/capsule"
+    },
+    {
+      "item_index": 3,
+      "rule_id": "R5",
+      "severity": "amber",
+      "item_name": "Paracetamol 500mg Tablet",
+      "why": "PLANT: ceiling 0.93/tab, billed 1.10 = 18.3% over; inside the 25% red margin so it must stay amber"
+    },
+    {
+      "item_index": 4,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Pantoprazole 40mg Tablet",
+      "gray_reason": "could_not_verify",
+      "why": "not a scheduled formulation we can match"
+    },
+    {
+      "item_index": 5,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Cotton Roll 100gm",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 6,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Micropore Tape",
+      "gray_reason": "no_public_ceiling"
+    }
+  ],
+  "allowed_red_item_indexes": []
+}

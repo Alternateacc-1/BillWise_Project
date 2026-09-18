@@ -190,6 +190,21 @@ size, manufacturer, and three flags.
 - **226 names map to more than one salt set** and are flagged `ambiguous`
   rather than arbitrarily resolved. An ambiguous name must never produce red.
 
+### Open for Phase 4: does the whole index need loading?
+
+Phase 1 showed that most hospital pharmacy lines are **generic**, not branded
+-- "Paracetamol 500mg Tablet", "Ringer Lactate Injection 500 ml", "Bare Metal
+Stent" -- and those resolve straight against the NPPA reference without
+touching the brand index at all. The brand index earns its place on lines
+like "Augmentin 625 Duo Tablet", which are a minority.
+
+So before seeding 249k rows into DynamoDB, check what fraction the demo bills
+and any real bills actually hit. A filtered subset -- brands whose salts
+appear in the 915 ceiling rows, say -- may cover nearly all real traffic at a
+fraction of the size, and might even fit in the Lambda bundle. NOT changed
+now; flagged so the Phase 4 seeding step starts by measuring rather than
+assuming.
+
 ### Deployment: DynamoDB, not the bundle
 
 The reduced index is **36 MB** — too large to sit comfortably in a Lambda

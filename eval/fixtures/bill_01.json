@@ -4,7 +4,7 @@
   "bill_date": "2026-09-12",
   "reader_a": {
     "source": "fixture_textract",
-    "printed_grand_total": "50091.00",
+    "printed_grand_total": "50088.00",
     "items": [
       {
         "index": 1,
@@ -100,8 +100,8 @@
         "index": 11,
         "name": "Paracetamol 500mg Tablet",
         "quantity": "20",
-        "unit_price": "1.05",
-        "line_total": "21.00",
+        "unit_price": "0.90",
+        "line_total": "18.00",
         "confidence": "97",
         "page": 2
       },
@@ -154,7 +154,7 @@
   },
   "reader_b": {
     "source": "fixture_vision",
-    "printed_grand_total": "50091.00",
+    "printed_grand_total": "50088.00",
     "items": [
       {
         "index": 1,
@@ -171,7 +171,7 @@
         "quantity": "3",
         "unit_price": "800.00",
         "line_total": "2400.00",
-        "confidence": "96",
+        "confidence": "95",
         "page": 1
       },
       {
@@ -180,7 +180,7 @@
         "quantity": "4",
         "unit_price": "600.00",
         "line_total": "2400.00",
-        "confidence": "94",
+        "confidence": "95",
         "page": 1
       },
       {
@@ -197,8 +197,8 @@
         "name": "CBC Complete Blood Count",
         "quantity": "2",
         "unit_price": "350.00",
-        "line_total": "710.00",
-        "confidence": "92",
+        "line_total": "700.00",
+        "confidence": "95",
         "page": 1
       },
       {
@@ -207,7 +207,7 @@
         "quantity": "12",
         "unit_price": "18.00",
         "line_total": "216.00",
-        "confidence": "94",
+        "confidence": "95",
         "page": 1
       },
       {
@@ -234,7 +234,7 @@
         "quantity": "12",
         "unit_price": "18.00",
         "line_total": "216.00",
-        "confidence": "94",
+        "confidence": "95",
         "page": 1
       },
       {
@@ -243,16 +243,16 @@
         "quantity": "2",
         "unit_price": "640.00",
         "line_total": "1280.00",
-        "confidence": "96",
+        "confidence": "95",
         "page": 2
       },
       {
         "index": 11,
         "name": "Paracetamol 500mg Tablet",
         "quantity": "20",
-        "unit_price": "1.05",
-        "line_total": "21.00",
-        "confidence": "96",
+        "unit_price": "0.90",
+        "line_total": "18.00",
+        "confidence": "95",
         "page": 2
       },
       {
@@ -296,7 +296,7 @@
         "name": "Blood Suqar Random",
         "quantity": "1",
         "unit_price": "180.00",
-        "line_total": "180.00",
+        "line_total": "190.00",
         "confidence": "38",
         "page": 2
       }

@@ -1,0 +1,125 @@
+{
+  "bill_id": "bill_04",
+  "hospital_name": "Sunrise Multispeciality Hospital (sample)",
+  "bill_date": "2026-09-15",
+  "reader_a": {
+    "source": "fixture_textract",
+    "printed_grand_total": "6500.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Room Rent - General Ward (2 days)",
+        "quantity": "2",
+        "unit_price": "1800.00",
+        "line_total": "3600.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Nursing Charges",
+        "quantity": "2",
+        "unit_price": "600.00",
+        "line_total": "1200.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Ringer Lactate Injection 1000 ml",
+        "quantity": "2",
+        "unit_price": "120.00",
+        "line_total": "240.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "10",
+        "unit_price": "0.85",
+        "line_total": "8.50",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "IV Cannula 20G",
+        "quantity": "2",
+        "unit_price": "110.00",
+        "line_total": "220.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Attendant Charges",
+        "quantity": "2",
+        "unit_price": "300.00",
+        "line_total": "600.00",
+        "confidence": "97",
+        "page": 1
+      }
+    ]
+  },
+  "reader_b": {
+    "source": "fixture_vision",
+    "printed_grand_total": "6500.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Room Rent General Ward 2 days",
+        "quantity": "2",
+        "unit_price": "1800.00",
+        "line_total": "3600.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Nursing Charges",
+        "quantity": "2",
+        "unit_price": "600.00",
+        "line_total": "1200.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Ringer Lactate Injection 1000 ml",
+        "quantity": "2",
+        "unit_price": "120.00",
+        "line_total": "240.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "10",
+        "unit_price": "0.85",
+        "line_total": "8.50",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "IV Cannula 20G",
+        "quantity": "2",
+        "unit_price": "110.00",
+        "line_total": "220.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Attendant Charges",
+        "quantity": "2",
+        "unit_price": "300.00",
+        "line_total": "600.00",
+        "confidence": "95",
+        "page": 1
+      }
+    ]
+  }
+}

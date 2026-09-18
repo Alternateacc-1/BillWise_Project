@@ -22,6 +22,7 @@ from decimal import Decimal
 
 from rapidfuzz import fuzz
 
+from .salt_synonyms import normalise_spelling
 from ..models import (
     BillInput,
     ReaderItem,
@@ -50,7 +51,15 @@ def _close(a: Decimal | None, b: Decimal | None, tol: Decimal = MONEY_TOLERANCE)
 
 
 def name_similarity(a: str, b: str) -> float:
-    return fuzz.token_sort_ratio((a or "").upper(), (b or "").upper())
+    """Compare names AFTER normalising punctuation and spacing.
+
+    Comparing raw strings penalises formatting rather than content:
+    "X-Ray Chest PA View" vs "X Ray Chest PA View" scored 79 on the hyphen
+    alone and lost a perfectly good reading. A hyphen is not a disagreement
+    between readers. Genuine differences -- "Dr." vs "Doctor" -- still score
+    below the threshold, and still cost the line its HIGH confidence.
+    """
+    return fuzz.token_sort_ratio(normalise_spelling(a), normalise_spelling(b))
 
 
 def arithmetic_holds(item: ReaderItem | VerifiedItem) -> bool | None:

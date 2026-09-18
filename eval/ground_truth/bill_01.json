@@ -1,0 +1,132 @@
+{
+  "bill_id": "bill_01",
+  "description": "Inpatient - Minor Surgical Procedure",
+  "expected": [
+    {
+      "item_index": 1,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Room Rent - Semi Private Ward (3 days)",
+      "gray_reason": "no_public_ceiling",
+      "why": "room rent has no published ceiling"
+    },
+    {
+      "item_index": 2,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Nursing Charges",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 3,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Consultation - Dr. Visit",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 4,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "OT Charges - Minor Procedure",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 5,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "CBC - Complete Blood Count",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 6,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Disposable Syringe 5ml",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 7,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "IV Set with Cannula",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 8,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Surgical Gloves Pair",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 9,
+      "rule_id": "R3",
+      "severity": "amber",
+      "item_name": "Disposable Syringe 5ml",
+      "why": "PLANT: duplicate consumable, same name and quantity"
+    },
+    {
+      "item_index": 10,
+      "rule_id": "R5",
+      "severity": "red",
+      "item_name": "Augmentin 625 Duo Tablet",
+      "why": "PLANT: ceiling 18.74/tab; both interpretations exceed the red threshold"
+    },
+    {
+      "item_index": 11,
+      "rule_id": "R5",
+      "severity": "green",
+      "item_name": "Paracetamol 500mg Tablet",
+      "why": "PLANT: ceiling 0.93/tab; 0.90 is within it"
+    },
+    {
+      "item_index": 12,
+      "rule_id": "R5",
+      "severity": "green",
+      "item_name": "Ringer Lactate Injection 500 ml",
+      "why": "ceiling 66.52 per 500ml bag; 72.00 is inside the GST-inclusive cap of 74.50"
+    },
+    {
+      "item_index": 13,
+      "rule_id": "R1",
+      "severity": "amber",
+      "item_name": "Pantop 40mg Tablet",
+      "why": "PLANT: arithmetic error of Rs 5.00"
+    },
+    {
+      "item_index": 13,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Pantop 40mg Tablet",
+      "gray_reason": "could_not_verify",
+      "why": "PLANT: arithmetic error of Rs 5.00"
+    },
+    {
+      "item_index": 14,
+      "rule_id": "R5",
+      "severity": "red",
+      "item_name": "Bare Metal Stent",
+      "why": "PLANT: ceiling 10762.15 per unit; billed at 2.3x"
+    },
+    {
+      "item_index": 15,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Oxygen Charges per hour",
+      "gray_reason": "no_public_ceiling"
+    },
+    {
+      "item_index": 16,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "Bl00d Sug@r Rndm",
+      "gray_reason": "could_not_verify",
+      "why": "PLANT: readers disagree and both are low confidence"
+    }
+  ],
+  "allowed_red_item_indexes": [
+    10,
+    14
+  ]
+}

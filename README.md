@@ -4,9 +4,9 @@ Upload an Indian hospital or pharmacy bill and see which charges may need
 clarification — with the evidence behind each one, and a polite letter you can
 send asking the hospital to explain them.
 
-> **Status: Phase 0b of 6.** The government price reference and the
-> brand-to-salt index are built and tested (145 tests). The pipeline, API and
-> UI are not built yet.
+> **Status: Phase 2 of 6.** The engine runs end to end offline and is scored
+> against ground truth: **39/39 findings caught, 0 missed, 0 false reds**
+> across 5 synthetic bills. 207 tests green. The API and UI are not built yet.
 
 ---
 
@@ -81,6 +81,18 @@ PYTHONIOENCODING=utf-8 python scripts/fetch_brand_data.py
 
 ```bash
 PYTHONIOENCODING=utf-8 python scripts/build_brand_index.py
+```
+
+Audit a sample bill and see a full report:
+
+```bash
+cd backend && python -m app.cli audit ../eval/fixtures/bill_01.json
+```
+
+Score the engine against ground truth:
+
+```bash
+python eval/run_eval.py
 ```
 
 Run the tests:
