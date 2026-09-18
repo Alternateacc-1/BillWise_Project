@@ -1,0 +1,56 @@
+{
+  "bill_id": "bill_06",
+  "description": "Retail pharmacy sale bill - no unit-price column",
+  "expected": [
+    {
+      "item_index": 1,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "PANTOCID DSR CAP",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: no unit-price column. MRP/pack 16.8127, billed/unit 16.8100 -- at MRP. Should be green."
+    },
+    {
+      "item_index": 2,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "OFIVAY OZ TAB",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: MRP/pack 13.40, billed/unit 13.40 -- exactly MRP."
+    },
+    {
+      "item_index": 3,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "SINALATE TAB",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: MRP/pack 6.75, billed/unit 6.75 -- exactly MRP."
+    },
+    {
+      "item_index": 4,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "EFERIM SP TAB",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: MRP/pack 9.797, billed/unit 9.79 -- below MRP."
+    },
+    {
+      "item_index": 5,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "BECOSULE CAP",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: MRP/pack 3.1185, billed/unit 3.11 -- below MRP."
+    },
+    {
+      "item_index": 6,
+      "rule_id": "R9",
+      "severity": "gray",
+      "item_name": "MEDINOZE NASAL SPRAY",
+      "gray_reason": "could_not_verify",
+      "why": "CLASS A: single unit, billed at MRP exactly."
+    }
+  ],
+  "allowed_red_item_indexes": [],
+  "note": "FORMAT FIXTURE. The grays below record CURRENT behaviour, not desired behaviour. Every line on this bill is billed at or below its printed MRP, so the correct verdict is six greens. They come back could_not_verify only because the bill prints no unit-price column and the verifier treats an absent value as a failed check (Class A, docs/FORMAT_FINDINGS.md). When Class A lands, rewrite this ground truth to greens in the same commit. Do NOT relax the fixture to make a change pass."
+}

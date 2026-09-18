@@ -42,7 +42,19 @@ class Line:
 
     name: str
     qty: str
-    unit_price: str
+    #: None means THE BILL PRINTS NO UNIT-PRICE COLUMN. That is not an
+    #: omission in the fixture -- it is the single most common retail pharmacy
+    #: layout in India, which prints MRP/PACK/QTY/TOTAL and expects you to
+    #: divide. A line with unit_price=None MUST set line_total_override.
+    unit_price: str | None = None
+    #: Printed maximum retail price for one PACK. Read by nothing today; this
+    #: is R6's input (fix 2) and it is here so the fixture does not need
+    #: rewriting when R6 lands.
+    mrp: str | None = None
+    #: Units per pack, as printed. This is the fact the upper-bound gate
+    #: exists because bills usually omit -- when it IS printed the per-unit
+    #: price is fully determinable. Class C in FORMAT_FINDINGS.md.
+    pack: int | None = None
     #: Set only to plant a deliberate arithmetic error.
     line_total_override: str | None = None
     #: What reader B sees. None means "the same as reader A".
@@ -61,6 +73,12 @@ class Line:
     def line_total(self) -> str:
         if self.line_total_override is not None:
             return self.line_total_override
+        if self.unit_price is None:
+            raise ValueError(
+                f"{self.name!r}: a line with no printed unit price must state "
+                "line_total_override -- we never compute a total the bill did "
+                "not print."
+            )
         return str(Decimal(self.qty) * Decimal(self.unit_price))
 
 
@@ -75,11 +93,44 @@ class BillSpec:
     #: None, "mild" (a phone photo: slight rotation, shadow, soft contrast)
     #: or "heavy" (a bad fax-grade scan).
     noisy_image: str | None = None
+    #: Override the vendor name. Demo bills are synthetic and say so; a format
+    #: fixture copied from a real layout uses a different synthetic name so it
+    #: is never mistaken for the hospital bills.
+    vendor: str | None = None
+    #: "standard"  -> # | Particulars | Qty | Rate | Amount
+    #: "retail"    -> PARTICULARS | HSN | MRP | PACK | QTY | CGST | SGST | TOTAL
+    #: The retail layout prints NO unit-price column, which is the point.
+    layout: str = "standard"
+    #: Printed totals-block adjustments, as (label, amount) applied AFTER the
+    #: subtotal, e.g. [("Discount", "22.70"), ("Round Off (-)", "0.24")].
+    #: Printed on the PDF today; the engine does not read them yet -- that is
+    #: Class B, "a totals block is a ledger, not a number".
+    adjustments: list[tuple[str, str]] = field(default_factory=list)
+    #: Per-line GST as printed, e.g. "2.5" for CGST 2.5% + SGST 2.5% = 5%.
+    #: The engine assumes 12% regardless today; Class D.
+    printed_gst_half_rate: str | None = None
+
+    def subtotal(self) -> str:
+        return str(sum(Decimal(l.line_total) for l in self.lines))
+
+    def net_total(self) -> str:
+        """Subtotal less every printed adjustment -- what was actually paid."""
+        net = Decimal(self.subtotal())
+        for _label, amount in self.adjustments:
+            net -= Decimal(amount)
+        return str(net)
 
     def printed_total(self) -> str:
+        """What the READER hands the engine as "the total".
+
+        For a bill with a totals block this is the SUBTOTAL, not the net. That
+        is the reading that reconciles today. The net-amount reading is the
+        Class B case and is exercised separately, because encoding it here
+        would bake a known-false R2 into ground truth.
+        """
         if self.printed_total_override is not None:
             return self.printed_total_override
-        return str(sum(Decimal(l.line_total) for l in self.lines))
+        return self.subtotal()
 
 
 # --------------------------------------------------------------------------
@@ -285,6 +336,64 @@ BILLS = [
                  why="PLANT: OCR garbling, readers disagree"),
         ],
     ),
+
+    # ----------------------------------------------------------------------
+    # bill_06 -- FORMAT FIXTURE, not a plant bill.
+    #
+    # Structure copied from a real OPD pharmacy sale bill (Probe 1 in
+    # docs/FORMAT_FINDINGS.md). Line items, quantities, MRP, PACK, the GST
+    # split and the totals block are faithful; the vendor name is synthetic
+    # and no patient, doctor, invoice, registration or address detail from the
+    # source bill exists anywhere in this repo.
+    #
+    # It plants NOTHING. Its job is to be an ordinary, correctly-priced
+    # pharmacy bill in the commonest Indian retail layout, and to fail loudly
+    # when we cannot read that layout. Every line is billed at or fractionally
+    # BELOW its printed MRP -- the honest verdict on this bill is six greens
+    # and nothing to ask about.
+    #
+    # EXPECTED TO CHANGE. Today all six come back could_not_verify, because
+    # the bill prints no unit-price column and the verifier treats "absent" as
+    # "wrong" (Class A). When Class A lands, this ground truth must be
+    # rewritten to greens. If a change makes these lines pass WITHOUT that
+    # rewrite, something is wrong -- see the note in the ground-truth file.
+    # ----------------------------------------------------------------------
+    BillSpec(
+        bill_id="bill_06",
+        title="Retail pharmacy sale bill - no unit-price column",
+        bill_date="2025-12-24",
+        vendor="Nagpur City Pharmacy (sample)",
+        layout="retail",
+        printed_gst_half_rate="2.5",
+        adjustments=[("Discount", "22.70"), ("Round Off (-)", "0.24")],
+        lines=[
+            Line("PANTOCID DSR CAP", "8", mrp="252.19", pack=15,
+                 line_total_override="134.48",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: no unit-price column. MRP/pack 16.8127, "
+                     "billed/unit 16.8100 -- at MRP. Should be green."),
+            Line("OFIVAY OZ TAB", "8", mrp="134.00", pack=10,
+                 line_total_override="107.20",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: MRP/pack 13.40, billed/unit 13.40 -- exactly MRP."),
+            Line("SINALATE TAB", "8", mrp="67.50", pack=10,
+                 line_total_override="54.00",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: MRP/pack 6.75, billed/unit 6.75 -- exactly MRP."),
+            Line("EFERIM SP TAB", "8", mrp="97.97", pack=10,
+                 line_total_override="78.32",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: MRP/pack 9.797, billed/unit 9.79 -- below MRP."),
+            Line("BECOSULE CAP", "4", mrp="62.37", pack=20,
+                 line_total_override="12.44",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: MRP/pack 3.1185, billed/unit 3.11 -- below MRP."),
+            Line("MEDINOZE NASAL SPRAY", "1", mrp="67.50", pack=1,
+                 line_total_override="67.50",
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="CLASS A: single unit, billed at MRP exactly."),
+        ],
+    ),
 ]
 
 
@@ -310,7 +419,7 @@ def build_fixture(spec: BillSpec) -> dict:
     total = spec.printed_total()
     return {
         "bill_id": spec.bill_id,
-        "hospital_name": f"{HOSPITAL} (sample)",
+        "hospital_name": spec.vendor or f"{HOSPITAL} (sample)",
         "bill_date": spec.bill_date,
         "reader_a": {"source": "fixture_textract", "printed_grand_total": total,
                      "items": reader_a},
@@ -342,7 +451,7 @@ def build_ground_truth(spec: BillSpec) -> dict:
             "why": "PLANT: printed total does not match the sum of lines",
         })
 
-    return {
+    truth = {
         "bill_id": spec.bill_id,
         "description": spec.title,
         "expected": expected,
@@ -351,6 +460,20 @@ def build_ground_truth(spec: BillSpec) -> dict:
         # slogan.
         "allowed_red_item_indexes": sorted(set(allowed_red)),
     }
+
+    if spec.layout == "retail":
+        truth["note"] = (
+            "FORMAT FIXTURE. The grays below record CURRENT behaviour, not "
+            "desired behaviour. Every line on this bill is billed at or below "
+            "its printed MRP, so the correct verdict is six greens. They come "
+            "back could_not_verify only because the bill prints no unit-price "
+            "column and the verifier treats an absent value as a failed check "
+            "(Class A, docs/FORMAT_FINDINGS.md). When Class A lands, rewrite "
+            "this ground truth to greens in the same commit. Do NOT relax the "
+            "fixture to make a change pass."
+        )
+
+    return truth
 
 
 # --------------------------------------------------------------------------
@@ -371,11 +494,11 @@ def write_pdf(spec: BillSpec, path: Path) -> None:
         str(path), pagesize=A4,
         leftMargin=18 * mm, rightMargin=18 * mm,
         topMargin=16 * mm, bottomMargin=16 * mm,
-        title=f"{HOSPITAL} - {spec.bill_id} (sample)",
+        title=f"{spec.vendor or HOSPITAL} - {spec.bill_id} (sample)",
     )
 
     story = [
-        Paragraph(f"<b>{HOSPITAL}</b>", styles["Title"]),
+        Paragraph(f"<b>{spec.vendor or HOSPITAL}</b>", styles["Title"]),
         Paragraph(ADDRESS, styles["Normal"]),
         Spacer(1, 6 * mm),
         Paragraph(
@@ -387,25 +510,58 @@ def write_pdf(spec: BillSpec, path: Path) -> None:
         Spacer(1, 5 * mm),
     ]
 
-    data = [["#", "Particulars", "Qty", "Rate", "Amount"]]
-    for n, line in enumerate(spec.lines, start=1):
-        data.append([
-            str(n), line.name, line.qty,
-            f"{Decimal(line.unit_price):,.2f}",
-            f"{Decimal(line.line_total):,.2f}",
-        ])
-    data.append(["", "", "", "TOTAL", f"{Decimal(spec.printed_total()):,.2f}"])
+    if spec.layout == "retail":
+        # The commonest Indian retail pharmacy layout: MRP, PACK, QTY and
+        # TOTAL, and NO unit-price column. The reader is expected to divide.
+        half = spec.printed_gst_half_rate or "2.5"
+        data = [["PARTICULARS", "HSN", "MRP", "PACK", "QTY",
+                 f"CGST {half}%", f"SGST {half}%", "TOTAL"]]
+        for line in spec.lines:
+            gst = (Decimal(line.line_total) * Decimal(half) / Decimal("100")
+                   ).quantize(Decimal("0.01"))
+            data.append([
+                line.name, "3004",
+                f"{Decimal(line.mrp):,.2f}" if line.mrp else "",
+                str(line.pack) if line.pack else "",
+                line.qty, f"{gst:,.2f}", f"{gst:,.2f}",
+                f"{Decimal(line.line_total):,.2f}",
+            ])
+        data.append(["", "", "", "", "", "", "Bill Amount",
+                     f"{Decimal(spec.subtotal()):,.2f}"])
+        for label, amount in spec.adjustments:
+            data.append(["", "", "", "", "", "", label,
+                         f"{Decimal(amount):,.2f}"])
+        data.append(["", "", "", "", "", "", "Net Amount",
+                     f"{Decimal(spec.net_total()):,.2f}"])
+        table = Table(data, colWidths=[52 * mm, 12 * mm, 18 * mm, 13 * mm,
+                                       12 * mm, 18 * mm, 22 * mm, 24 * mm])
+    else:
+        data = [["#", "Particulars", "Qty", "Rate", "Amount"]]
+        for n, line in enumerate(spec.lines, start=1):
+            data.append([
+                str(n), line.name, line.qty,
+                f"{Decimal(line.unit_price):,.2f}",
+                f"{Decimal(line.line_total):,.2f}",
+            ])
+        data.append(["", "", "", "TOTAL",
+                     f"{Decimal(spec.printed_total()):,.2f}"])
+        table = Table(data,
+                      colWidths=[10 * mm, 88 * mm, 16 * mm, 25 * mm, 28 * mm])
 
-    table = Table(data, colWidths=[10 * mm, 88 * mm, 16 * mm, 25 * mm, 28 * mm])
+    last_line_row = len(spec.lines)          # row 0 is the header
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e8e8e8")),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("GRID", (0, 0), (-1, -2), 0.4, colors.grey),
-        ("LINEABOVE", (3, -1), (-1, -1), 1.0, colors.black),
-        ("FONTNAME", (3, -1), (-1, -1), "Helvetica-Bold"),
+        # The grid covers the LINE ITEMS only. The totals block below it is
+        # ungridded, exactly as a printed bill has it -- which is part of why
+        # a reader struggles to tell a subtotal from a net.
+        ("GRID", (0, 0), (-1, last_line_row), 0.4, colors.grey),
+        ("LINEABOVE", (-2, last_line_row + 1), (-1, last_line_row + 1),
+         1.0, colors.black),
+        ("FONTNAME", (-2, -1), (-1, -1), "Helvetica-Bold"),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
     ]))

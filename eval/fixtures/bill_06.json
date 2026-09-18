@@ -1,0 +1,125 @@
+{
+  "bill_id": "bill_06",
+  "hospital_name": "Nagpur City Pharmacy (sample)",
+  "bill_date": "2025-12-24",
+  "reader_a": {
+    "source": "fixture_textract",
+    "printed_grand_total": "453.94",
+    "items": [
+      {
+        "index": 1,
+        "name": "PANTOCID DSR CAP",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "134.48",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "OFIVAY OZ TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "107.20",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "SINALATE TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "54.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "EFERIM SP TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "78.32",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "BECOSULE CAP",
+        "quantity": "4",
+        "unit_price": null,
+        "line_total": "12.44",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "MEDINOZE NASAL SPRAY",
+        "quantity": "1",
+        "unit_price": null,
+        "line_total": "67.50",
+        "confidence": "97",
+        "page": 1
+      }
+    ]
+  },
+  "reader_b": {
+    "source": "fixture_vision",
+    "printed_grand_total": "453.94",
+    "items": [
+      {
+        "index": 1,
+        "name": "PANTOCID DSR CAP",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "134.48",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "OFIVAY OZ TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "107.20",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "SINALATE TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "54.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "EFERIM SP TAB",
+        "quantity": "8",
+        "unit_price": null,
+        "line_total": "78.32",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "BECOSULE CAP",
+        "quantity": "4",
+        "unit_price": null,
+        "line_total": "12.44",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "MEDINOZE NASAL SPRAY",
+        "quantity": "1",
+        "unit_price": null,
+        "line_total": "67.50",
+        "confidence": "95",
+        "page": 1
+      }
+    ]
+  }
+}

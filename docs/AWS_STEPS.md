@@ -239,7 +239,7 @@ real Textract behaves on a real scan, and that is the single biggest unknown
 left in the project. It is also the thing the demo video depends on. Find out
 now, not after the stack is up.
 
-**Cost: about $0.04.** Four AnalyzeExpense pages at roughly $0.01 each. The
+**Cost: about $0.05.** Five AnalyzeExpense pages at roughly $0.01 each. The
 first 100 pages/month are free for the first 3 months if the account is new.
 
 **Time: 10 minutes.**
@@ -260,6 +260,15 @@ No code, no SDK, no deployment. The console does this by hand.
      work.**
    - `eval/demo_bills/bill_05.jpg` — the **heavy** scan. Fax-grade. **This one
      may return almost nothing, and that is a legitimate result.**
+   - `eval/demo_bills/bill_06.pdf` — the **retail pharmacy layout**: MRP,
+     PACK, QTY, TOTAL and **no unit-price column**, with a Discount and Round
+     Off in the totals block. Added 2026-09-18 after probing a real bill of
+     this shape. It is a clean generated PDF, so this is not a reading-quality
+     test — it asks a different question: **does AnalyzeExpense return the
+     MRP and PACK columns as usable fields, and does it report the subtotal,
+     the discount and the net separately or collapse them into one total?**
+     Those two answers decide how much of Class B and Class C we get for free.
+     Record the raw field names it gives back, verbatim.
 
 ---
 
@@ -269,11 +278,18 @@ For **each** of the two files, write down:
 
 ```
 FILE: bill_02.jpg  (mild)
-  line items detected      : ____ of 6
+  line items detected      : ____ of 7
   quantities correct       : ____
   amounts correct          : ____
   a grand total was found  : yes / no
   lowest per-field confidence seen : ____
+
+FILE: bill_06.pdf  (retail layout, clean PDF)
+  line items detected      : ____ of 6
+  MRP column returned      : yes / no   (field name: ____________)
+  PACK column returned     : yes / no   (field name: ____________)
+  totals returned          : subtotal ____  discount ____  net ____
+                             (or a single total: ____)
 
 FILE: bill_05.jpg  (heavy)
   line items detected      : ____ of 3
@@ -285,9 +301,34 @@ FILE: bill_05.jpg  (heavy)
 
 Ground truth to check against — both bills, in full:
 
-**bill_02** (6 lines, total ₹1,032.50)
+**bill_02** (7 lines, printed total Rs 409.00)
+
 | # | Item | Qty | Rate | Amount |
 |---|---|---|---|---|
+| 1 | Paracetamol 650mg Tablet | 15 | 2.00 | 30.00 |
+| 2 | Amoxicillin 500mg Capsule | 10 | 7.40 | 74.00 |
+| 3 | Paracetamol 500mg Tablet | 20 | 1.10 | 22.00 |
+| 4 | Acimol 500mg Tablet | 2 | 11.50 | 23.00 |
+| 5 | Pantoprazole 40mg Tablet | 10 | 8.50 | 85.00 |
+| 6 | Cotton Roll 100gm | 1 | 85.00 | 85.00 |
+| 7 | Micropore Tape | 2 | 45.00 | 90.00 |
+
+**bill_05** (3 lines, printed total Rs 190.80)
+
+| # | Item | Qty | Rate | Amount |
+|---|---|---|---|---|
+| 1 | Paracetamol 500mg Tablet | 10 | 0.88 | 8.80 |
+| 2 | Surgical Gloves Pair | 5 | 22.00 | 110.00 |
+| 3 | Amox1cill1n 5OOmg Cap | 10 | 7.20 | 72.00 |
+
+> These two tables are GENERATED from `eval/fixtures/`. If you edit
+> them by hand they will drift from the bills you are actually
+> uploading, and you will record the wrong reading accuracy. The
+> previous version of this table claimed bill_02 had 6 lines totalling
+> Rs 1,032.50; it has 7 lines totalling Rs 409.00, and the line it
+> omitted is the only item in the amber band.
+
+---|---|---|---|---|
 | 1 | Paracetamol 650mg Tablet | 15 | 2.00 | 30.00 |
 | 2 | Amoxicillin 500mg Capsule | 10 | 7.40 | 74.00 |
 | 3 | Paracetamol 500mg Tablet | 20 | 1.10 | 22.00 |
@@ -446,7 +487,7 @@ curl -X POST -F "file=@eval/demo_bills/bill_02.jpg" https://YOUR-API-URL/bills
 `items_read` says is the real number. Record it:
 
 ```
-items_read on bill_02.jpg (mild scan):  ____ of 6
+items_read on bill_02.jpg (mild scan):  ____ of 7
 items_read on bill_05.jpg (heavy scan): ____ of 3
 ```
 
