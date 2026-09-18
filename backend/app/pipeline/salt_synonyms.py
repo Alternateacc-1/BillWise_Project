@@ -34,7 +34,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SYNONYMS_JSON = REPO_ROOT / "data" / "reference" / "salt_synonyms.json"
 
 

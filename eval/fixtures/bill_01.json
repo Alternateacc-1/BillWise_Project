@@ -1,0 +1,305 @@
+{
+  "bill_id": "bill_01",
+  "hospital_name": "Sunrise Multispeciality Hospital (sample)",
+  "bill_date": "2026-09-12",
+  "reader_a": {
+    "source": "fixture_textract",
+    "printed_grand_total": "50091.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Room Rent - Semi Private Ward (3 days)",
+        "quantity": "3",
+        "unit_price": "3500.00",
+        "line_total": "10500.00",
+        "confidence": "98",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Nursing Charges",
+        "quantity": "3",
+        "unit_price": "800.00",
+        "line_total": "2400.00",
+        "confidence": "98",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Consultation - Dr. Visit",
+        "quantity": "4",
+        "unit_price": "600.00",
+        "line_total": "2400.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "OT Charges - Minor Procedure",
+        "quantity": "1",
+        "unit_price": "4500.00",
+        "line_total": "4500.00",
+        "confidence": "96",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "CBC - Complete Blood Count",
+        "quantity": "2",
+        "unit_price": "350.00",
+        "line_total": "700.00",
+        "confidence": "97",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Disposable Syringe 5ml",
+        "quantity": "12",
+        "unit_price": "18.00",
+        "line_total": "216.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 7,
+        "name": "IV Set with Cannula",
+        "quantity": "4",
+        "unit_price": "95.00",
+        "line_total": "380.00",
+        "confidence": "96",
+        "page": 1
+      },
+      {
+        "index": 8,
+        "name": "Surgical Gloves Pair",
+        "quantity": "10",
+        "unit_price": "22.00",
+        "line_total": "220.00",
+        "confidence": "96",
+        "page": 1
+      },
+      {
+        "index": 9,
+        "name": "Disposable Syringe 5ml",
+        "quantity": "12",
+        "unit_price": "18.00",
+        "line_total": "216.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 10,
+        "name": "Augmentin 625 Duo Tablet",
+        "quantity": "2",
+        "unit_price": "640.00",
+        "line_total": "1280.00",
+        "confidence": "97",
+        "page": 2
+      },
+      {
+        "index": 11,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "20",
+        "unit_price": "1.05",
+        "line_total": "21.00",
+        "confidence": "97",
+        "page": 2
+      },
+      {
+        "index": 12,
+        "name": "Ringer Lactate Injection 500 ml",
+        "quantity": "4",
+        "unit_price": "72.00",
+        "line_total": "288.00",
+        "confidence": "96",
+        "page": 2
+      },
+      {
+        "index": 13,
+        "name": "Pantop 40mg Tablet",
+        "quantity": "10",
+        "unit_price": "12.50",
+        "line_total": "130.00",
+        "confidence": "95",
+        "page": 2
+      },
+      {
+        "index": 14,
+        "name": "Bare Metal Stent",
+        "quantity": "1",
+        "unit_price": "24500.00",
+        "line_total": "24500.00",
+        "confidence": "96",
+        "page": 2
+      },
+      {
+        "index": 15,
+        "name": "Oxygen Charges per hour",
+        "quantity": "18",
+        "unit_price": "120.00",
+        "line_total": "2160.00",
+        "confidence": "94",
+        "page": 2
+      },
+      {
+        "index": 16,
+        "name": "Bl00d Sug@r Rndm",
+        "quantity": "1",
+        "unit_price": "180.00",
+        "line_total": "180.00",
+        "confidence": "41",
+        "page": 2
+      }
+    ]
+  },
+  "reader_b": {
+    "source": "fixture_vision",
+    "printed_grand_total": "50091.00",
+    "items": [
+      {
+        "index": 1,
+        "name": "Room Rent Semi Private Ward 3 days",
+        "quantity": "3",
+        "unit_price": "3500.00",
+        "line_total": "10500.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 2,
+        "name": "Nursing Charges",
+        "quantity": "3",
+        "unit_price": "800.00",
+        "line_total": "2400.00",
+        "confidence": "96",
+        "page": 1
+      },
+      {
+        "index": 3,
+        "name": "Consultation Doctor Visit",
+        "quantity": "4",
+        "unit_price": "600.00",
+        "line_total": "2400.00",
+        "confidence": "94",
+        "page": 1
+      },
+      {
+        "index": 4,
+        "name": "OT Charges Minor Procedure",
+        "quantity": "1",
+        "unit_price": "4500.00",
+        "line_total": "4500.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 5,
+        "name": "CBC Complete Blood Count",
+        "quantity": "2",
+        "unit_price": "350.00",
+        "line_total": "710.00",
+        "confidence": "92",
+        "page": 1
+      },
+      {
+        "index": 6,
+        "name": "Disposable Syringe 5ml",
+        "quantity": "12",
+        "unit_price": "18.00",
+        "line_total": "216.00",
+        "confidence": "94",
+        "page": 1
+      },
+      {
+        "index": 7,
+        "name": "IV Set with Cannula",
+        "quantity": "4",
+        "unit_price": "95.00",
+        "line_total": "380.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 8,
+        "name": "Surgical Gloves Pair",
+        "quantity": "10",
+        "unit_price": "22.00",
+        "line_total": "220.00",
+        "confidence": "95",
+        "page": 1
+      },
+      {
+        "index": 9,
+        "name": "Disposable Syringe 5ml",
+        "quantity": "12",
+        "unit_price": "18.00",
+        "line_total": "216.00",
+        "confidence": "94",
+        "page": 1
+      },
+      {
+        "index": 10,
+        "name": "Augmentin 625 Duo Tablet",
+        "quantity": "2",
+        "unit_price": "640.00",
+        "line_total": "1280.00",
+        "confidence": "96",
+        "page": 2
+      },
+      {
+        "index": 11,
+        "name": "Paracetamol 500mg Tablet",
+        "quantity": "20",
+        "unit_price": "1.05",
+        "line_total": "21.00",
+        "confidence": "96",
+        "page": 2
+      },
+      {
+        "index": 12,
+        "name": "Ringer Lactate Injection 500 ml",
+        "quantity": "4",
+        "unit_price": "72.00",
+        "line_total": "288.00",
+        "confidence": "95",
+        "page": 2
+      },
+      {
+        "index": 13,
+        "name": "Pantop 40mg Tablet",
+        "quantity": "10",
+        "unit_price": "12.50",
+        "line_total": "130.00",
+        "confidence": "93",
+        "page": 2
+      },
+      {
+        "index": 14,
+        "name": "Bare Metal Stent",
+        "quantity": "1",
+        "unit_price": "24500.00",
+        "line_total": "24500.00",
+        "confidence": "95",
+        "page": 2
+      },
+      {
+        "index": 15,
+        "name": "Oxygen Charges per hour",
+        "quantity": "18",
+        "unit_price": "120.00",
+        "line_total": "2160.00",
+        "confidence": "92",
+        "page": 2
+      },
+      {
+        "index": 16,
+        "name": "Blood Suqar Random",
+        "quantity": "1",
+        "unit_price": "180.00",
+        "line_total": "180.00",
+        "confidence": "38",
+        "page": 2
+      }
+    ]
+  }
+}

@@ -827,7 +827,7 @@ def select_highest_applicable_ceiling(
     Retail rows are never candidates: they are per-company approved prices,
     not ceilings that bind anyone else.
     """
-    from salt_synonyms import normalise_salt_set
+    from app.pipeline.salt_synonyms import normalise_salt_set
 
     return _select_with_salt_key(
         rows, salt_components, dosage_form, strength_mg, strength_kind,
@@ -894,7 +894,7 @@ def select_ceiling_two_tier(
     exact match. "Highest applicable" is still resolved strictly within the
     winning tier.
     """
-    from salt_synonyms import canonicalise_salt_set, normalise_salt_set
+    from app.pipeline.salt_synonyms import canonicalise_salt_set, normalise_salt_set
 
     exact = _select_with_salt_key(
         rows, salt_components, dosage_form, strength_mg, strength_kind,
@@ -932,7 +932,7 @@ def find_synonym_price_conflicts(rows: list[ReferenceRow]) -> list[dict]:
     prices are a pre-existing fact about the source data (NPPA prices some
     formulations differently by pack condition) and are reported separately.
     """
-    from salt_synonyms import canonicalise_salt_set, normalise_salt_set
+    from app.pipeline.salt_synonyms import canonicalise_salt_set, normalise_salt_set
 
     groups: dict[tuple, list[ReferenceRow]] = {}
     for r in rows:

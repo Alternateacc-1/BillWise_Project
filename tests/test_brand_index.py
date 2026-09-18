@@ -11,7 +11,7 @@ import pytest
 
 import build_brand_index as bbi
 import prepare_reference as pr
-import salt_synonyms as ss
+from app.pipeline import salt_synonyms as ss
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BRAND_INDEX = REPO_ROOT / "data" / "reference" / "brand_index.csv"

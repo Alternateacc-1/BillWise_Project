@@ -41,7 +41,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from prepare_reference import detect_dosage_form, detect_form_modifiers, parse_strength
-from salt_synonyms import normalise_spelling
+# Import, never reimplement: the pipeline owns canonicalisation.
+from app.pipeline.salt_synonyms import normalise_spelling
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE = REPO_ROOT / "data" / "raw" / "brands" / "indian_medicine_data.csv"

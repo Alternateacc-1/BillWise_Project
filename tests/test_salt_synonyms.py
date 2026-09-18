@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-import salt_synonyms as ss
+from app.pipeline import salt_synonyms as ss
 
 
 # --------------------------------------------------------------------------
