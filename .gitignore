@@ -55,3 +55,4 @@ Thumbs.db
 
 # Staged into the Lambda bundle by scripts/stage_lambda.py
 backend/reference_data/
+backend/fixtures/

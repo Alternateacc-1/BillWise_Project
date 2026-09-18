@@ -158,7 +158,14 @@ def create_sample(fixture: str | None = None) -> dict:
         except reader.ReaderUnavailable as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
     else:
-        bill = reader.read_sample()
+        # read_sample() raises the same ReaderUnavailable as load_fixture().
+        # Leaving it unwrapped turned a missing fixture directory into a bare
+        # 500 with no message -- exactly what the first deployed smoke test
+        # hit. A sample bill that cannot be found is a 404 with a reason.
+        try:
+            bill = reader.read_sample()
+        except reader.ReaderUnavailable as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
     chosen = fixture or reader.SAMPLE_BILL_ID
     bill.bill_id = _new_bill_id()
     report = _run_pipeline(bill)

@@ -21,7 +21,27 @@ from .. import config
 from ..models import BillInput, ReaderOutput
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-FIXTURE_DIR = REPO_ROOT / "eval" / "fixtures"
+
+
+def _fixture_dir() -> Path:
+    """Locate the sample bills in the repo OR in the Lambda bundle.
+
+    Repo layout:   <root>/eval/fixtures/
+    Lambda bundle: <task root>/fixtures/, staged by scripts/stage_lambda.py
+
+    CodeUri is backend/, so eval/ is NOT deployed. Resolving only the repo
+    path meant FIXTURE_DIR pointed at /var/eval/fixtures on Lambda, glob()
+    returned nothing (a missing directory globs empty rather than raising),
+    and every sample bill 404'd internally -- surfacing as a 500 on
+    POST /bills/sample. Found on the first deployed smoke test, 2026-09-19.
+    """
+    bundled = Path(__file__).resolve().parents[2] / "fixtures"
+    if bundled.is_dir():
+        return bundled
+    return REPO_ROOT / "eval" / "fixtures"
+
+
+FIXTURE_DIR = _fixture_dir()
 
 SAMPLE_BILL_ID = "bill_01"
 
