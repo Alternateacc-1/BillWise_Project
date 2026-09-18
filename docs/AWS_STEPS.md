@@ -740,6 +740,38 @@ ApiUrl = ____________________________________________
 
 ---
 
+### Troubleshooting the first deploy
+
+Six things went wrong on the first real deploy (2026-09-19). **None was a bug
+in this project** -- all six were the environment. Recorded because every one
+of them looks like something else.
+
+| Symptom | Actual cause |
+|---|---|
+| `sam build` hangs on `Fetching ... image......` | NOT a download. The image was already local; SAM was contacting ECR to check freshness. `docker images` first, then `--skip-pull-image`. |
+| Build container exits silently, no error, no output | **Disk full.** C: had 0.02 GB free. Also caused Docker's daemon to throw 500s intermittently, which looked like Docker being unstable. **Check free space before anything else** -- it presents as five unrelated faults. |
+| `aws` "not found" after winget says it installed | A process gets the PATH that existed when it STARTED. A terminal spawned by a long-running app inherits that app's stale PATH, so reopening the terminal does NOT help. Fixed permanently by the self-healing shell profiles. |
+| `[WinError 5] Access is denied` under `.aws-sam/build` | **OneDrive.** It holds file handles open while syncing; SAM wipes the build dir every run. Fixed by building outside OneDrive -- `build_dir` in `samconfig.toml`. |
+| `ReservedConcurrentExecutions ... below its minimum value of [10]` | A new account's TOTAL Lambda concurrency is often 10, and AWS requires 10 to stay unreserved. Reserving anything is refused. `ReservedConcurrency=0` omits the property. |
+| `Stack ... is in ROLLBACK_COMPLETE state and can not be updated` | A stack that fails on FIRST create can only be deleted, never updated. It is an empty shell -- the rollback already destroyed every resource. |
+
+**Deleting a `ROLLBACK_COMPLETE` stack is safe** because it holds nothing:
+
+```bash
+aws cloudformation delete-stack --stack-name billsahi --region us-east-1
+```
+
+```bash
+aws cloudformation wait stack-delete-complete --stack-name billsahi --region us-east-1
+```
+
+> **Keep the instinct that `delete-stack` is dangerous.** On a stack that has
+> ever SUCCEEDED it would take the real S3 bucket and DynamoDB table with it.
+> `DeletionPolicy: Delete` on the upload bucket is deliberate for a hackathon
+> and would be wrong for anything holding real data.
+
+---
+
 ## 3.5 Smoke-test the API before touching the frontend
 
 ```bash
