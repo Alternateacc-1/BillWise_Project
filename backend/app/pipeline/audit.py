@@ -187,6 +187,13 @@ def rule_r2_bill_total(
     (72.00 -> 7200) produced a false Rs 7,018 reconciliation failure on a
     Rs 190 bill. Class A's rule at bill level -- a check that cannot run
     should abstain, not fail.
+
+    ONLY FIRES WHEN THE PRINTED TOTAL EXCEEDS THE LINE SUM. The opposite
+    direction is `BELOW_LINE_SUM`, not a finding: a bill charging LESS than
+    it itemises has discounted the patient, and asking them to query it is
+    both useless and embarrassing. verify.py classifies the direction; this
+    rule simply never sees the harmless one, because a bill that asks for
+    less than its own lines is not a bill worth questioning.
     """
     if any_line_implausible:
         return None

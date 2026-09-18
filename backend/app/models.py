@@ -161,7 +161,13 @@ class VerifiedItem(BaseModel):
 
 class Reconciliation(str, Enum):
     RECONCILED = "reconciled"
+    #: The printed total is HIGHER than the lines add up to. The bill asks for
+    #: more than it itemises, which is the only direction worth a question.
     MISMATCH = "mismatch"
+    #: The printed total is LOWER than the lines add up to. The patient is
+    #: charged LESS than the itemisation justifies -- almost always a discount
+    #: or round-off we did not read. Not a harm, and not a finding.
+    BELOW_LINE_SUM = "below_line_sum"
     NO_TOTAL_FOUND = "no_total_found"
 
 

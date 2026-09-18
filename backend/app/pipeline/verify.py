@@ -173,10 +173,26 @@ def verify_bill(bill: BillInput) -> tuple[list[VerifiedItem], ReadingStats]:
     if printed is None and bill.reader_b is not None:
         printed = bill.reader_b.printed_grand_total
 
+    # THE DIRECTION OF THE DIFFERENCE IS THE WHOLE POINT.
+    #
+    # R2 exists to protect a patient from being asked for more than the bill
+    # itemises. A printed total BELOW the line sum is the opposite situation:
+    # the patient pays less than the lines justify, which is what a discount
+    # or a round-off looks like when we did not manage to read it.
+    #
+    # Measured on the deployed stack 2026-09-19: Textract read the NET amount
+    # (431.00) rather than the subtotal (453.94) on a retail pharmacy bill,
+    # and we asked the pharmacy to explain the Rs 22.94 difference -- which
+    # was exactly their own printed discount plus round-off. We queried a
+    # bill for charging the patient LESS.
     if printed is None:
         reconciliation = Reconciliation.NO_TOTAL_FOUND
-    elif line_sum is not None and abs(line_sum - printed) <= MONEY_TOLERANCE:
+    elif line_sum is None:
+        reconciliation = Reconciliation.MISMATCH
+    elif abs(line_sum - printed) <= MONEY_TOLERANCE:
         reconciliation = Reconciliation.RECONCILED
+    elif printed < line_sum:
+        reconciliation = Reconciliation.BELOW_LINE_SUM
     else:
         reconciliation = Reconciliation.MISMATCH
 

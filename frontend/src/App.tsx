@@ -187,6 +187,27 @@ function Group({
   );
 }
 
+/** The reconciliation state, in words a patient can act on.
+ *
+ * `below_line_sum` deliberately reads as a NON-event. The bill charged less
+ * than its lines add up to, which is what an unread discount or round-off
+ * looks like, and presenting that as a discrepancy asks someone to query a
+ * bill for undercharging them. */
+function reconciliationLabel(state: string): string {
+  switch (state) {
+    case "reconciled":
+      return "bill total reconciled";
+    case "below_line_sum":
+      return "bill total is below the line sum (likely a discount)";
+    case "mismatch":
+      return "bill total mismatch";
+    case "no_total_found":
+      return "no bill total found";
+    default:
+      return state;
+  }
+}
+
 export default function App() {
   const [view, setView] = useState<View>("upload");
   const [report, setReport] = useState<Report | null>(null);
@@ -487,7 +508,7 @@ export default function App() {
 
             <p className="mt-3 text-xs text-slate-500">
               {report.stats.auto_high}/{report.stats.total_items} lines read at
-              high confidence &middot; bill total {report.stats.reconciliation}{" "}
+              high confidence &middot; {reconciliationLabel(report.stats.reconciliation)}{" "}
               &middot; prices as per NPPA data retrieved{" "}
               {report.reference_retrieved_on}
             </p>

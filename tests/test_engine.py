@@ -708,3 +708,65 @@ def test_r1_abstains_when_the_readers_disagree_on_the_numbers():
                               printed_grand_total=Decimal("130.00")),
     )
     assert not [f for f in _run(bill) if f.rule_id == "R1"]
+
+
+def test_a_bill_charging_less_than_its_lines_is_not_a_finding():
+    """REGRESSION, from real Textract output on eval/demo_bills/bill_06.pdf.
+
+    Textract read the NET amount (431.00) as the grand total, while the six
+    lines sum to the SUBTOTAL (453.94). We flagged the Rs 22.94 difference --
+    which is exactly the pharmacy's own printed Discount (22.70) plus Round
+    Off (0.24).
+
+    We asked a patient to query a bill for charging them LESS. R2 exists to
+    protect against being asked for MORE than the bill itemises; the opposite
+    direction is a discount, not a harm.
+    """
+    from app.models import ReaderOutput
+    lines = [("PANTOCID DSR CAP", "8", "134.48"), ("OFIVAY OZ TAB", "8", "107.20"),
+             ("SINALATE TAB", "8", "54.00"), ("EFERIM SP TAB", "8", "78.32"),
+             ("BECOSULE CAP", "4", "12.44"), ("MEDINOZE NASAL SPRAY", "1", "67.50")]
+    items = [
+        ReaderItem(index=n, name=nm, quantity=Decimal(q), unit_price=None,
+                   line_total=Decimal(t), confidence=Decimal("88.65"))
+        for n, (nm, q, t) in enumerate(lines, start=1)
+    ]
+    bill = BillInput(
+        bill_id="t", hospital_name="", bill_date="",
+        reader_a=ReaderOutput(source="textract", items=items,
+                              printed_grand_total=Decimal("431.00")),
+    )
+    from app.pipeline.verify import verify_bill
+    verified, stats = verify_bill(bill)
+
+    assert stats.sum_of_line_totals == Decimal("453.94")
+    assert stats.reconciliation is Reconciliation.BELOW_LINE_SUM
+
+    flags = _run(bill)
+    assert not [f for f in flags if f.rule_id == "R2"], (
+        "queried a bill for charging the patient LESS than it itemises"
+    )
+    assert sum(Decimal(str(f.amount_affected)) for f in flags) == 0
+
+
+def test_a_bill_asking_for_more_than_its_lines_is_still_a_finding():
+    """The counterpart. The asymmetry must not silence the direction that
+    actually costs a patient money."""
+    from app.models import ReaderOutput
+    items = [
+        ReaderItem(index=1, name="Paracetamol 500mg Tablet", quantity=Decimal("10"),
+                   unit_price=Decimal("0.90"), line_total=Decimal("9.00"),
+                   confidence=Decimal("99")),
+    ]
+    bill = BillInput(
+        bill_id="t", hospital_name="", bill_date="",
+        reader_a=ReaderOutput(source="textract", items=items,
+                              printed_grand_total=Decimal("109.00")),
+    )
+    from app.pipeline.verify import verify_bill
+    _, stats = verify_bill(bill)
+    assert stats.reconciliation is Reconciliation.MISMATCH
+
+    r2 = [f for f in _run(bill) if f.rule_id == "R2"]
+    assert r2, "a bill asking for Rs 100 more than its lines must be flagged"
+    assert r2[0].amount_affected == Decimal("100.00")
