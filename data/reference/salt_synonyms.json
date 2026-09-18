@@ -1,0 +1,62 @@
+{
+  "_README": [
+    "Salt-name synonyms. Hand-curated reference data, NOT generated.",
+    "",
+    "Format: canonical name -> list of variant spellings. All lowercase.",
+    "",
+    "These are used to EXPAND A QUERY ONLY. Reference rows always keep their",
+    "original spelling and are never merged or rewritten. Matching is two-tier:",
+    "exact spelling first, synonym-expanded only if tier 1 finds nothing.",
+    "",
+    "ADMISSION RULE: a pair belongs here only if the two names denote the SAME",
+    "active moiety at the SAME strength basis. A salt and its free acid do NOT",
+    "qualify -- sodium valproate 200mg is not valproic acid 200mg, and treating",
+    "them as equal would corrupt every strength comparison. When unsure, leave",
+    "it out. A missing synonym costs coverage; a wrong one costs correctness."
+  ],
+
+  "_sources": [
+    "INN (International Nonproprietary Names) vs USAN/BAN divergences.",
+    "Indian Pharmacopoeia spellings as they appear in the NPPA source files.",
+    "Common Indian prescribing misspellings observed in the brand dataset."
+  ],
+
+  "synonyms": {
+    "amoxicillin": ["amoxycillin", "amoxicilline"],
+    "cetirizine": ["cetrizine", "cetirizin"],
+    "aspirin": ["acetylsalicylic acid", "acetyl salicylic acid", "asa"],
+    "paracetamol": ["acetaminophen"],
+    "salbutamol": ["albuterol"],
+    "levosalbutamol": ["levalbuterol"],
+    "epinephrine": ["adrenaline"],
+    "norepinephrine": ["noradrenaline"],
+    "furosemide": ["frusemide"],
+    "lidocaine": ["lignocaine"],
+    "thiopental": ["thiopentone"],
+
+    "cephalexin": ["cefalexin"],
+    "rifampicin": ["rifampin"],
+    "phenobarbital": ["phenobarbitone"],
+    "glibenclamide": ["glyburide"],
+    "chlorphenamine": ["chlorpheniramine"],
+    "dicycloverine": ["dicyclomine"],
+    "hyoscine": ["scopolamine"],
+    "beclometasone": ["beclomethasone"],
+    "ciclosporin": ["cyclosporine", "cyclosporin"],
+    "indometacin": ["indomethacin"],
+    "gentamicin": ["gentamycin"],
+    "guaifenesin": ["guaiphenesin"],
+    "pethidine": ["meperidine"],
+    "benzylpenicillin": ["benzyl penicillin", "penicillin g"],
+    "ascorbic acid": ["vitamin c"],
+    "estradiol": ["oestradiol"],
+    "ethinylestradiol": ["ethinyloestradiol", "ethinyl estradiol"]
+  },
+
+  "_deliberately_excluded": {
+    "sodium valproate / valproic acid": "salt vs free acid -- different mg basis",
+    "levothyroxine / thyroxine": "levothyroxine is the L-isomer specifically",
+    "metamizole / dipyrone": "true synonym, but banned in many markets and absent from our sources; no coverage benefit",
+    "diclofenac sodium / diclofenac potassium": "different salts, different strengths"
+  }
+}

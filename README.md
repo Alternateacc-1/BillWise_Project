@@ -4,8 +4,9 @@ Upload an Indian hospital or pharmacy bill and see which charges may need
 clarification — with the evidence behind each one, and a polite letter you can
 send asking the hospital to explain them.
 
-> **Status: Phase 0 of 6.** The government price reference is built and
-> tested. The pipeline, API and UI are not built yet.
+> **Status: Phase 0b of 6.** The government price reference and the
+> brand-to-salt index are built and tested (145 tests). The pipeline, API and
+> UI are not built yet.
 
 ---
 
@@ -70,6 +71,16 @@ Build the price reference from the NPPA source files:
 
 ```bash
 PYTHONIOENCODING=utf-8 python scripts/prepare_reference.py
+```
+
+Build the brand-name index. This is the **only** step that needs the network:
+
+```bash
+PYTHONIOENCODING=utf-8 python scripts/fetch_brand_data.py
+```
+
+```bash
+PYTHONIOENCODING=utf-8 python scripts/build_brand_index.py
 ```
 
 Run the tests:

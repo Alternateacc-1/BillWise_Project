@@ -28,6 +28,11 @@ frontend/dist/
 # --- downloaded data (not ours to redistribute) ---
 data/raw/brands/
 
+# Derived from the gitignored brand dataset: 36 MB, and regenerable with
+# two commands (fetch_brand_data.py then build_brand_index.py). The small
+# build report IS committed so the numbers are reviewable without it.
+data/reference/brand_index.csv
+
 # --- local runtime artefacts ---
 data/blobs/
 *.sqlite

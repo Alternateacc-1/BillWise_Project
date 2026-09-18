@@ -288,6 +288,103 @@ def test_ceiling_pack_size_is_still_recovered_where_it_is_structured(ceiling):
 
 
 # --------------------------------------------------------------------------
+# Release / presentation modifiers
+# --------------------------------------------------------------------------
+
+def test_dispersible_tablet_is_not_a_plain_tablet(ceiling):
+    """Regression: ASPIRIN "TABLET DT 75 MG" vs "Tablet 75 mg".
+
+    Both are 75 mg aspirin tablets and both were collapsing into one group,
+    which made synonym expansion look unsafe. They are genuinely different
+    products with different ceilings under different S.O.s -- DT is a
+    dispersible tablet. The fix is to treat the release modifier as part of
+    product identity, not to weaken the synonym table.
+    """
+    plain = find_one(ceiling, ref_id="CEIL-0009")
+    dispersible = find_one(ceiling, ref_id="CEIL-0214")
+
+    assert plain.dosage_form == dispersible.dosage_form == "tablet"
+    assert plain.form_modifier == ""
+    assert dispersible.form_modifier == "dispersible"
+    assert plain.price_ex_gst == "0.39"
+    assert dispersible.price_ex_gst == "0.36"
+    assert plain.so_number != dispersible.so_number
+
+
+def test_selection_will_not_cross_a_form_modifier(rows):
+    """A plain tablet must never be measured against a dispersible ceiling."""
+    plain = pr.select_highest_applicable_ceiling(
+        rows, salt_components=["ACETYLSALICYLIC ACID"], dosage_form="tablet",
+        strength_mg=[75.0], strength_kind="mg", unit_basis="tablet",
+        unit_qty=Decimal("1"), form_modifier="",
+    )
+    assert plain is not None
+    assert plain.ref_id == "CEIL-0009"
+
+    dispersible = pr.select_highest_applicable_ceiling(
+        rows, salt_components=["ASPIRIN"], dosage_form="tablet",
+        strength_mg=[75.0], strength_kind="mg", unit_basis="tablet",
+        unit_qty=Decimal("1"), form_modifier="dispersible",
+    )
+    assert dispersible is not None
+    assert dispersible.ref_id == "CEIL-0214"
+
+
+def test_multi_modifier_rows_keep_every_modifier(ceiling):
+    """"Effervescent/ Dispersible/ Enteric coated Tablet" is its own category."""
+    row = find_one(ceiling, ref_id="CEIL-0012")
+    assert row.dosage_form == "tablet"
+    assert row.form_modifier == "dispersible|effervescent|enteric"
+
+
+@pytest.mark.parametrize(
+    "strength, expected",
+    [
+        ("Tablet 500 mg", ""),
+        ("TABLET DT 75 MG", "dispersible"),
+        ("Dispersible Tablet 100 mg", "dispersible"),
+        ("Tablet Modified Release 50 mg", "modified_release"),
+        ("Chewable Tablet 200 mg", "chewable"),
+        ("Enteric coated Tablet 75 mg", "enteric"),
+        ("Injection 500 mg", ""),
+    ],
+)
+def test_form_modifier_detection(strength, expected):
+    assert pr.detect_form_modifiers(strength) == expected
+
+
+# --------------------------------------------------------------------------
+# Synonym safety
+# --------------------------------------------------------------------------
+
+def test_synonym_expansion_creates_no_price_conflicts(rows):
+    """The guardrail: synonym expansion must never merge differing prices.
+
+    Zero conflicts today. If NPPA ever publishes a paracetamol ceiling and a
+    differing acetaminophen ceiling, this fails loudly rather than letting
+    the matcher pick one arbitrarily.
+    """
+    conflicts = pr.find_synonym_price_conflicts(rows)
+    assert conflicts == [], (
+        f"{len(conflicts)} synonym price conflict(s); the synonym tier is "
+        f"unsafe until these are resolved: {conflicts}"
+    )
+
+
+def test_reference_rows_keep_their_original_spelling(ceiling):
+    """Synonyms expand the QUERY. They never rewrite a reference row.
+
+    Both spellings must still be present in the reference data exactly as
+    NPPA published them.
+    """
+    spellings = {r.formulation_raw.upper() for r in ceiling}
+    assert "ASPIRIN" in spellings
+    assert "ACETYLSALICYLIC ACID" in spellings
+    assert any("AMOXICILLIN" in s for s in spellings)
+    assert any("AMOXYCILLIN" in s for s in spellings)
+
+
+# --------------------------------------------------------------------------
 # Quarantine behaviour
 # --------------------------------------------------------------------------
 

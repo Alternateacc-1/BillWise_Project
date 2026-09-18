@@ -110,6 +110,98 @@ against the ceiling file's terse, structured strength column.
 
 ---
 
+## Phase 0b — brand-to-salt resolution
+
+Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) + CLAVULANIC
+ACID (B)". This is the most error-prone step in the project, so it is
+data-driven first and AI second.
+
+### Synonyms are load-bearing, not polish
+
+The ceiling file itself contains **both** `AMOXICILLIN` and `AMOXYCILLIN` as
+separate rows, and the brand dataset spells it `Amoxycillin`. Without the
+synonym table those never meet and the single most common antibiotic in India
+goes gray.
+
+Two kinds of transformation, and the distinction is the whole safety argument:
+
+- **Orthographic rules** are spelling conventions applied to **both** sides of
+  a comparison — `sulph` → `sulf`, word-initial `oe` → `e`. Safe because they
+  are canonicalisation, not a claim that two drugs are the same. Deliberately
+  narrow: a blanket `ph` → `f` would wreck phenytoin and morphine, and a
+  blanket `oe` → `e` turns Coenzyme Q10 into "cenzyme q10".
+- **Synonyms** are genuine identity claims — aspirin **is** acetylsalicylic
+  acid. Hand-curated in `salt_synonyms.json`, every pair unit-tested.
+
+Admission rule for the table: the two names must denote the same active
+moiety at the same strength basis. Sodium valproate 200 mg is **not** valproic
+acid 200 mg, so that pair is excluded and the exclusions are documented in the
+file. A missing synonym costs coverage; a wrong one costs correctness.
+
+### Two-tier matching, gated on the whole product
+
+Tier 1 matches exact spelling. Tier 2 — synonym-expanded — runs **only** if
+tier 1 found nothing. "Highest applicable ceiling" is resolved strictly within
+the winning tier, so a synonym can never outrank an exact match.
+
+**The gate is applied to the full product match, not to the salt set alone**,
+and getting this wrong silently loses real matches. Augmentin's composition
+reads AMOXYCILLIN + CLAVULANIC ACID. Gating on salts alone, tier 1 "succeeds"
+with four AMOXYCILLIN rows — a dry syrup, an oral suspension and two
+injections. None is a tablet. Tier 2 never runs and the tablet ceiling
+(CEIL-0189, spelled AMOXICILLIN, ₹18.74) is never found. Gating on the full
+match — salts **and** form **and** strength **and** unit — tier 1 correctly
+finds nothing, tier 2 runs, and the bridge completes.
+
+Reference rows always keep their original NPPA spelling. Synonyms expand the
+query only; nothing is ever merged or rewritten.
+
+### The synonym conflict guard
+
+Synonym expansion is only safe while no two rows that canonicalise to the same
+product carry different prices. `prepare_reference.py` checks this on every
+build and **currently reports zero conflicts** across all 915 ceiling rows. If
+NPPA ever publishes a paracetamol ceiling and a differing acetaminophen
+ceiling, the build says so loudly rather than letting the matcher pick one.
+
+Building that check found a real parser bug: ASPIRIN `TABLET DT 75 MG` (₹0.36,
+S.O. 1575(E)) and Acetylsalicylic acid `Tablet 75 mg` (₹0.39, S.O. 1581(E))
+were collapsing into one group. They are genuinely different products — DT is
+a **dispersible** tablet, and NPPA prices release variants separately (plain
+Tablet 100 mg is ₹0.21; the Effervescent/Dispersible/Enteric coated Tablet
+100 mg is ₹0.22). The fix was to treat the release modifier as part of product
+identity, not to weaken the synonym table. `form_modifier` is now a match
+criterion, so a plain tablet can never be measured against a modified-release
+ceiling.
+
+### The index
+
+`brand_index.csv`: 249,148 names reduced from 253,973 source rows, carrying
+only what the bridge needs — normalised name, salts, strength, form, pack
+size, manufacturer, and three flags.
+
+- **The price column is dropped and never written.** Those prices are scraped,
+  undated and stale — Augmentin's listed price already exceeds the March 2026
+  ceiling. A test asserts no brand-file field can reach a verdict.
+- **Discontinued brands are kept, flagged** (7,376). An old bill can
+  legitimately list a withdrawn product.
+- **Unparseable pack labels leave `pack_count` NULL** (61 of 254k), which
+  forces gray rather than a per-unit price built on an invented quantity.
+- **226 names map to more than one salt set** and are flagged `ambiguous`
+  rather than arbitrarily resolved. An ambiguous name must never produce red.
+
+### Deployment: DynamoDB, not the bundle
+
+The reduced index is **36 MB** — too large to sit comfortably in a Lambda
+package, and slow to parse on a cold start. Phase 4 loads it into DynamoDB at
+deploy time and looks names up by key; `seed_dynamodb.py` does the load. At
+on-demand write pricing that is a **one-time ~$0.31** for ~249k items, with
+negligible storage after. It is gitignored and regenerable with two commands,
+so the repo stays lean; the small build report is committed so the numbers are
+reviewable without it.
+
+---
+
 ## Phase 1 — the audit thresholds
 
 Four numbers, all in `backend/app/config.py`, all erring toward silence. They

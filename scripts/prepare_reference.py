@@ -102,7 +102,8 @@ class ReferenceRow:
     source: str                     # ceiling | special_feature | retail_new_drug
     formulation_raw: str            # verbatim from the source, for display
     salt_components: list[str]      # UPPERCASE, sorted, (A)/(B) markers stripped
-    dosage_form: str                # normalised; "" when not determinable
+    dosage_form: str                # normalised base form; "" if undeterminable
+    form_modifier: str              # dispersible|enteric|modified_release|...
     strength_raw: str               # verbatim, whitespace-normalised
     strength_mg: list[float]        # numeric mg values, [] when not mg-based
     strength_kind: str              # mg | percent | concentration | none
@@ -355,13 +356,17 @@ _COMBO_MARKER = re.compile(r"\s*\(\s*[A-Za-z]\s*\)")
 
 #: Dosage forms seen in the source data, longest first so that
 #: "powder for injection" wins over "injection".
+#:
+#: Release/presentation modifiers (dispersible, enteric, modified release...)
+#: are NOT in this list -- they are captured separately by
+#: detect_form_modifiers(), because they qualify a base form rather than
+#: replacing it. A dispersible tablet is still a tablet.
 _DOSAGE_FORMS = [
     "powder for injection",
     "oral suspension",
     "oral liquid",
     "nasal spray",
     "dry syrup",
-    "effervescent",
     "suppository",
     "inhalation",
     "suspension",
@@ -408,6 +413,41 @@ def detect_dosage_form(strength_raw: str, formulation_raw: str) -> str:
             if form in low:
                 return form
     return ""
+
+
+#: Release / presentation modifiers, as (regex, canonical name).
+#:
+#: These are part of product identity and therefore part of the price. NPPA
+#: demonstrably prices them apart: plain Acetylsalicylic acid Tablet 100 mg is
+#: 0.21, while the Effervescent/Dispersible/Enteric coated Tablet 100 mg is
+#: 0.22. Treating a modified-release tablet as a plain tablet would measure a
+#: bill line against the wrong ceiling.
+#:
+#: Found via the aspirin case: "TABLET DT 75 MG" (dispersible, SO 1575(E),
+#: 0.36) and "Tablet 75 mg" (plain, SO 1581(E), 0.39) were collapsing into
+#: one group. See test_dispersible_tablet_is_not_a_plain_tablet.
+_FORM_MODIFIERS = [
+    (re.compile(r"\bdispersible\b", re.I), "dispersible"),
+    (re.compile(r"\bdt\b", re.I), "dispersible"),
+    (re.compile(r"\beffervescent\b", re.I), "effervescent"),
+    (re.compile(r"\benteric\b", re.I), "enteric"),
+    (re.compile(r"\bmodified\s+release\b", re.I), "modified_release"),
+    (re.compile(r"\bsustained\s+release\b|\bsr\b", re.I), "sustained_release"),
+    (re.compile(r"\bextended\s+release\b|\ber\b|\bxr\b", re.I), "extended_release"),
+    (re.compile(r"\bchewable\b", re.I), "chewable"),
+]
+
+
+def detect_form_modifiers(strength_raw: str) -> str:
+    """Sorted, pipe-joined release modifiers, or "" when there are none.
+
+    A row carrying several ("Effervescent/ Dispersible/ Enteric coated
+    Tablet") keeps all of them, because NPPA priced that combination as one
+    category and it is not the same product as any single modifier alone.
+    """
+    text = " ".join((strength_raw or "").split())
+    found = {name for pattern, name in _FORM_MODIFIERS if pattern.search(text)}
+    return "|".join(sorted(found))
 
 
 _MG_VALUE = re.compile(r"([0-9]*\.?[0-9]+)\s*(mcg|mg|gm|g)\b", re.IGNORECASE)
@@ -513,6 +553,7 @@ def parse_ceiling_csv() -> list[ReferenceRow]:
                 formulation_raw=formulation_raw,
                 salt_components=split_salt_components(formulation_raw),
                 dosage_form=detect_dosage_form(strength_raw, formulation_raw),
+                form_modifier=detect_form_modifiers(strength_raw),
                 strength_raw=strength_raw,
                 strength_mg=strength_mg,
                 strength_kind=strength_kind,
@@ -612,6 +653,7 @@ def parse_special_feature_pdf() -> list[ReferenceRow]:
                             formulation_raw=formulation_raw,
                             salt_components=split_salt_components(formulation_raw),
                             dosage_form=detect_dosage_form(strength_raw, formulation_raw),
+                            form_modifier=detect_form_modifiers(strength_raw),
                             strength_raw=strength_raw,
                             strength_mg=strength_mg,
                             strength_kind=strength_kind,
@@ -714,6 +756,7 @@ def parse_retail_csv() -> list[ReferenceRow]:
                 formulation_raw=medicines,
                 salt_components=split_salt_components(medicines),
                 dosage_form=detect_dosage_form(unit_raw, formulations),
+                form_modifier=detect_form_modifiers(formulations),
                 strength_raw=formulations,
                 strength_mg=strength_mg,
                 strength_kind=strength_kind,
@@ -758,6 +801,7 @@ def select_highest_applicable_ceiling(
     strength_kind: str,
     unit_basis: str,
     unit_qty: Decimal,
+    form_modifier: str = "",
 ) -> ReferenceRow | None:
     """Return the highest applicable ceiling row, or None.
 
@@ -783,7 +827,20 @@ def select_highest_applicable_ceiling(
     Retail rows are never candidates: they are per-company approved prices,
     not ceilings that bind anyone else.
     """
-    wanted_salts = sorted(s.upper() for s in salt_components)
+    from salt_synonyms import normalise_salt_set
+
+    return _select_with_salt_key(
+        rows, salt_components, dosage_form, strength_mg, strength_kind,
+        unit_basis, unit_qty, form_modifier, normalise_salt_set,
+    )
+
+
+def _select_with_salt_key(
+    rows, salt_components, dosage_form, strength_mg, strength_kind,
+    unit_basis, unit_qty, form_modifier, salt_key,
+) -> ReferenceRow | None:
+    """Shared filter. `salt_key` decides which tier this is."""
+    wanted_salts = salt_key(salt_components)
     wanted_mg = sorted(strength_mg)
 
     candidates = [
@@ -792,8 +849,9 @@ def select_highest_applicable_ceiling(
         if r.source in ("ceiling", "special_feature")
         and r.status == STATUS_USABLE
         and r.price_checkable == "true"
-        and sorted(r.salt_components) == wanted_salts
+        and salt_key(r.salt_components) == wanted_salts
         and r.dosage_form == dosage_form
+        and r.form_modifier == form_modifier
         and r.unit_basis == unit_basis
         and Decimal(r.unit_qty) == unit_qty
         and r.strength_kind == strength_kind
@@ -802,6 +860,110 @@ def select_highest_applicable_ceiling(
     if not candidates:
         return None
     return max(candidates, key=per_base_unit_price)
+
+
+def select_ceiling_two_tier(
+    rows: list[ReferenceRow],
+    salt_components: list[str],
+    dosage_form: str,
+    strength_mg: list[float],
+    strength_kind: str,
+    unit_basis: str,
+    unit_qty: Decimal,
+    form_modifier: str = "",
+) -> tuple[ReferenceRow | None, str]:
+    """Two-tier ceiling selection. Returns (row, tier).
+
+    tier is "exact" | "synonym" | "none".
+
+    THE TIER GATE IS APPLIED TO THE WHOLE PRODUCT MATCH, not to the salt set
+    alone. This matters, and getting it wrong silently loses real matches.
+
+    Worked example -- Augmentin 625 Duo Tablet:
+      Its composition reads AMOXYCILLIN + CLAVULANIC ACID. Gating on the salt
+      set alone, tier 1 "succeeds" with four AMOXYCILLIN rows -- a dry syrup,
+      an oral suspension and two injections. None is a tablet. Tier 2 never
+      runs, and the tablet ceiling (CEIL-0189, spelled AMOXICILLIN, Rs 18.74)
+      is never found. The item goes gray for no good reason.
+
+      Gating on the full match, tier 1 finds no AMOXYCILLIN tablet at
+      500+125 mg, so tier 2 runs, canonicalises both spellings, and finds it.
+
+    The guardrail is preserved exactly: if ANY exact-spelling row satisfies
+    the full criteria, tier 2 never runs, so a synonym can never outrank an
+    exact match. "Highest applicable" is still resolved strictly within the
+    winning tier.
+    """
+    from salt_synonyms import canonicalise_salt_set, normalise_salt_set
+
+    exact = _select_with_salt_key(
+        rows, salt_components, dosage_form, strength_mg, strength_kind,
+        unit_basis, unit_qty, form_modifier, normalise_salt_set,
+    )
+    if exact is not None:
+        return exact, "exact"
+
+    synonym = _select_with_salt_key(
+        rows, salt_components, dosage_form, strength_mg, strength_kind,
+        unit_basis, unit_qty, form_modifier, canonicalise_salt_set,
+    )
+    if synonym is not None:
+        return synonym, "synonym"
+
+    return None, "none"
+
+
+# --------------------------------------------------------------------------
+# Synonym safety check
+# --------------------------------------------------------------------------
+
+def find_synonym_price_conflicts(rows: list[ReferenceRow]) -> list[dict]:
+    """Groups where synonym expansion would merge DIFFERENT prices.
+
+    Synonym expansion is only safe while no two rows that canonicalise to the
+    same product carry different prices. Today that holds: zero conflicts
+    across all 915 ceiling rows. If NPPA ever publishes, say, a paracetamol
+    ceiling and a differing acetaminophen ceiling, this must fail loudly
+    rather than let the matcher pick one arbitrarily.
+
+    A conflict counts ONLY when synonym expansion introduced it -- the group
+    must contain more than one distinct original spelling AND more than one
+    distinct per-unit price. Two rows with the same spelling and different
+    prices are a pre-existing fact about the source data (NPPA prices some
+    formulations differently by pack condition) and are reported separately.
+    """
+    from salt_synonyms import canonicalise_salt_set, normalise_salt_set
+
+    groups: dict[tuple, list[ReferenceRow]] = {}
+    for r in rows:
+        if r.source != "ceiling" or r.status != STATUS_USABLE:
+            continue
+        key = (
+            tuple(canonicalise_salt_set(r.salt_components)),
+            r.dosage_form,
+            r.form_modifier,
+            tuple(sorted(r.strength_mg)),
+            r.strength_kind,
+            r.unit_basis,
+            r.unit_qty,
+        )
+        groups.setdefault(key, []).append(r)
+
+    conflicts = []
+    for key, members in groups.items():
+        prices = {per_base_unit_price(m) for m in members}
+        spellings = {tuple(normalise_salt_set(m.salt_components)) for m in members}
+        if len(prices) > 1 and len(spellings) > 1:
+            conflicts.append({
+                "canonical_salts": list(key[0]),
+                "dosage_form": key[1] + (f" ({key[2]})" if key[2] else ""),
+                "strength": list(key[3]),
+                "unit": f"{key[6]} {key[5]}",
+                "spellings": sorted("+".join(s) for s in spellings),
+                "prices": sorted(str(p) for p in prices),
+                "ref_ids": sorted(m.ref_id for m in members),
+            })
+    return conflicts
 
 
 # --------------------------------------------------------------------------
@@ -900,6 +1062,19 @@ def report(rows: list[ReferenceRow]) -> None:
 
     ceiling_rows = [r for r in rows if r.source == "ceiling"]
     print(f"\n  Ceiling file: {len(ceiling_rows)}/{EXPECTED_CEILING_ROWS} parsed, 0 dropped.")
+
+    conflicts = find_synonym_price_conflicts(rows)
+    if conflicts:
+        print(f"\n  *** {len(conflicts)} SYNONYM PRICE CONFLICT(S) ***")
+        print("      Synonym expansion would merge rows with DIFFERENT prices.")
+        print("      Matching must not use the synonym tier until this is resolved.")
+        for c in conflicts[:10]:
+            print(f"        {'+'.join(c['canonical_salts'])} {c['dosage_form']} "
+                  f"{c['strength']} per {c['unit']}")
+            print(f"          spellings: {c['spellings']}")
+            print(f"          prices:    {c['prices']}  ({', '.join(c['ref_ids'])})")
+    else:
+        print("  Synonym price-conflict scan: clean (0 conflicting groups).")
 
     injection = _formula_injection_check(rows)
     if injection:
