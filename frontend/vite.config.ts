@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     // The API runs on 8000. Proxying keeps the browser same-origin, so CORS
     // never bites during local development.
-    proxy: { "/api": { target: "http://127.0.0.1:8001", changeOrigin: true,
+    proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: true,
                        rewrite: (p) => p.replace(/^\/api/, "") } },
   },
 });

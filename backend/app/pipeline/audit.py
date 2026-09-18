@@ -25,6 +25,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from rapidfuzz import fuzz
 
 from .. import config
+from ..money import format_inr
 from ..models import (
     CeilingMatch,
     Flag,
@@ -92,8 +93,8 @@ def rule_r1_line_arithmetic(item: VerifiedItem) -> Flag | None:
         },
         suggested_question=(
             "Could you confirm how the total for this line was calculated? "
-            f"The quantity and rate shown come to Rs {_money(computed)}, "
-            f"while the line shows Rs {item.line_total}."
+            f"The quantity and rate shown come to {format_inr(_money(computed))}, "
+            f"while the line shows {format_inr(item.line_total)}."
         ),
     )
 
@@ -126,8 +127,8 @@ def rule_r2_bill_total(stats: ReadingStats) -> Flag | None:
         },
         suggested_question=(
             "Could you help us reconcile the bill total? The individual lines "
-            f"add up to Rs {_money(stats.sum_of_line_totals)}, while the "
-            f"printed total is Rs {_money(stats.printed_grand_total)}."
+            f"add up to {format_inr(_money(stats.sum_of_line_totals))}, while the "
+            f"printed total is {format_inr(_money(stats.printed_grand_total))}."
         ),
     )
 
@@ -377,7 +378,7 @@ def rule_r5_above_ceiling(
         evidence=evidence,
         suggested_question=(
             "Could you share how the rate for this item was arrived at? "
-            f"The published ceiling price is Rs {ceiling.price_ex_gst} per "
+            f"The published ceiling price is {format_inr(ceiling.price_ex_gst)} per "
             f"{format_unit(ceiling.unit_qty, ceiling.unit_basis)} excluding taxes, under "
             f"S.O. {ceiling.so_number} dated {ceiling.so_date}."
         ),

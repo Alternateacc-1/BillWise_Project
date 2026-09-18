@@ -14,6 +14,19 @@ import {
 
 type View = "upload" | "review" | "report";
 
+/** Indian digit grouping: 12,94,761 -- not 1,294,761. */
+const INR = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+});
+
+function rupees(value: string | null): string {
+  if (value === null || value === "") return "₹?";
+  const n = Number(value);
+  return Number.isFinite(n) ? INR.format(n) : `₹${value}`;
+}
+
 const SEVERITY_STYLES: Record<string, string> = {
   red: "bg-red-50 border-red-300 text-red-900",
   amber: "bg-amber-50 border-amber-300 text-amber-900",
@@ -96,14 +109,14 @@ function FindingCard({ item }: { item: ReportItem }) {
           {item.index}. {item.name}
         </span>
         <span className="font-mono text-sm">
-          {item.line_total ? `Rs ${item.line_total}` : "Rs ?"}
+          {rupees(item.line_total)}
         </span>
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-2">
         <Badge severity={item.severity} />
         {item.amount_affected !== "0" && (
           <span className="text-xs">
-            Amount affected: Rs {item.amount_affected}
+            Amount affected: {rupees(item.amount_affected)}
           </span>
         )}
       </div>
@@ -114,6 +127,24 @@ function FindingCard({ item }: { item: ReportItem }) {
         <Evidence flag={item.headline} notes={item.notes} />
       )}
     </div>
+  );
+}
+
+/** Name and amount only. The explanation lives once, on the group header. */
+function ItemList({ items }: { items: ReportItem[] }) {
+  return (
+    <ul className="divide-y divide-slate-200 text-sm">
+      {items.map((item) => (
+        <li key={item.index} className="flex justify-between gap-3 py-1.5">
+          <span>
+            {item.index}. {item.name}
+          </span>
+          <span className="font-mono text-slate-600">
+            {rupees(item.line_total)}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -269,25 +300,18 @@ export default function App() {
     (i) => i.severity === "gray",
   );
 
-  const notComparedParts: string[] = [];
-  if (report && report.gray_breakdown.no_public_ceiling > 0) {
-    notComparedParts.push(
-      `${report.gray_breakdown.no_public_ceiling} have no published price ceiling in India — room rent, nursing, consumables and lab tests are not price-controlled, so there is nothing to compare them against`,
-    );
-  }
-  if (report && report.gray_breakdown.could_not_read > 0) {
-    notComparedParts.push(
-      `${report.gray_breakdown.could_not_read} could not be read reliably`,
-    );
-  }
-  if (report && report.gray_breakdown.could_not_identify > 0) {
-    notComparedParts.push(
-      `${report.gray_breakdown.could_not_identify} could not be identified`,
-    );
-  }
-  const notComparedSubtitle =
-    notComparedParts.join("; ") +
-    ". All of them were still checked for duplication and arithmetic.";
+  // Two labelled subgroups rather than one group with counts asserted in
+  // prose. A header that says "10 ... 2" above a list of 10 items is a bug
+  // waiting to happen; a count derived from the array it labels cannot lie.
+  const noCeiling = notCompared.filter(
+    (i) => i.gray_reason === "no_public_ceiling",
+  );
+  const couldNotRead = notCompared.filter(
+    (i) => i.gray_detail === "could_not_read",
+  );
+  const couldNotIdentify = notCompared.filter(
+    (i) => i.gray_detail === "could_not_identify",
+  );
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl bg-white p-6 text-slate-900">
@@ -418,7 +442,7 @@ export default function App() {
               </span>{" "}
               worth asking about, worth{" "}
               <span className="font-semibold">
-                Rs {report.total_amount_affected}
+                {rupees(report.total_amount_affected)}
               </span>
               .
             </p>
@@ -488,45 +512,35 @@ export default function App() {
             count={clear.length}
             defaultOpen={false}
           >
-            <ul className="divide-y divide-slate-200 text-sm">
-              {clear.map((item) => (
-                <li
-                  key={item.index}
-                  className="flex justify-between gap-3 py-1.5"
-                >
-                  <span>
-                    {item.index}. {item.name}
-                  </span>
-                  <span className="font-mono text-slate-600">
-                    Rs {item.line_total}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ItemList items={clear} />
           </Group>
 
-          {/* ---- 3. not compared ----------------------------------------- */}
+          {/* ---- 3. not compared, split so the counts evidence themselves -- */}
           <Group
-            title="Not compared"
-            subtitle={notComparedSubtitle}
-            count={notCompared.length}
+            title="No published ceiling"
+            subtitle="Room rent, nursing, consumables and lab tests are not price-controlled in India, so there is no published rate to compare these against. They were still checked for duplication and arithmetic."
+            count={noCeiling.length}
             defaultOpen={false}
           >
-            <ul className="divide-y divide-slate-200 text-sm">
-              {notCompared.map((item) => (
-                <li
-                  key={item.index}
-                  className="flex justify-between gap-3 py-1.5"
-                >
-                  <span>
-                    {item.index}. {item.name}
-                  </span>
-                  <span className="font-mono text-slate-600">
-                    Rs {item.line_total}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ItemList items={noCeiling} />
+          </Group>
+
+          <Group
+            title="Could not be read"
+            subtitle="Our two readers did not agree on these lines, or the arithmetic did not hold, so we did not trust our own reading enough to compare a price."
+            count={couldNotRead.length}
+            defaultOpen={false}
+          >
+            <ItemList items={couldNotRead} />
+          </Group>
+
+          <Group
+            title="Could not be identified"
+            subtitle="We read these lines clearly but could not work out which medicine they are, so there is no ceiling to compare them against."
+            count={couldNotIdentify.length}
+            defaultOpen={false}
+          >
+            <ItemList items={couldNotIdentify} />
           </Group>
 
           <div className="flex flex-wrap gap-2 pt-2">

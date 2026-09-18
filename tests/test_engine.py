@@ -412,7 +412,8 @@ def test_explanations_introduce_no_number_absent_from_evidence():
     for flag in flags:
         available = set(re.findall(r"\d+(?:\.\d+)?", str(flag.evidence)))
         available |= set(re.findall(r"\d+(?:\.\d+)?", str(flag.amount_affected)))
-        for number in re.findall(r"\d+(?:\.\d+)?", flag.explanation):
+        # Digit grouping is formatting, not a new number.
+        for number in re.findall(r"\d+(?:\.\d+)?", flag.explanation.replace(",", "")):
             assert number in available, (
                 f"{flag.rule_id} explanation cites {number!r}, which is not in "
                 f"its evidence"

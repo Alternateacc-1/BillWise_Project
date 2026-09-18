@@ -15,6 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from .models import BillInput, GrayReason, Severity
+from .money import format_inr
 from .pipeline.audit import audit
 from .pipeline.explain import explain_all
 from .pipeline.match import reference_retrieved_on
@@ -145,7 +146,13 @@ def run_audit(fixture_path: Path, as_json: bool = False) -> int:
                     could_not_verify += 1
 
         style, label = _SEVERITY_STYLE[severity]
-        total = f"Rs {item.line_total}" if item.line_total is not None else "Rs ?"
+        # "Rs ", not the rupee sign: this prints to a Windows console whose
+        # default codec raises UnicodeEncodeError on U+20B9. The UI and the
+        # letter, which are UTF-8 end to end, use the real symbol.
+        total = (
+            format_inr(item.line_total, symbol="Rs ")
+            if item.line_total is not None else "Rs ?"
+        )
         name = item.name if len(item.name) <= 44 else item.name[:41] + "..."
         print(f"  {style('[' + label + ']')} {item.index:>2}. {name:<44} {total:>12}")
 
@@ -174,7 +181,8 @@ def run_audit(fixture_path: Path, as_json: bool = False) -> int:
 
     affected = sum((f.amount_affected for f in flags), Decimal("0"))
     print()
-    print(f"    Total amount affected across all points raised: Rs {affected}")
+    print("    Total amount affected across all points raised: "
+          + format_inr(affected, symbol="Rs "))
     print()
     print(DIM(f"    Prices as per NPPA data retrieved {retrieved_on}."))
     print()

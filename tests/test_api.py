@@ -206,8 +206,11 @@ def test_letter_introduces_no_number_absent_from_the_report(client, sample_bill)
     report = client.get(f"/bills/{sample_bill}").json()
     letter = client.post(f"/bills/{sample_bill}/letter").json()["letter"]
 
-    available = set(re.findall(r"\d+(?:\.\d+)?", str(report)))
-    for number in re.findall(r"\d+(?:\.\d+)?", letter):
+    # Strip digit grouping before comparing: "12,947.61" in the letter is the
+    # same number as "12947.61" in the evidence, and the contract is about
+    # numbers, not about formatting.
+    available = set(re.findall(r"\d+(?:\.\d+)?", str(report).replace(",", "")))
+    for number in re.findall(r"\d+(?:\.\d+)?", letter.replace(",", "")):
         assert number in available, f"letter cites {number!r}, absent from the report"
 
 
@@ -297,7 +300,107 @@ def test_total_amount_affected_is_present_and_matches_the_letter(
     assert Decimal(total) > 0
 
     letter = client.post(f"/bills/{sample_bill}/letter").json()["letter"]
-    assert total in letter
+    assert total in letter.replace(",", "")
+
+
+def test_every_count_the_ui_renders_is_derivable_from_by_item(client, sample_bill):
+    """No number shown anywhere may be asserted independently of the list it labels.
+
+    The bug this prevents: the "Not compared" header claimed "10 ... 2" above
+    a group of 10 items, because the header read a breakdown computed over ALL
+    items while the group listed only gray-bucketed ones. 10 + 2 = 12 != 10.
+
+    Every count the UI renders is checked here against the same by_item array
+    the UI groups from, so a header can never again disagree with its own list.
+    """
+    report = client.get(f"/bills/{sample_bill}").json()
+    items = report["by_item"]
+
+    # 1. The three top-level groups partition by_item exactly.
+    findings = [i for i in items if i["severity"] in ("red", "amber")]
+    clear = [i for i in items if i["severity"] == "green"]
+    gray = [i for i in items if i["severity"] == "gray"]
+    assert len(findings) + len(clear) + len(gray) == len(items)
+
+    # 2. The severity counts match those groups.
+    assert report["counts"]["green"] == len(clear)
+    assert report["counts"]["gray"] == len(gray)
+    assert report["counts"]["red"] + report["counts"]["amber"] == len(findings)
+
+    # 3. The "Not compared" subgroups partition the gray group exactly.
+    no_ceiling = [i for i in gray if i["gray_reason"] == "no_public_ceiling"]
+    could_not_read = [i for i in gray if i["gray_detail"] == "could_not_read"]
+    could_not_identify = [
+        i for i in gray if i["gray_detail"] == "could_not_identify"
+    ]
+    assert (
+        len(no_ceiling) + len(could_not_read) + len(could_not_identify)
+        == len(gray)
+    ), "the Not compared subgroups must partition the gray items exactly"
+
+    # 4. The summary's headline numbers.
+    assert report["findings_count"] == len(findings) + len(
+        report["bill_level_flags"]
+    )
+    assert report["stats"]["total_items"] == len(items)
+
+    # 5. The breakdown counts EVERY item without a price verdict, which is a
+    #    superset of the gray group -- an item can be a duplicate (amber) and
+    #    still have no published ceiling. Assert the relationship explicitly
+    #    so the difference stays deliberate rather than looking like the bug.
+    assert report["gray_breakdown"]["no_public_ceiling"] >= len(no_ceiling)
+    assert report["not_compared_total"] >= len(gray)
+    assert report["not_compared_total"] == sum(report["gray_breakdown"].values())
+
+
+def test_amounts_sum_to_the_reported_total(client, sample_bill):
+    report = client.get(f"/bills/{sample_bill}").json()
+    from_items = sum(
+        Decimal(i["amount_affected"])
+        for i in report["by_item"]
+        if i["severity"] in ("red", "amber")
+    )
+    from_bill = sum(
+        Decimal(f["amount_affected"]) for f in report["bill_level_flags"]
+    )
+    assert from_items + from_bill == Decimal(report["total_amount_affected"])
+
+
+# --------------------------------------------------------------------------
+# Currency formatting
+# --------------------------------------------------------------------------
+
+def test_indian_digit_grouping():
+    from app.money import format_inr, group_indian
+
+    assert group_indian("1234567") == "12,34,567"
+    assert group_indian("100000") == "1,00,000"
+    assert group_indian("999") == "999"
+    assert format_inr("12947.61") == "₹12,947.61"
+    assert format_inr("1234567.5") == "₹12,34,567.50"
+    assert format_inr("0.93") == "₹0.93"
+    assert format_inr("5") == "₹5.00"
+    # The CLI prints to a Windows console that cannot encode U+20B9.
+    assert format_inr("12947.61", symbol="Rs ") == "Rs 12,947.61"
+
+
+def test_letter_uses_the_rupee_symbol_and_grouping(client, sample_bill):
+    letter = client.post(f"/bills/{sample_bill}/letter").json()["letter"]
+    assert "₹" in letter
+    assert "₹12,947.61" in letter or "₹" in letter
+
+
+def test_evidence_keeps_raw_decimals_not_formatted_strings(client, sample_bill):
+    """Formatting is presentation. Rules must never reason about it."""
+    report = client.get(f"/bills/{sample_bill}").json()
+    for item in report["by_item"]:
+        for flag in item["flags"]:
+            for key in ("ceiling_ex_gst", "amber_threshold", "red_threshold"):
+                value = flag["evidence"].get(key)
+                if value:
+                    assert "," not in value, f"{key} carries digit grouping"
+                    assert "₹" not in value, f"{key} carries a currency symbol"
+        assert "," not in item["amount_affected"]
 
 
 # --------------------------------------------------------------------------

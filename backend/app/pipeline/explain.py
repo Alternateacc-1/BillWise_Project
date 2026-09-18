@@ -14,6 +14,7 @@ Language rules, non-negotiable (docs/ARCHITECTURE.md):
 from __future__ import annotations
 
 from ..models import Flag, GrayDetail, GrayReason, Severity
+from ..money import format_inr
 
 #: Words that must never appear in anything the user reads. Asserted by a test
 #: over every generated explanation.
@@ -32,25 +33,25 @@ def _r5(flag: Flag) -> str:
     if flag.severity is Severity.RED:
         lines.append(
             f"This item appears to be billed above the listed ceiling price. "
-            f"The published ceiling is Rs {evidence.get('ceiling_ex_gst')} per "
+            f"The published ceiling is {format_inr(evidence.get('ceiling_ex_gst'))} per "
             f"{evidence.get('ceiling_unit')} excluding taxes, which allows up to "
-            f"Rs {evidence.get('amber_threshold')} per unit once GST of "
+            f"{format_inr(evidence.get('amber_threshold'))} per unit once GST of "
             f"{evidence.get('gst_percent')}% is added."
         )
     else:
         lines.append(
             f"This item is close to the listed ceiling price and may need "
-            f"clarification. The published ceiling is Rs "
-            f"{evidence.get('ceiling_ex_gst')} per {evidence.get('ceiling_unit')} "
-            f"excluding taxes, allowing up to Rs {evidence.get('amber_threshold')} "
+            f"clarification. The published ceiling is "
+            f"{format_inr(evidence.get('ceiling_ex_gst'))} per {evidence.get('ceiling_unit')} "
+            f"excluding taxes, allowing up to {format_inr(evidence.get('amber_threshold'))} "
             f"per unit with GST of {evidence.get('gst_percent')}%."
         )
 
     if decisive:
         lines.append(
-            f"This line works out to Rs {decisive.get('billed_per_unit')} per unit, "
+            f"This line works out to {format_inr(decisive.get('billed_per_unit'))} per unit, "
             f"which is {decisive.get('excess_over_ceiling_pct')}% above the ceiling. "
-            f"Amount affected: Rs {flag.amount_affected}."
+            f"Amount affected: {format_inr(flag.amount_affected)}."
         )
 
     if evidence.get("pack_size_note"):
@@ -73,8 +74,8 @@ def _r1(flag: Flag) -> str:
     evidence = flag.evidence
     return (
         f"The arithmetic on this line does not add up. {evidence.get('arithmetic')}, "
-        f"but the line total reads Rs {evidence.get('printed_line_total')}. "
-        f"Amount affected: Rs {flag.amount_affected}. This may simply be a "
+        f"but the line total reads {format_inr(evidence.get('printed_line_total'))}. "
+        f"Amount affected: {format_inr(flag.amount_affected)}. This may simply be a "
         f"rounding or data-entry difference worth confirming."
     )
 
@@ -82,10 +83,10 @@ def _r1(flag: Flag) -> str:
 def _r2(flag: Flag) -> str:
     evidence = flag.evidence
     return (
-        f"The individual lines on this bill add up to Rs "
-        f"{evidence.get('sum_of_line_totals')}, while the printed total reads Rs "
-        f"{evidence.get('printed_grand_total')}. Amount affected: Rs "
-        f"{flag.amount_affected}. This difference may need clarification."
+        f"The individual lines on this bill add up to "
+        f"{format_inr(evidence.get('sum_of_line_totals'))}, while the printed total "
+        f"reads {format_inr(evidence.get('printed_grand_total'))}. Amount affected: "
+        f"{format_inr(flag.amount_affected)}. This difference may need clarification."
     )
 
 
@@ -96,7 +97,7 @@ def _r3(flag: Flag) -> str:
         f"This item appears {evidence.get('occurrences')} times on the bill with "
         f"the same quantity (lines {', '.join(str(n) for n in lines)}). Repeat "
         f"entries can be legitimate, so this may simply need confirming. "
-        f"Amount affected: Rs {flag.amount_affected}."
+        f"Amount affected: {format_inr(flag.amount_affected)}."
     )
 
 
@@ -104,9 +105,9 @@ def _r4(flag: Flag) -> str:
     evidence = flag.evidence
     return (
         f"This line closely resembles line {evidence.get('similar_to_line')} "
-        f"(\"{evidence.get('similar_to_name')}\") and carries the same rate of Rs "
-        f"{evidence.get('same_unit_price')}. It may be a separate item, or the "
-        f"same one entered twice. Amount affected: Rs {flag.amount_affected}."
+        f"(\"{evidence.get('similar_to_name')}\") and carries the same rate of "
+        f"{format_inr(evidence.get('same_unit_price'))}. It may be a separate item, or "
+        f"the same one entered twice. Amount affected: {format_inr(flag.amount_affected)}."
     )
 
 

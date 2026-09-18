@@ -10,6 +10,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from ..models import BillReport, Flag, Severity
+from ..money import format_inr
 
 #: Points worth raising, worst first. Green and gray never appear in a letter
 #: -- there is nothing to ask about.
@@ -60,15 +61,17 @@ def compose(report: BillReport) -> str:
             if reference.get("so_number"):
                 lines.append(
                     f"   Reference: {reference.get('formulation')} "
-                    f"({reference.get('strength')}), ceiling price Rs "
-                    f"{flag.evidence.get('ceiling_ex_gst')} per "
+                    f"({reference.get('strength')}), ceiling price "
+                    f"{format_inr(flag.evidence.get('ceiling_ex_gst'))} per "
                     f"{flag.evidence.get('ceiling_unit')} excluding taxes, "
                     f"S.O. {reference['so_number']} dated {reference['so_date']}."
                 )
             if flag.amount_affected > 0:
-                lines.append(f"   Amount affected: Rs {flag.amount_affected}.")
+                lines.append(f"   Amount affected: {format_inr(flag.amount_affected)}.")
             lines.append("")
-        lines.append(f"Total amount affected across these points: Rs {total}.")
+        lines.append(
+            f"Total amount affected across these points: {format_inr(total)}."
+        )
     else:
         lines.append(
             "I did not find anything on this bill that needs clarification. "
