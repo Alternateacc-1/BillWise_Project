@@ -71,7 +71,7 @@
       "rule_id": "R5",
       "severity": "red",
       "item_name": "Augmentin 625 Duo Tablet",
-      "why": "PLANT: ceiling 18.74/tab; both interpretations exceed the red threshold"
+      "why": "PLANT: ceiling 18.74/tab = 262/strip red threshold; billed 350/strip. Both interpretations exceed it."
     },
     {
       "item_index": 11,

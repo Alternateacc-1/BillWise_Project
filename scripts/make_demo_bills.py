@@ -72,7 +72,9 @@ class BillSpec:
     lines: list[Line]
     #: Deliberately break the printed total to plant an R2. None = reconciled.
     printed_total_override: str | None = None
-    noisy_image: bool = False
+    #: None, "mild" (a phone photo: slight rotation, shadow, soft contrast)
+    #: or "heavy" (a bad fax-grade scan).
+    noisy_image: str | None = None
 
     def printed_total(self) -> str:
         if self.printed_total_override is not None:
@@ -122,10 +124,16 @@ BILLS = [
                  why="PLANT: duplicate consumable, same name and quantity"),
 
             # PLANT 1: branded medicine above its ceiling.
-            Line("Augmentin 625 Duo Tablet", "2", "640.00",
+            # PLANT 1: branded medicine above its ceiling -- but a PLAUSIBLE
+            # amount. The ceiling is 18.74/tablet, so a strip of 10 caps at
+            # 187.40 ex-GST, 209.89 with GST, and red starts near 262/strip.
+            # 350 is genuinely above it without being a straw man a judge can
+            # dismiss. (An earlier draft used 640, which no pharmacy would
+            # print.)
+            Line("Augmentin 625 Duo Tablet", "2", "350.00",
                  expect=[("R5", "red")],
-                 why="PLANT: ceiling 18.74/tab; both interpretations exceed the "
-                     "red threshold"),
+                 why="PLANT: ceiling 18.74/tab = 262/strip red threshold; "
+                     "billed 350/strip. Both interpretations exceed it."),
 
             # PLANT 5: correctly priced item that must stay green.
             Line("Paracetamol 500mg Tablet", "20", "0.90",
@@ -169,6 +177,11 @@ BILLS = [
         bill_id="bill_02",
         title="Pharmacy - Discharge Medication",
         bill_date="2026-09-13",
+        # A realistic phone photo. The heavy scan on bill_05 may return
+        # nothing at all from real Textract, and total failure is a weaker
+        # story than the re-read pass rescuing lines -- so we need a
+        # degradation level that is recoverable.
+        noisy_image="mild",
         lines=[
             Line("Paracetamol 650mg Tablet", "15", "2.00",
                  expect=[("R5", "green")], why="ceiling 2.05/tab"),
@@ -241,7 +254,7 @@ BILLS = [
         bill_id="bill_05",
         title="Pharmacy - poor quality scan",
         bill_date="2026-09-16",
-        noisy_image=True,
+        noisy_image="heavy",
         lines=[
             Line("Paracetamol 500mg Tablet", "10", "0.88",
                  confidence_a="93", confidence_b="91",
@@ -391,9 +404,23 @@ def write_pdf(spec: BillSpec, path: Path) -> None:
     doc.build(story)
 
 
-def write_noisy_jpg(spec: BillSpec, path: Path) -> None:
-    """A deliberately poor scan, for the reader-quality part of the demo."""
-    from PIL import Image, ImageDraw, ImageFilter
+def write_noisy_jpg(spec: BillSpec, path: Path, grade: str = "heavy") -> None:
+    """A degraded scan, for the reader-quality part of the demo.
+
+    Two grades, and we need both:
+
+      "mild"   a phone photo -- slight rotation, a soft shadow across one
+               corner, reduced contrast, light compression. Real OCR should
+               still read most of this, which is what makes the re-read pass
+               a story worth telling: some lines come back low-confidence and
+               get rescued.
+
+      "heavy"  a bad fax-grade scan. Real Textract may return almost nothing
+               from this. Useful as the failure case -- it shows what the
+               system does when it genuinely cannot read something -- but on
+               its own it is a weaker demo than a recoverable one.
+    """
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
     width, height = 1240, 780
     image = Image.new("RGB", (width, height), "white")
@@ -421,8 +448,39 @@ def write_noisy_jpg(spec: BillSpec, path: Path) -> None:
     draw.text((850, y + 14), "TOTAL", fill="black")
     draw.text((1000, y + 14), f"{Decimal(spec.printed_total()):,.2f}", fill="black")
 
-    # Degrade it: skew, blur, speckle. Seeded so the artefact is reproducible.
-    rng = random.Random(20260916)
+    # Seeded, so the artefacts are byte-reproducible across runs.
+    rng = random.Random(20260916 if grade == "heavy" else 20260913)
+
+    if grade == "mild":
+        # A phone photo. Everything here is recoverable by real OCR.
+        image = image.rotate(1.4, resample=Image.BICUBIC, fillcolor="white")
+
+        # Soft shadow falling across one corner, as a hand or phone would cast.
+        shadow = Image.new("L", (width, height), 255)
+        shade_draw = ImageDraw.Draw(shadow)
+        for offset in range(0, 380):
+            value = 255 - int(58 * (1 - offset / 380))
+            shade_draw.line([(width - 380 + offset, 0),
+                             (width - 120 + offset, height)], fill=value)
+        shadow = shadow.filter(ImageFilter.GaussianBlur(radius=55))
+        image = Image.composite(
+            image, Image.new("RGB", image.size, (150, 150, 150)), shadow
+        )
+
+        image = ImageEnhance.Contrast(image).enhance(0.78)
+        image = ImageEnhance.Brightness(image).enhance(1.04)
+        image = image.filter(ImageFilter.GaussianBlur(radius=0.45))
+
+        pixels = image.load()
+        for _ in range(int(width * height * 0.004)):
+            x, y2 = rng.randrange(width), rng.randrange(height)
+            shade = rng.randrange(150, 215)
+            pixels[x, y2] = (shade, shade, shade)
+
+        image.save(path, "JPEG", quality=72)
+        return
+
+    # "heavy": a bad scan. Possibly unreadable, deliberately.
     image = image.rotate(0.7, resample=Image.BICUBIC, fillcolor="white")
     image = image.filter(ImageFilter.GaussianBlur(radius=0.9))
     pixels = image.load()
@@ -454,7 +512,8 @@ def main() -> int:
             json.dumps(truth, indent=2) + "\n", encoding="utf-8")
         write_pdf(spec, DEMO_BILLS / f"{spec.bill_id}.pdf")
         if spec.noisy_image:
-            write_noisy_jpg(spec, DEMO_BILLS / f"{spec.bill_id}.jpg")
+            write_noisy_jpg(spec, DEMO_BILLS / f"{spec.bill_id}.jpg",
+                            grade=spec.noisy_image)
 
         reds = len(truth["allowed_red_item_indexes"])
         grays = sum(1 for e in truth["expected"] if e["severity"] == "gray")

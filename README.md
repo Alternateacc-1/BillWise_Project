@@ -4,9 +4,10 @@ Upload an Indian hospital or pharmacy bill and see which charges may need
 clarification — with the evidence behind each one, and a polite letter you can
 send asking the hospital to explain them.
 
-> **Status: Phase 2 of 6.** The engine runs end to end offline and is scored
-> against ground truth: **39/39 findings caught, 0 missed, 0 false reds**
-> across 5 synthetic bills. 207 tests green. The API and UI are not built yet.
+> **Status: Phase 3 of 6.** Runs locally end to end — upload, optional review,
+> report, letter. Scored against ground truth: **39/39 findings caught, 0
+> missed, 0 false reds** across 5 synthetic bills. 224 tests green. Not yet
+> deployed to AWS.
 
 ---
 
@@ -100,6 +101,34 @@ Run the tests:
 ```bash
 PYTHONIOENCODING=utf-8 python -m pytest tests/ -q
 ```
+
+---
+
+## Running the app
+
+Two terminals. Requires Node 20+ for the frontend.
+
+**Terminal 1 — the API:**
+
+```bash
+cd backend && ../venv/Scripts/python -m uvicorn app.main:app --port 8000 --reload
+```
+
+**Terminal 2 — the UI:**
+
+```bash
+cd frontend && npm install && npm run dev
+```
+
+Open <http://localhost:5173> and click **Try a sample bill**.
+
+Everything runs offline. `PROVIDER=local` (the default) makes no network calls
+and costs nothing.
+
+**Local mode has no OCR.** Uploading an arbitrary scan returns zero lines and
+says so, rather than inventing a reading. To exercise the upload path, use one
+of the generated files in `eval/demo_bills/` — they are named after their
+fixtures. Real reading arrives with Textract and Bedrock in Phase 4.
 
 `PYTHONIOENCODING=utf-8` is not optional on Windows — the rupee sign crashes
 the default console codec.

@@ -4,7 +4,7 @@
   "bill_date": "2026-09-12",
   "reader_a": {
     "source": "fixture_textract",
-    "printed_grand_total": "50088.00",
+    "printed_grand_total": "49508.00",
     "items": [
       {
         "index": 1,
@@ -91,8 +91,8 @@
         "index": 10,
         "name": "Augmentin 625 Duo Tablet",
         "quantity": "2",
-        "unit_price": "640.00",
-        "line_total": "1280.00",
+        "unit_price": "350.00",
+        "line_total": "700.00",
         "confidence": "97",
         "page": 2
       },
@@ -154,7 +154,7 @@
   },
   "reader_b": {
     "source": "fixture_vision",
-    "printed_grand_total": "50088.00",
+    "printed_grand_total": "49508.00",
     "items": [
       {
         "index": 1,
@@ -241,8 +241,8 @@
         "index": 10,
         "name": "Augmentin 625 Duo Tablet",
         "quantity": "2",
-        "unit_price": "640.00",
-        "line_total": "1280.00",
+        "unit_price": "350.00",
+        "line_total": "700.00",
         "confidence": "95",
         "page": 2
       },
