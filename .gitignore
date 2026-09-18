@@ -35,7 +35,13 @@ data/reference/brand_index.csv
 
 # --- local runtime artefacts ---
 data/blobs/
+# SQLite writes THREE files in WAL mode. `*.sqlite` alone misses the -shm and
+# -wal siblings, and those two were tracked until 2026-09-18 -- a WAL holds the
+# same bill rows the database does, so ignoring only the .sqlite file would let
+# a processed bill reach git. Match the siblings explicitly.
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 *.sqlite3
 *.db
 .aws-sam/
