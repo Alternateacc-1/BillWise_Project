@@ -49,7 +49,25 @@ Globals:
     Runtime: python3.12
     MemorySize: 1024
     Timeout: 60
-    Architectures: [arm64]      # cheaper per ms than x86_64
+    # x86_64, NOT arm64, and this is a deliberate downgrade.
+    #
+    # arm64 Lambda is ~20% cheaper per millisecond, which is why this was
+    # arm64 originally. That assumed an ARM builder. The build machine is
+    # x86_64, so `sam build --use-container` has to emulate ARM through QEMU
+    # to compile the two native wheels (pydantic-core, rapidfuzz). SAM warns
+    # about it: "Cross-architecture build detected ... may cause build
+    # failures". On 2026-09-19 that build container exited silently with no
+    # output -- the signature of the OOM killer, with Docker capped at 7.6 GiB
+    # and most of it already spoken for.
+    #
+    # 20% of a function that processes a handful of bills is a fraction of a
+    # cent. A build that does not complete costs the deadline. Matching the
+    # Lambda architecture to the builder removes the emulation entirely: no
+    # QEMU, far less memory, much faster builds.
+    #
+    # Revisit only if this ever builds on an ARM host (Graviton CI, Apple
+    # silicon), where arm64 becomes free of this problem and worth taking.
+    Architectures: [x86_64]
     Environment:
       Variables:
         PROVIDER: aws

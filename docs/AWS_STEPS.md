@@ -606,7 +606,7 @@ DynamoDB. That is a coverage reduction, not a failure.
 
 > **READ THIS BEFORE RUNNING `sam build`.**
 >
-> You are building on **Windows** for an **arm64 Linux** Lambda. A plain
+> You are building on **Windows** for an **x86_64 Linux** Lambda. A plain
 > `sam build` installs wheels for the machine it runs on, so it would bundle
 > **Windows** wheels into a Linux function. That deploys fine and then fails
 > at import time with an ELF error on the first request — the worst way to
@@ -656,12 +656,12 @@ rm -rf .aws-sam/deps && mkdir -p .aws-sam/deps
 ```
 
 ```bash
-./venv/Scripts/python.exe -m pip download -r backend/requirements.txt --dest .aws-sam/deps --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 --implementation cp --python-version 3.12 --only-binary=:all:
+./venv/Scripts/python.exe -m pip download -r backend/requirements.txt --dest .aws-sam/deps --platform manylinux2014_x86_64 --platform manylinux_2_28_x86_64 --implementation cp --python-version 3.12 --only-binary=:all:
 ```
 
 **The two `--platform` flags are both required and this is not belt-and-braces.**
-`pydantic-core` publishes `manylinux2014_aarch64`; `rapidfuzz` publishes
-`manylinux_2_28_aarch64`. Either flag alone fails on the other package, with a
+`pydantic-core` publishes `manylinux2014_x86_64`; `rapidfuzz` publishes
+`manylinux_2_28_x86_64`. Either flag alone fails on the other package, with a
 misleading "Could not find a version that satisfies the requirement" that
 looks like a bad pin rather than a tag mismatch:
 
@@ -680,8 +680,8 @@ ls .aws-sam/deps | grep -v "py3-none-any"
 ```
 
 ```
-pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
-rapidfuzz-3.14.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl
+pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+rapidfuzz-3.14.6-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
 ```
 
 If you see `win_amd64` or `macosx` anywhere in that listing, **stop** — the
@@ -691,7 +691,7 @@ Then install them into the build directory and build without touching the
 network again:
 
 ```bash
-./venv/Scripts/python.exe -m pip install -r backend/requirements.txt --target .aws-sam/build/ApiFunction --no-index --find-links .aws-sam/deps --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 --implementation cp --python-version 3.12 --only-binary=:all: --upgrade
+./venv/Scripts/python.exe -m pip install -r backend/requirements.txt --target .aws-sam/build/ApiFunction --no-index --find-links .aws-sam/deps --platform manylinux2014_x86_64 --platform manylinux_2_28_x86_64 --implementation cp --python-version 3.12 --only-binary=:all: --upgrade
 ```
 
 ```bash
@@ -703,8 +703,7 @@ sam deploy --guided --stack-name billsahi --template-file .aws-sam/build/templat
 ```
 
 > If path B gives you trouble, the honest fallback is to install Docker
-> Desktop and use path A. Do not "fix" it by switching `Architectures` to
-> `x86_64` — the same tag mismatch exists there (verified), so it costs a
+> Desktop and use path A. Do not "fix" it by switching `Architectures` — the same tag mismatch exists there (verified), so it costs a
 > rebuild and changes nothing.
 
 ---
