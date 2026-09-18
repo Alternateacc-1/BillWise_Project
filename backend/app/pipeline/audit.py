@@ -581,7 +581,33 @@ def rule_r5_above_ceiling(
 # R9 -- gray, with a machine-readable reason
 # --------------------------------------------------------------------------
 
-def rule_r9_gray(item: VerifiedItem, normalized: NormalizedItem) -> Flag:
+def _resolution_is_complete(normalized: NormalizedItem) -> bool:
+    """Did we resolve enough to make an ABSENCE meaningful?
+
+    Claiming "no published ceiling exists for this item" is a claim about
+    NPPA's coverage. We may only make it when we know WHICH item -- salt set,
+    dosage form AND strength. With any of those missing, an empty search
+    result does not prove absence; it proves we did not look precisely enough.
+
+    D1 applies to claims about ourselves too: "there is no ceiling" and "we
+    could not find a ceiling" are different statements, and only one of them
+    is honest when the resolution is partial.
+    """
+    if not normalized.salt_components:
+        return False
+    if not normalized.dosage_form:
+        return False
+    has_strength = bool(normalized.strength_mg) or normalized.strength_kind not in (
+        "", "none", None
+    )
+    return has_strength
+
+
+def rule_r9_gray(
+    item: VerifiedItem,
+    normalized: NormalizedItem,
+    ceiling_search_exhausted: bool = False,
+) -> Flag:
     """Why this item has no price verdict.
 
     The two reasons mean opposite things and must never be conflated.
@@ -613,6 +639,37 @@ def rule_r9_gray(item: VerifiedItem, normalized: NormalizedItem) -> Flag:
         explanation = (
             "We could not read this line reliably, so we have not compared "
             "its price. It was still checked for duplication and arithmetic."
+        )
+    elif ceiling_search_exhausted and _resolution_is_complete(normalized):
+        # WE KNOW WHAT THIS IS, AND INDIA DOES NOT PUBLISH A CEILING FOR IT.
+        #
+        # Reporting that as could_not_identify was a false statement about our
+        # own system: we had the molecules, the strengths, the form and the
+        # pack size. The DPCO schedule covers 915 formulations and this is not
+        # one of them -- a limit of the SCHEDULE, not of the reading.
+        #
+        # Combination products are the common case. Pantoprazole alone has a
+        # ceiling; pantoprazole + domperidone SR capsule does not.
+        return Flag(
+            rule_id="R9",
+            severity=Severity.GRAY,
+            item_index=item.index,
+            gray_reason=GrayReason.NO_PUBLIC_CEILING,
+            evidence={
+                "category": normalized.category.value,
+                "resolved_salts": list(normalized.salt_components),
+                "resolved_form": normalized.dosage_form,
+                "resolved_strength": [str(x) for x in normalized.strength_mg],
+                "ceiling_search": "no_matching_row_in_published_list",
+                "checked_for": ["arithmetic", "duplication"],
+            },
+            explanation=(
+                "We identified this medicine, but India's published ceiling "
+                "list does not cover this formulation, so there is no "
+                "published price to compare it against. That means this item "
+                "is not price-controlled — not that its price is correct. "
+                "It was still checked for duplication and arithmetic."
+            ),
         )
     else:
         gray_detail = GrayDetail.COULD_NOT_IDENTIFY
@@ -674,6 +731,10 @@ def audit(
             flags.append(arithmetic_flag)
 
         priced = False
+        # Did we actually RUN a ceiling search and come back empty? Only then
+        # can an absence be reported as an absence. A search we never ran
+        # proves nothing about NPPA's coverage.
+        ceiling_search_exhausted = False
         # A non-HIGH reading is excluded from every price rule, and a
         # service or consumable has no ceiling to be compared against.
         if item.is_high and norm.category not in NO_CEILING_CATEGORIES and norm.salt_components:
@@ -686,6 +747,7 @@ def audit(
                 unit_qty=norm.pack_count if norm.pack_count_source == "bill_text" else Decimal("1"),
                 form_modifier=norm.form_modifier,
             )
+            ceiling_search_exhausted = ceiling is None
             if ceiling is not None:
                 priced = True
                 price_flag = rule_r5_above_ceiling(item, norm, ceiling)
@@ -717,7 +779,7 @@ def audit(
                     ))
 
         if not priced:
-            flags.append(rule_r9_gray(item, norm))
+            flags.append(rule_r9_gray(item, norm, ceiling_search_exhausted))
 
     return flags
 

@@ -210,7 +210,8 @@ def main() -> int:
 
     print(bold("  Why items were not compared"))
     print(f"    no_public_ceiling       {total_no_ceiling}"
-          + dim("   (room, nursing, consumables, lab - a feature, not a gap)"))
+          + dim("   (outside NPPA's remit: services and consumables by"
+                " category, and drugs that resolve but have no ceiling row)"))
     print(f"    could_not_verify        {total_cnv}"
           + dim("   (unreadable, unresolved or ambiguous)"))
     if total_wrong_reason:

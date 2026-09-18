@@ -35,8 +35,8 @@
       "rule_id": "R9",
       "severity": "gray",
       "item_name": "Pantoprazole 40mg Tablet",
-      "gray_reason": "could_not_verify",
-      "why": "not a scheduled formulation we can match"
+      "gray_reason": "no_public_ceiling",
+      "why": "RESOLVES fully (PANTOPRAZOLE, 40mg, tablet) and the published list holds only PANTOPRAZOLE INJECTION 40 MG -- no tablet row exists. Absence is PROVEN, so this is no_public_ceiling, not could_not_identify. Moved 2026-09-19."
     },
     {
       "item_index": 6,

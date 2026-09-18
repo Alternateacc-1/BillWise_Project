@@ -262,8 +262,12 @@ BILLS = [
                      "at 11.50 = 1.15/tab = 10.4% over the allowance, inside "
                      "the 25% red margin so it must stay amber"),
             Line("Pantoprazole 40mg Tablet", "10", "8.50",
-                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="not a scheduled formulation we can match"),
+                 expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling",
+                 why="RESOLVES fully (PANTOPRAZOLE, 40mg, tablet) and the "
+                     "published list holds only PANTOPRAZOLE INJECTION 40 MG "
+                     "-- no tablet row exists. Absence is PROVEN, so this is "
+                     "no_public_ceiling, not could_not_identify. Moved "
+                     "2026-09-19."),
             Line("Cotton Roll 100gm", "1", "85.00",
                  expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling"),
             Line("Micropore Tape", "2", "45.00",
@@ -369,17 +373,23 @@ BILLS = [
         lines=[
             Line("PANTOCID DSR CAP", "8", mrp="252.19", pack=15,
                  line_total_override="134.48",
-                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="Reads HIGH since Class A. Blocked on brand resolution. "
-                     "MRP/pack 16.8127, billed/unit 16.8100 -- at MRP."),
+                 expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling",
+                 why="Resolves via the form-abbreviation alias to DOMPERIDONE "
+                     "30 + PANTOPRAZOLE 40, capsule, pack 15 -- the pack count "
+                     "independently matching the bill's PACK column. The "
+                     "COMBINATION has no row in the 915, so the absence is "
+                     "real. MRP/pack 16.8127, billed/unit 16.8100."),
             Line("OFIVAY OZ TAB", "8", mrp="134.00", pack=10,
                  line_total_override="107.20",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
                  why="Blocked on brand resolution. MRP/pack 13.40 = billed/unit."),
             Line("SINALATE TAB", "8", mrp="67.50", pack=10,
                  line_total_override="54.00",
-                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="Blocked on brand resolution. MRP/pack 6.75 = billed/unit."),
+                 expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling",
+                 why="Resolves via the alias to CAFFEINE 30 + DIPHENHYDRAMINE "
+                     "25, tablet, pack 10. DIPHENHYDRAMINE has NO ceiling row "
+                     "at all and CAFFEINE only oral-liquid/injection rows, so "
+                     "the absence is real. MRP/pack 6.75 = billed/unit."),
             Line("EFERIM SP TAB", "8", mrp="97.97", pack=10,
                  line_total_override="78.32",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",

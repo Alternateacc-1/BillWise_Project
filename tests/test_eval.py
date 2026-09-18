@@ -171,3 +171,31 @@ def test_the_eval_is_pinned_to_local_mode():
     assert os.environ.get("PROVIDER") == "local"
     from app import config
     assert config.PROVIDER == "local"
+
+
+def test_the_gray_split_is_pinned(results):
+    """The split is a CLAIM about what this tool can and cannot check.
+
+    Pinned deliberately, so that a change to gray-reason semantics has to be
+    argued for rather than absorbed silently. Moved once, on 2026-09-19, from
+    23/11 to 26/8 when R9 gained a third branch: a drug that RESOLVES
+    COMPLETELY but has no row in the published list is no_public_ceiling, not
+    could_not_identify. Three lines moved, all verified individually:
+
+      bill_02 line 5  Pantoprazole 40mg Tablet -- resolves fully; the list
+                      holds only PANTOPRAZOLE INJECTION 40 MG, no tablet row
+      bill_06 line 1  PANTOCID DSR CAP -- DOMPERIDONE + PANTOPRAZOLE capsule;
+                      the combination is absent from the 915
+      bill_06 line 3  SINALATE TAB -- CAFFEINE + DIPHENHYDRAMINE; the latter
+                      has no ceiling row at all
+
+    If this assertion fails, do NOT re-pin it without checking the same way:
+    a line moving INTO no_public_ceiling must have resolved completely first,
+    or the tool is overstating what it knows.
+    """
+    no_ceiling = sum(r["no_public_ceiling"] for r in results)
+    could_not_verify = sum(r["could_not_verify"] for r in results)
+    assert (no_ceiling, could_not_verify) == (26, 8), (
+        f"gray split moved to {no_ceiling}/{could_not_verify}; verify each "
+        "moved line resolved completely before re-pinning"
+    )

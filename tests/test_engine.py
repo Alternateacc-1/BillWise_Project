@@ -869,3 +869,77 @@ def test_expansion_never_rewrites_the_bills_own_text():
                         confidence=ReadingConfidence.HIGH)
     normalize_item(item)
     assert item.name == "PANTOCID DSR CAP"
+
+
+def test_absence_is_only_claimed_when_the_resolution_was_complete():
+    """D1 applies to claims about ourselves.
+
+    "No published ceiling exists for this item" is a claim about NPPA's
+    COVERAGE. It may only be made when we know which item -- salt set, form
+    AND strength. With a partial resolution, an empty search result proves
+    only that we did not look precisely enough, and the honest label is
+    could_not_identify.
+    """
+    from app.pipeline.audit import _resolution_is_complete
+
+    complete = NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["PANTOPRAZOLE"],
+        strength_mg=[Decimal("40")], strength_kind="mg", dosage_form="tablet",
+    )
+    assert _resolution_is_complete(complete)
+
+    # Salt only -- the combination or strength is unknown, so absence is not
+    # proven. This is the case the third branch must NOT claim.
+    assert not _resolution_is_complete(NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["PANTOPRAZOLE"],
+    ))
+    # Form missing.
+    assert not _resolution_is_complete(NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["PANTOPRAZOLE"],
+        strength_mg=[Decimal("40")], strength_kind="mg",
+    ))
+    # Nothing resolved at all.
+    assert not _resolution_is_complete(NormalizedItem(index=1))
+
+
+def test_a_partially_resolved_drug_is_still_could_not_identify():
+    """End to end: partial resolution must never reach the absence claim."""
+    from app.pipeline.audit import rule_r9_gray
+
+    partial = NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["SOMETHING"],
+    )
+    item = VerifiedItem(index=1, name="MYSTERY TAB", quantity=Decimal("1"),
+                        line_total=Decimal("10"),
+                        confidence=ReadingConfidence.HIGH)
+    flag = rule_r9_gray(item, partial, ceiling_search_exhausted=True)
+    assert flag.gray_reason is GrayReason.COULD_NOT_VERIFY
+    assert flag.gray_detail is GrayDetail.COULD_NOT_IDENTIFY
+
+
+def test_the_absence_wording_never_says_the_price_is_fine():
+    """LIMIT 8. "Not price-controlled" is not "correct".
+
+    This is the distinction a judge with a pharma background listens for, and
+    the one a patient could most easily misread. The explanation must state
+    the item is outside the published list WITHOUT implying its price has
+    been approved.
+    """
+    from app.pipeline.audit import rule_r9_gray
+
+    resolved = NormalizedItem(
+        index=1, category=ItemCategory.DRUG,
+        salt_components=["DOMPERIDONE", "PANTOPRAZOLE"],
+        strength_mg=[Decimal("30"), Decimal("40")], strength_kind="mg",
+        dosage_form="capsule",
+    )
+    item = VerifiedItem(index=1, name="PANTOCID DSR CAP", quantity=Decimal("8"),
+                        line_total=Decimal("134.48"),
+                        confidence=ReadingConfidence.HIGH)
+    text = rule_r9_gray(item, resolved, ceiling_search_exhausted=True).explanation.lower()
+
+    assert "not price-controlled" in text
+    assert "not that its price is correct" in text
+    for forbidden in ("within the ceiling", "price is fine", "correctly priced",
+                      "no issue", "approved"):
+        assert forbidden not in text, f"wording implies approval: {forbidden!r}"

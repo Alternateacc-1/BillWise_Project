@@ -7,8 +7,8 @@
       "rule_id": "R9",
       "severity": "gray",
       "item_name": "PANTOCID DSR CAP",
-      "gray_reason": "could_not_verify",
-      "why": "Reads HIGH since Class A. Blocked on brand resolution. MRP/pack 16.8127, billed/unit 16.8100 -- at MRP."
+      "gray_reason": "no_public_ceiling",
+      "why": "Resolves via the form-abbreviation alias to DOMPERIDONE 30 + PANTOPRAZOLE 40, capsule, pack 15 -- the pack count independently matching the bill's PACK column. The COMBINATION has no row in the 915, so the absence is real. MRP/pack 16.8127, billed/unit 16.8100."
     },
     {
       "item_index": 2,
@@ -23,8 +23,8 @@
       "rule_id": "R9",
       "severity": "gray",
       "item_name": "SINALATE TAB",
-      "gray_reason": "could_not_verify",
-      "why": "Blocked on brand resolution. MRP/pack 6.75 = billed/unit."
+      "gray_reason": "no_public_ceiling",
+      "why": "Resolves via the alias to CAFFEINE 30 + DIPHENHYDRAMINE 25, tablet, pack 10. DIPHENHYDRAMINE has NO ceiling row at all and CAFFEINE only oral-liquid/injection rows, so the absence is real. MRP/pack 6.75 = billed/unit."
     },
     {
       "item_index": 4,
