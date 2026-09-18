@@ -318,9 +318,134 @@ Order: ledger (B/E/F) -> Class A + H -> Class G -> R6 -> Class C/D -> I -> J.
 
 ---
 
+---
+
+# The format experiment, round 2 (2026-09-19)
+
+Five more formats. Same method: a deliberately perfect read, so what breaks is
+the engine and not the reader.
+
+| Probe | Format | red | amber | Verdict |
+|---|---|---|---|---|
+| P8 | Insurance / TPA co-pay split | 0 | **1** | **FALSE — Rs 15,280** |
+| P9 | Return line (negative amount) | 0 | 0 | safe, reconciled |
+| P10 | Package / bundle line | 0 | 0 | safe |
+| P11 | Fractional quantity (0.5 vial) | 0 | 0 | **MISSED a 2x overcharge** |
+| P12 | Zero-amount / waived lines | 0 | 0 | safe, no divide-by-zero |
+
+Still **zero false reds**, now across eleven formats. Two new classes, and one
+of them is the first structural UNDER-flag the experiment has produced.
+
+---
+
+### Class K — the printed total is the patient's SHARE, not the bill
+
+**The largest false finding yet, and a different bug from B/E/F.**
+
+An insurance/TPA bill lists Rs 19,100.00 of goods and services, the insurer
+pays 80%, and the number printed at the bottom — the number the patient
+actually owes — is their Rs 3,820.00 co-pay. R2 compares the line sum against
+it and fires:
+
+```
+R2 AMBER  item -1  amount affected 15280.00
+```
+
+Rs 15,280 is exactly the insurer's 80%. **We flagged the part of the bill the
+patient was never asked to pay**, on a bill that is entirely correct.
+
+This is NOT the ledger bug. B, E and F are all "we compared against the wrong
+row of an arithmetic chain". Here the printed total is a **different quantity
+altogether** — a share of the bill, not a subtotal of it. No amount of
+subtotal-and-adjustment modelling reaches it.
+
+**Class fix:** the grand total must be TYPED, not just located. `sum_of_lines`,
+`net_payable` and `patient_share` are three different things, and R2 may only
+compare like with like. When the type cannot be determined, R2 must ABSTAIN —
+Class A's rule at bill level. A reconciliation we cannot perform is not a
+reconciliation that failed.
+
+---
+
+### Class L — a fractional quantity turns an overcharge into silence
+
+The first structural **under-flag** found by the experiment, and the reason it
+matters more than its size suggests.
+
+```
+Meropenem 1000 MG Injection | qty 0.5 | rate 1702.86 | total 851.43
+```
+
+Half a vial. The implied price for one full vial is Rs 1,702.86 against an
+NPPA special-feature ceiling of Rs 851.43 — **exactly 2x**, the cleanest
+overcharge in the whole experiment.
+
+Verdict: **gray, `pack_size_unknown`. We said nothing.**
+
+The upper-bound gate divides by `qty * pack_count`. With `qty = 0.5` the
+divisor drops below one, so a second interpretation (`N = 2`) sits exactly at
+the ceiling, `every_reading_above_red` is false, and the gate does what it was
+built to do — declines to speak when one reading is compliant.
+
+The gate is not wrong. It is being fed a quantity that is not a count of
+packs. **A fractional quantity means "part of one unit", which makes
+`pack_count = 1` CERTAIN, not unknown** — you cannot buy half a vial out of a
+box of ten.
+
+**Class fix:** `qty < 1` implies `pack_count_source = CERTAIN, pack_count = 1`.
+This narrows the gate rather than widening it, so it cannot introduce a false
+red. **Add the Meropenem half-vial as a named regression test** alongside the
+existing `test_meropenem_strength_inversion` — this file already records that
+Meropenem is where pack and strength assumptions go to die.
+
+---
+
+### Three confirmations of Class A, in formats that look unrelated
+
+None of these is a new class. All three are the same rule — *a check that
+cannot run should abstain, not fail* — showing up where it was not expected:
+
+- **P9, a return line** (`qty -5`, `total -100.00`): `could_not_read`. A
+  negative quantity is legitimate on any bill with a return, and it is being
+  treated as implausible. The bill still **reconciled correctly**, which is
+  the encouraging half.
+- **P12, a waived line** (`rate 0.00`, `total 0.00`): `could_not_read`. Free
+  is a price. It also confirms there is **no divide-by-zero** anywhere in the
+  per-unit path, which was the thing worth checking.
+- **P10, a package line** (one price covering a room, an OT and consumables):
+  correctly `no_public_ceiling`. Nothing to fix — recorded because a bundle
+  price is genuinely not decomposable, and that is a limit, not a bug.
+
+---
+
+## Revised order after round 2
+
+Unchanged at the top: **the ledger (B/E/F) first, then Class A + H.** Round 2
+adds two items and moves nothing above them.
+
+1. **Ledger** — B, E, F. Three scales, one structure.
+2. **Class A + H** — abstain instead of fail; no flag worth Rs 0.00.
+   Class A now also buys P9's returns and P12's waived lines.
+3. **Class K** — type the grand total. Same shape as the ledger and probably
+   the same commit: `sum_of_lines` / `net_payable` / `patient_share`, and R2
+   abstains when the type is unknown.
+4. **Class L** — `qty < 1` implies `pack_count = 1`, CERTAIN. Small, and it
+   closes the only clean under-flag we have found. Regression-test it.
+5. **Class G** — the GST basis of a line. The other under-flag, and the
+   quieter one.
+6. **R6**, then Class C/D, then I, then J.
+
+**Eleven formats, zero false reds.** The claim has now survived formats built
+specifically to break it. What it has not survived is the amber band: five of
+eleven formats produced a false amber, and every one traces to comparing two
+numbers that were never the same kind of number.
+
+---
+
 ## Still to probe
 
-Insurance/TPA bill with a co-pay split · a bill with negative lines (returns) ·
-a bill in a regional script · handwritten annotations over a printed bill.
+A bill in a regional script · handwritten annotations over a printed bill ·
+a bill where one line spans two pages · itemised vs summary duplicates of the
+same charge.
 
 Every format that gets probed joins the permanent eval set.

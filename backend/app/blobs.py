@@ -51,28 +51,60 @@ def validate(content: bytes, content_type: str) -> str:
             "Please upload a smaller scan."
         )
     if suffix == ".pdf":
-        pages = count_pdf_pages(content)
-        if pages is not None and pages > MAX_PAGES:
+        try:
+            pages = count_pdf_pages(content)
+        except PageCountUnavailable as exc:
+            # Fail CLOSED. An uncountable PDF is not a small one, and Textract
+            # bills per page. Rejecting a malformed file costs the user a
+            # retry; accepting it costs money we do not have.
+            raise UploadRejected(
+                "We could not read that PDF. Please re-save it, or upload a "
+                "photo of the bill instead."
+            ) from exc
+        if pages > MAX_PAGES:
             raise UploadRejected(
                 f"That PDF has {pages} pages; we handle up to {MAX_PAGES}."
             )
     return suffix
 
 
-def count_pdf_pages(content: bytes) -> int | None:
-    """Best-effort page count. None when it cannot be determined.
+class PageCountUnavailable(Exception):
+    """We could not count the pages. NOT the same as "the count is fine"."""
+
+
+def count_pdf_pages(content: bytes) -> int:
+    """Exact page count. Raises PageCountUnavailable if it cannot be had.
 
     Counted here, before anything billable runs, rather than discovering the
-    size after paying per page for it.
-    """
-    try:
-        import pdfplumber
-        import io
+    size after paying Textract per page for it.
 
-        with pdfplumber.open(io.BytesIO(content)) as pdf:
-            return len(pdf.pages)
-    except Exception:
-        return None
+    USES pypdf, NOT pdfplumber, and this is the whole point. pdfplumber is
+    deliberately excluded from backend/requirements.txt to keep the Lambda
+    bundle small, so on Lambda the import failed, the old bare
+    `except Exception: return None` swallowed it, and the caller read None as
+    "no limit". The 10-page guard was therefore inert in the ONLY environment
+    that bills per page -- a cost control that existed exactly where it was
+    not needed. Worse than having none, because we believed in it.
+
+    pypdf is ~1 MB, pure Python, ships in the bundle, and is exact.
+
+    It also no longer returns None on failure. An unreadable PDF now RAISES,
+    and validate() rejects it, because "we could not count the pages" must not
+    silently mean "as many pages as you like".
+    """
+    import io
+
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:  # pragma: no cover - a packaging failure
+        raise PageCountUnavailable(
+            "pypdf is missing from the deployment bundle"
+        ) from exc
+
+    try:
+        return len(PdfReader(io.BytesIO(content)).pages)
+    except Exception as exc:
+        raise PageCountUnavailable(str(exc)) from exc
 
 
 #: suffix -> content type, the reverse of ALLOWED_TYPES. Lets the vision

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import builtins
 import io
 from decimal import Decimal
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -104,6 +106,48 @@ def test_page_limit_is_checked_before_any_billable_call():
     assert "pages" in str(exc.value)
 
 
+def test_the_page_guard_uses_a_library_that_ships_to_lambda():
+    """REGRESSION. The guard must not depend on a build-time-only package.
+
+    It used to call pdfplumber inside a bare `except Exception: return None`.
+    pdfplumber is deliberately absent from backend/requirements.txt, so on
+    Lambda the import failed, None came back, and the caller read that as
+    "no limit". The 10-page cap was inert in the only environment that bills
+    per page. This asserts the counter works with pdfplumber unavailable.
+    """
+    reportlab = pytest.importorskip("reportlab.pdfgen.canvas")
+    buffer = io.BytesIO()
+    pdf = reportlab.Canvas(buffer)
+    for _ in range(3):
+        pdf.drawString(100, 100, "page")
+        pdf.showPage()
+    pdf.save()
+
+    real_import = builtins.__import__
+
+    def without_pdfplumber(name, *args, **kwargs):
+        if name == "pdfplumber":
+            raise ModuleNotFoundError("No module named 'pdfplumber'")
+        return real_import(name, *args, **kwargs)
+
+    with mock.patch.object(builtins, "__import__", without_pdfplumber):
+        assert blobs.count_pdf_pages(buffer.getvalue()) == 3
+
+
+def test_an_uncountable_pdf_is_rejected_rather_than_waved_through():
+    """Fail CLOSED. "We could not count the pages" is not "it is small".
+
+    Textract bills per page, so an unreadable PDF must cost the user a retry
+    rather than cost us an unbounded number of billable pages.
+    """
+    with pytest.raises(blobs.PageCountUnavailable):
+        blobs.count_pdf_pages(b"%PDF-1.4 this is not actually a pdf")
+
+    with pytest.raises(blobs.UploadRejected) as exc:
+        blobs.validate(b"%PDF-1.4 this is not actually a pdf", "application/pdf")
+    assert "could not read" in str(exc.value).lower()
+
+
 def test_a_client_filename_cannot_steer_the_stored_path():
     """The stored name comes from the server-generated id, never the client."""
     key = blobs.put("safe-id-123", b"%PDF-1.4 test", ".pdf")
@@ -126,10 +170,25 @@ def test_uploading_a_demo_bill_reads_it(client):
 
 
 def test_an_unreadable_upload_reports_zero_items_rather_than_inventing_any(client):
-    """Local mode has no OCR and says so instead of guessing a reading."""
+    """Local mode has no OCR and says so instead of guessing a reading.
+
+    The upload here is a VALID one-page PDF that simply is not a bill we know.
+    That distinction is the point, and this test used to blur it: it passed a
+    malformed byte string, so it was really asserting two different things at
+    once. A well-formed unknown bill and a corrupt file deserve different
+    answers, and they now get them --
+    see test_an_uncountable_pdf_is_rejected_rather_than_waved_through.
+    """
+    reportlab = pytest.importorskip("reportlab.pdfgen.canvas")
+    buffer = io.BytesIO()
+    pdf = reportlab.Canvas(buffer)
+    pdf.drawString(100, 100, "A bill we have never seen")
+    pdf.showPage()
+    pdf.save()
+
     response = client.post(
         "/bills",
-        files={"file": ("some_random_scan.pdf", b"%PDF-1.4\nnot a known bill",
+        files={"file": ("some_random_scan.pdf", buffer.getvalue(),
                         "application/pdf")},
     )
     assert response.status_code == 200

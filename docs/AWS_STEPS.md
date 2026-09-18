@@ -434,9 +434,107 @@ DynamoDB. That is a coverage reduction, not a failure.
 
 ## 3.4 Build and deploy
 
+> **READ THIS BEFORE RUNNING `sam build`.**
+>
+> You are building on **Windows** for an **arm64 Linux** Lambda. A plain
+> `sam build` installs wheels for the machine it runs on, so it would bundle
+> **Windows** wheels into a Linux function. That deploys fine and then fails
+> at import time with an ELF error on the first request — the worst way to
+> find out, because everything looks successful until it doesn't.
+>
+> Only two packages actually matter: **pydantic-core** and **rapidfuzz**.
+> Everything else in `backend/requirements.txt` is pure Python and portable.
+>
+> Pick path A if Docker Desktop is installed and running. Otherwise path B,
+> which is verified to work and needs no Docker at all.
+
+### Check first
+
 ```bash
-sam build --template infra/template.yaml
+docker info
 ```
+
+Prints a block of server info → **path A**. Errors or hangs → **path B**.
+
+---
+
+### Path A — Docker Desktop is running
+
+```bash
+sam build --use-container --template infra/template.yaml
+```
+
+`--use-container` builds inside an ARM Amazon Linux image that matches the
+Lambda runtime, so the native wheels are correct by construction. It is
+slower and pulls a ~1 GB image the first time.
+
+---
+
+### Path B — no Docker
+
+Download Linux wheels explicitly, then let SAM package the result. **Verified
+on 2026-09-19**: this resolves completely, with no Windows or macOS wheels in
+the output.
+
+```bash
+rm -rf .aws-sam/deps && mkdir -p .aws-sam/deps
+```
+
+```bash
+./venv/Scripts/python.exe -m pip download -r backend/requirements.txt --dest .aws-sam/deps --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 --implementation cp --python-version 3.12 --only-binary=:all:
+```
+
+**The two `--platform` flags are both required and this is not belt-and-braces.**
+`pydantic-core` publishes `manylinux2014_aarch64`; `rapidfuzz` publishes
+`manylinux_2_28_aarch64`. Either flag alone fails on the other package, with a
+misleading "Could not find a version that satisfies the requirement" that
+looks like a bad pin rather than a tag mismatch:
+
+```
+ERROR: Could not find a version that satisfies the requirement rapidfuzz==3.14.6
+       (from versions: 2.15.2, ... 3.13.0)
+```
+
+That message is lying about the versions available. 3.14.6 exists; it just
+does not ship a `manylinux2014` wheel.
+
+**Verify before going further** — 21 wheels, and exactly two of them native:
+
+```bash
+ls .aws-sam/deps | grep -v "py3-none-any"
+```
+
+```
+pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+rapidfuzz-3.14.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl
+```
+
+If you see `win_amd64` or `macosx` anywhere in that listing, **stop** — the
+platform flags did not take effect and the bundle is wrong.
+
+Then install them into the build directory and build without touching the
+network again:
+
+```bash
+./venv/Scripts/python.exe -m pip install -r backend/requirements.txt --target .aws-sam/build/ApiFunction --no-index --find-links .aws-sam/deps --platform manylinux2014_aarch64 --platform manylinux_2_28_aarch64 --implementation cp --python-version 3.12 --only-binary=:all: --upgrade
+```
+
+```bash
+cp -r backend/app backend/reference_data .aws-sam/build/ApiFunction/
+```
+
+```bash
+sam deploy --guided --stack-name billsahi --template-file .aws-sam/build/template.yaml
+```
+
+> If path B gives you trouble, the honest fallback is to install Docker
+> Desktop and use path A. Do not "fix" it by switching `Architectures` to
+> `x86_64` — the same tag mismatch exists there (verified), so it costs a
+> rebuild and changes nothing.
+
+---
+
+### The deploy prompts (both paths)
 
 ```bash
 sam deploy --guided --stack-name billsahi
@@ -455,6 +553,10 @@ Answer the prompts:
 | Allow SAM CLI IAM role creation | `y` |
 | Disable rollback | `N` |
 | Save arguments to samconfig.toml | `y` |
+
+`FrontendOrigin` blank is expected and safe: the template omits the whole
+`CorsConfiguration` until Section 4 supplies a real origin, rather than
+deploying an empty-string origin. The app enforces CORS itself either way.
 
 **Verify:** the Outputs table prints `ApiUrl`. Copy it.
 

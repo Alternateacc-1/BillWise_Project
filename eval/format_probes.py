@@ -107,6 +107,54 @@ probe("P7 per-line discount",
       "333.00",
       "10% off each line; qty*rate does not equal the printed line total")
 
+# -- P8 insurance / TPA bill with a co-pay split ---------------------------
+# The patient pays part, the insurer pays the rest. The printed "total" the
+# patient sees is their SHARE, not the value of the goods.
+probe("P8 insurance / TPA bill, co-pay split",
+      "printed total is the patient's 20% share, not the billed value",
+      [item(1, "Room Rent - Private (3 days)", "3", "6000.00", "18000.00"),
+       item(2, "Augmentin 625 Duo Tablet", "20", "20.00", "400.00"),
+       item(3, "CBC - Complete Blood Count", "2", "350.00", "700.00")],
+      "3820.00",
+      "gross 19100.00; insurer pays 80%, patient co-pay 20% = 3820.00")
+
+# -- P9 a bill carrying a return / negative line ---------------------------
+probe("P9 return line (negative amount)",
+      "an item was returned; the line total is negative",
+      [item(1, "Augmentin 625 Duo Tablet", "10", "20.00", "200.00"),
+       item(2, "Paracetamol 500mg Tablet", "20", "0.90", "18.00"),
+       item(3, "RETURN - Augmentin 625 Duo Tablet", "-5", "20.00", "-100.00")],
+      "118.00",
+      "a negative quantity and a negative line total are both legitimate")
+
+# -- P10 a package / bundle line -------------------------------------------
+# One price covering several named things. There is no per-unit price to
+# compare, and the constituents are not separately priced anywhere.
+probe("P10 package / bundle line",
+      "one price covers several named items; no per-item rate exists",
+      [item(1, "MATERNITY PACKAGE (room 3d + OT + consumables)",
+             "1", "45000.00", "45000.00"),
+       item(2, "Augmentin 625 Duo Tablet", "10", "20.00", "200.00")],
+      "45200.00",
+      "the package price is not decomposable into the ceilinged items inside")
+
+# -- P11 quantity as a fraction --------------------------------------------
+probe("P11 fractional quantity",
+      "quantity is 0.5 (half a vial); per-unit price is a DIVISION by < 1",
+      [item(1, "Meropenem 1000 MG Injection", "0.5", "1702.86", "851.43"),
+       item(2, "Paracetamol 500mg Tablet", "10", "0.90", "9.00")],
+      "860.43",
+      "dividing by 0.5 DOUBLES the apparent per-unit price -- a false-red risk")
+
+# -- P12 a zero-amount line ------------------------------------------------
+probe("P12 zero-amount lines",
+      "free / waived / included lines priced at 0.00",
+      [item(1, "Augmentin 625 Duo Tablet", "10", "20.00", "200.00"),
+       item(2, "Consultation - waived", "1", "0.00", "0.00"),
+       item(3, "Sample Collection - included", "1", "0.00", "0.00")],
+      "200.00",
+      "a 0.00 line must never be a finding and must not divide by zero")
+
 
 def main() -> int:
     print("=" * 78)

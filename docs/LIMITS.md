@@ -7,6 +7,19 @@ where its authority stops.
 Two of these are engineering problems we have solved by refusing to guess.
 The rest are not engineering problems at all.
 
+> **A limit means "we cannot know", never "we did not look."**
+>
+> Probing a real pharmacy bill on 2026-09-18 contradicted limits **2** and
+> **4** for that bill: it prints a `PACK` column, and it prints its GST slab
+> per line. Both limits remain true in general — and both had quietly been
+> covering for a column we simply were not reading.
+>
+> That is a failure mode worth naming, because it is comfortable. A limit
+> documented honestly and then left to absorb cases it does not apply to
+> stops being honesty and becomes an excuse. Each entry below now says what
+> would lift it, and where a bill supplies the missing fact, the rule is
+> **read the bill and fall back to the limit only when it stays silent.**
+
 ---
 
 ## 1. We check what is printed. We cannot see what never happened.
@@ -46,6 +59,22 @@ on an ordinary wholesale invoice.
 **What would it take:** the bill states the pack, or the brand is one of the
 249,148 we have indexed, or the user tells us. All three are external to the
 bill line itself.
+
+> **A real bill contradicted this, and the contradiction is instructive**
+> (2026-09-18). A retail pharmacy sale bill we probed prints a full **`PACK`**
+> column — 15, 10, 10, 10, 20, 1 — right next to the quantity. For that bill
+> the pack size is not irreducible at all. It is printed. We simply were not
+> reading the column.
+>
+> The limit above stays true **in general**: most hospital bills print no such
+> column, and when none is printed the information genuinely is not in the
+> document. But "we cannot know" and "we did not look" are different
+> statements, and only the first is a limit.
+>
+> **The fix is to read the column when a bill provides it and fall back to
+> this limit when it does not** — `pack_count_source="bill_text"`, which is
+> CERTAIN, versus the upper-bound gate, which is the honest answer when
+> nothing is stated. Tracked as Class C in `FORMAT_FINDINGS.md`.
 
 ---
 
@@ -88,6 +117,23 @@ missed finding; a flagged compliant price is an accusation. We choose to miss.
 
 **What would it take:** the per-formulation GST slab, which is not in any file
 we hold and is not published in a form we could join against the ceiling list.
+
+> **The same real bill contradicted this one too** (2026-09-18). It prints
+> **`CGST 2.5%`** and **`SGST 2.5%`** per line — a stated 5% slab, on the
+> bill, in the row. For that bill we do not need to assume anything, and
+> assuming 12% instead means choosing a guess over printed evidence. Worse,
+> it is the *wrong direction*: a genuine 5% item assumed at 12% gets a higher
+> cap and is under-flagged, which is the arithmetic above running against a
+> bill that told us the answer.
+>
+> As with limit 2, the limit holds **in general** — most bills state a single
+> bill-level tax, or none at all — but the fix is the same shape: **use the
+> printed rate when the bill states one, record in the evidence that it came
+> from the bill rather than from config, and fall back to the 12% assumption
+> only when nothing is stated.** Tracked as Class D in `FORMAT_FINDINGS.md`.
+>
+> A related and more dangerous question is not "which slab" but "is GST in
+> this number at all" — see Class G. That one can under-flag silently.
 
 ---
 
