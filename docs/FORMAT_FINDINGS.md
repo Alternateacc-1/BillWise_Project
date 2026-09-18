@@ -442,6 +442,135 @@ numbers that were never the same kind of number.
 
 ---
 
+---
+
+# The first REAL reading measurement (2026-09-19, deployed)
+
+Everything above this line describes hand-written fixtures. This section is
+the first time Textract and Claude read an actual image, on the deployed
+stack. **It is the section that replaces the fixture numbers in the video.**
+
+## What was run
+
+Three files through `POST /bills` on the live API, then the stored reports
+pulled back from DynamoDB and compared against ground truth line by line.
+
+| File | `items_read` | Ground truth |
+|---|---|---|
+| `bill_02.jpg` — mild scan | 7 | 7 lines |
+| `bill_05.jpg` — fax-grade scan | 2 | 3 lines |
+| `bill_06.pdf` — retail layout | 6 | 6 lines |
+
+**`items_read` matched ground truth on two of three. That number is
+worthless, and believing it would have been the single worst mistake
+available.** It counts ROWS RETURNED, not rows read correctly.
+
+## Finding 1 — the column header is read as a line item, shifting every name
+
+`bill_02.jpg`, read vs ground truth:
+
+| # | Name read | Qty | Rate | Total | Whose numbers these are |
+|---|---|---|---|---|---|
+| 1 | **"Particulars"** | 15 | 2.00 | 30.00 | line 1 — the name is the COLUMN HEADER |
+| 2 | Paracetamol 650mg Tablet | null | 7.40 | **7400** | line 2 |
+| 3 | Amoxicillin 500mg Capsule | 20 | 1 | 22.00 | line 3 |
+| 4 | Paracetamol 500mg Tablet | 2 | 11.50 | 23.00 | line 4 |
+| 5 | "4 Acimol500mg Tablet" | 10 | 8.50 | 85.00 | line 5 |
+| 6 | Pantoprazole 40mg Tablet | null | 85.00 | 85.00 | line 6 |
+| 7 | Cotton Roll 100gm | 2 | 45.00 | 90.00 | line 7 |
+
+Textract read the `PARTICULARS` header as a line item. Every subsequent drug
+name landed on the NEXT row's numbers. `Micropore Tape` was dropped entirely.
+
+**Not one of the seven rows has the right name against the right numbers**,
+and yet `items_read` was a perfect 7 of 7.
+
+**This is Class E's sibling.** Class E is a SUBTOTAL row read as a line item;
+this is a HEADER row read as a line item. Same shape, same fix family: a row
+whose cells are not values is not a charge. Detect it structurally -- a row
+with no parseable amount in the amount column, appearing before any line -- and
+never by matching the word "Particulars", which dies on the first bill saying
+"Item" or "Description".
+
+## Finding 2 — a lost decimal point is Textract's dominant failure mode
+
+`bill_05.jpg`, line 2. Ground truth `7.20` per unit, `72.00` total:
+
+```
+unit_price  "7"        (should be 7.20)
+line_total  "7200"     (should be 72.00)  <- 100x
+```
+
+Same pattern on `bill_02.jpg` line 2: `74.00` read as `7400`.
+
+A lost decimal is a **100x error**, and it is far more dangerous than an
+unreadable field, because it is perfectly plausible as a number.
+
+## Finding 3 — the guards held, and this is the result that matters most
+
+Despite every line of `bill_02.jpg` being misattributed:
+
+**ZERO FALSE REDS.** Measured on real OCR, not asserted.
+
+The mechanism is worth stating precisely, because it is the whole design:
+
+  - The two readers DISAGREED on the shifted names
+    (`readers_disagree_on_name:similarity=34`), so every line came back
+    `unverified_reading` and went gray.
+  - Misaligned names did not resolve against NPPA data
+    (`name_did_not_resolve`), so no ceiling was ever selected.
+  - R5, the price rule, never fired on bad data. The `<=50x` sanity guard is
+    exactly what stops a lost decimal becoming an accusation about price.
+
+**Garbage in, silence out.** The system was comprehensively wrong and said
+almost nothing, which is the behaviour it was built for.
+
+## Finding 4 — but the ARITHMETIC rules produced two large false ambers
+
+`bill_05.jpg`, on a bill whose true total is Rs 190:
+
+```
+R1 amber  item 2      amount_affected  7130.00
+R2 amber  whole bill  amount_affected  7018.80
+```
+
+Both are arithmetically correct and both are nonsense: 10 x 7 really does not
+equal 7200. The engine faithfully reported a discrepancy invented by OCR.
+
+A user would see **"Rs 7,130 may need clarification"** on a Rs 190 bill.
+
+**This is the gap the two-reader check does not cover.** R1 and R2 operate on
+NUMBERS, and the numbers were internally consistent nonsense -- there was
+nothing for a second reader to disagree with. The name check saved the price
+rules; nothing equivalent protects the arithmetic rules.
+
+**Class fix:** an arithmetic rule must not fire on a line whose reading is
+`unverified_reading`. R5 already refuses to price an unverified line; R1 and
+R2 do not refuse to do arithmetic on one. That asymmetry is the bug.
+Additionally, a line total that exceeds the printed grand total is not a
+discrepancy -- it is a misread, and should be gray.
+
+## What is ours to claim, after this
+
+**Legitimately ours, now measured on real OCR rather than fixtures:**
+
+  - zero false REDS on genuinely misread bills
+  - the two-reader disagreement check catches column misalignment
+  - the <=50x ratio guard stops a lost decimal reaching a price verdict
+
+**NOT ours, and not to be repaired by rewording:**
+
+  - any claim about reading accuracy. On a degraded scan it is poor.
+  - "7 of 7 lines read" -- FALSE. Seven rows, one a header, none correctly
+    attributed. **`items_read` must never appear as an accuracy number.**
+
+**Still unmeasured:** `bill_06.pdf` (the retail layout) was read as 6 rows,
+but the report could not be retrieved, so whether MRP and PACK come back as
+usable fields is still unknown. That answer decides how much of Class B and
+Class C we get for free.
+
+---
+
 ## Still to probe
 
 A bill in a regional script · handwritten annotations over a printed bill ·
