@@ -58,6 +58,11 @@ Globals:
 
 Conditions:
   HasBedrockProfile: !Not [!Equals [!Ref BedrockInferenceProfileId, ""]]
+  # Section 3 deploys with FrontendOrigin blank, because Amplify does not
+  # exist yet. An empty string is not a valid CORS origin, so the whole
+  # CorsConfiguration is omitted until Section 4 supplies a real one. The app
+  # enforces CORS itself either way; the gateway config is an optimisation.
+  HasFrontendOrigin: !Not [!Equals [!Ref FrontendOrigin, ""]]
 
 Resources:
 
@@ -169,13 +174,16 @@ Resources:
     Properties:
       StageName: $default
       # CORS is also enforced in the app. Declaring it here too means a
-      # preflight never reaches Lambda, which is faster and cheaper.
-      CorsConfiguration:
-        AllowOrigins:
-          - !If [HasBedrockProfile, !Ref FrontendOrigin, !Ref FrontendOrigin]
-        AllowMethods: [GET, POST, PUT, OPTIONS]
-        AllowHeaders: [Content-Type]
-        MaxAge: 600
+      # preflight never reaches Lambda, which is faster and cheaper. Omitted
+      # entirely until FrontendOrigin is known -- never "*", because this API
+      # hands back a user's uploaded bill.
+      CorsConfiguration: !If
+        - HasFrontendOrigin
+        - AllowOrigins: [!Ref FrontendOrigin]
+          AllowMethods: [GET, POST, PUT, OPTIONS]
+          AllowHeaders: [Content-Type]
+          MaxAge: 600
+        - !Ref AWS::NoValue
 
 Outputs:
   ApiUrl:

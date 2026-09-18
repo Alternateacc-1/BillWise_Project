@@ -54,6 +54,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = REPO_ROOT / "data" / "raw"
 REF_DIR = REPO_ROOT / "data" / "reference"
 
+# The synonym-conflict scan imports from the backend package. Without this the
+# script still writes correct, byte-identical output and then dies in the
+# reporting step with ModuleNotFoundError -- so the scan that found the
+# dispersible-aspirin bug silently never ran. Put backend/ on the path here
+# rather than relying on the caller's PYTHONPATH.
+if str(REPO_ROOT / "backend") not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT / "backend"))
+
 CEILING_CSV = RAW_DIR / "All_Drugs_Ceiling_Prices.csv"
 RETAIL_CSV = RAW_DIR / "Retail_Price_Information.csv"
 SPECIAL_PDF = (
