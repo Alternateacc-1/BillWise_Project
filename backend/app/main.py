@@ -44,6 +44,11 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
+# In AWS the Amplify origin is added from the environment. Still never "*":
+# this API hands back a user's uploaded bill.
+if config.FRONTEND_ORIGIN:
+    ALLOWED_ORIGINS.append(config.FRONTEND_ORIGIN)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -338,3 +343,17 @@ def _serialise(report: BillReport) -> dict:
     findings = [e for e in by_item if e["severity"] in ("red", "amber")]
     payload["findings_count"] = len(findings) + len(report.flags_for(-1))
     return payload
+
+
+# --------------------------------------------------------------------------
+# Lambda entry point. Mangum is imported lazily so a local run never needs it
+# loaded, and so an import error here cannot break the dev server.
+# --------------------------------------------------------------------------
+
+def _make_handler():
+    from mangum import Mangum
+
+    return Mangum(app, lifespan="off")
+
+
+handler = _make_handler()

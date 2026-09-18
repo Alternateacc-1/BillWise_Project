@@ -34,7 +34,26 @@ from ..models import CeilingMatch
 from .salt_synonyms import canonicalise_salt_set, normalise_salt_set
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-REFERENCE_CSV = REPO_ROOT / "data" / "reference" / "reference_prices.csv"
+def _reference_path(name: str) -> Path:
+    """Locate a reference file in the repo OR in the Lambda bundle.
+
+    Repo layout:   <root>/data/reference/<name>
+    Lambda bundle: <task root>/reference_data/<name>, staged there by
+                   scripts/stage_lambda.py because CodeUri is backend/ and
+                   nothing outside it is deployed.
+    """
+    import os
+
+    override = os.getenv("REFERENCE_DIR")
+    if override:
+        return Path(override) / name
+    bundled = Path(__file__).resolve().parents[2] / "reference_data" / name
+    if bundled.exists():
+        return bundled
+    return REPO_ROOT / "data" / "reference" / name
+
+
+REFERENCE_CSV = _reference_path("reference_prices.csv")
 
 CEILING_SOURCES = ("ceiling", "special_feature")
 

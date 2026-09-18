@@ -58,10 +58,7 @@ def read_upload(bill_id: str, original_filename: str, blob_key: str) -> BillInpu
     inventing a reading, and this project does not do that.
     """
     if config.PROVIDER == "aws":
-        # Phase 4 wires Textract + Bedrock vision here.
-        raise ReaderUnavailable(
-            "The AWS reader is not implemented yet. Set PROVIDER=local."
-        )
+        return _read_upload_aws(bill_id, original_filename, blob_key)
 
     match = _FIXTURE_NAME.search(original_filename or "")
     if match and match.group(1) in available_fixtures():
@@ -74,6 +71,34 @@ def read_upload(bill_id: str, original_filename: str, blob_key: str) -> BillInpu
         hospital_name="",
         bill_date="",
         reader_a=ReaderOutput(source="local_no_ocr", items=[]),
+    )
+
+
+def _read_upload_aws(bill_id: str, original_filename: str, blob_key: str) -> BillInput:
+    """Two independent readings of the same file.
+
+    Textract is reader A. A Claude vision model is reader B, and is optional:
+    if it is unavailable the bill still gets read, and verify.py simply
+    applies the stricter single-reader bar of >= 95 confidence.
+    """
+    from .. import blobs
+    from . import readers_aws
+
+    content = blobs.get(blob_key)
+    if content is None:
+        raise ReaderUnavailable("The uploaded file could not be retrieved.")
+
+    reader_a = readers_aws.read_with_textract(content)
+    reader_b = readers_aws.read_with_bedrock(
+        content, blobs.content_type_for(blob_key)
+    )
+
+    return BillInput(
+        bill_id=bill_id,
+        hospital_name="",
+        bill_date="",
+        reader_a=reader_a,
+        reader_b=reader_b,
     )
 
 

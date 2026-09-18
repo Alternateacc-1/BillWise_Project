@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -48,6 +49,26 @@ def init() -> None:
 
 
 def put(bill_id: str, status: str, payload: dict) -> None:
+    if config.PROVIDER == "aws":
+        from . import aws_clients
+
+        aws_clients.dynamodb().put_item(
+            TableName=config.DDB_TABLE,
+            Item={
+                "bill_id": {"S": bill_id},
+                "status": {"S": status},
+                "updated_at": {"S": _now()},
+                # One JSON blob rather than mapped attributes: the pipeline
+                # owns these shapes and they change often. A document store
+                # should not also be a schema.
+                "payload": {"S": json.dumps(payload)},
+                # S3 objects expire after a day; the record must not outlive
+                # the bill it describes.
+                "ttl": {"N": str(int(time.time()) + 86400)},
+            },
+        )
+        return
+
     init()
     with _lock, _connect() as conn:
         existing = conn.execute(
@@ -62,6 +83,24 @@ def put(bill_id: str, status: str, payload: dict) -> None:
 
 
 def get(bill_id: str) -> dict | None:
+    if config.PROVIDER == "aws":
+        from . import aws_clients
+
+        item = aws_clients.dynamodb().get_item(
+            TableName=config.DDB_TABLE,
+            Key={"bill_id": {"S": bill_id}},
+        ).get("Item")
+        if not item:
+            return None
+        stamp = item.get("updated_at", {}).get("S", "")
+        return {
+            "bill_id": bill_id,
+            "status": item["status"]["S"],
+            "created_at": stamp,
+            "updated_at": stamp,
+            **json.loads(item["payload"]["S"]),
+        }
+
     init()
     with _lock, _connect() as conn:
         row = conn.execute(

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from . import config
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BLOB_DIR = REPO_ROOT / "data" / "blobs"
 
@@ -73,14 +75,59 @@ def count_pdf_pages(content: bytes) -> int | None:
         return None
 
 
+#: suffix -> content type, the reverse of ALLOWED_TYPES. Lets the vision
+#: reader know what it is looking at without trusting the client twice.
+SUFFIX_TO_TYPE = {
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
+
+
 def put(bill_id: str, content: bytes, suffix: str) -> str:
     """Store the bytes. Returns an opaque key, never a client-supplied path."""
-    BLOB_DIR.mkdir(parents=True, exist_ok=True)
     # bill_id is server-generated (secrets.token_urlsafe) and the suffix comes
-    # from ALLOWED_TYPES, so this path cannot be steered by the client.
+    # from ALLOWED_TYPES, so this key cannot be steered by the client.
     key = f"{bill_id}{suffix}"
+
+    if config.PROVIDER == "aws":
+        from . import aws_clients
+
+        aws_clients.s3().put_object(
+            Bucket=config.S3_BUCKET,
+            Key=key,
+            Body=content,
+            ContentType=SUFFIX_TO_TYPE.get(suffix, "application/octet-stream"),
+            # Objects expire via a 1-day lifecycle rule. Nothing here makes an
+            # object public; the bucket blocks public access outright.
+            ServerSideEncryption="AES256",
+        )
+        return key
+
+    BLOB_DIR.mkdir(parents=True, exist_ok=True)
     (BLOB_DIR / key).write_bytes(content)
     return key
+
+
+def get(key: str) -> bytes | None:
+    """Read stored bytes back. None when the key is unknown."""
+    if config.PROVIDER == "aws":
+        from . import aws_clients
+
+        try:
+            return aws_clients.s3().get_object(
+                Bucket=config.S3_BUCKET, Key=key
+            )["Body"].read()
+        except Exception:
+            return None
+
+    target = path_for(key)
+    return target.read_bytes() if target else None
+
+
+def content_type_for(key: str) -> str:
+    return SUFFIX_TO_TYPE.get(Path(key).suffix.lower(), "application/octet-stream")
 
 
 def path_for(key: str) -> Path | None:

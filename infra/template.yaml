@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  BillSahi - checks an Indian hospital or pharmacy bill against NPPA published
+  price ceilings. Everything here is serverless and scales to zero: there is no
+  VPC, no NAT Gateway, no provisioned capacity, and nothing that costs money
+  while idle.
+
+# ---------------------------------------------------------------------------
+# COST NOTES, because $100 of credits is the whole budget.
+#
+#   No VPC          -> no NAT Gateway. A NAT is ~$32-45/month and is the single
+#                      most common way a hackathon burns its credits.
+#   DynamoDB        -> PAY_PER_REQUEST. Never provisioned.
+#   S3              -> lifecycle deletes uploads after 1 day.
+#   Logs            -> 7-day retention. Log storage is a slow leak otherwise.
+#   Concurrency     -> capped at 5 on the function that calls Textract and
+#                      Bedrock, so a retry storm costs five calls, not a
+#                      thousand. A hard platform limit, not our retry logic
+#                      being correct.
+# ---------------------------------------------------------------------------
+
+Parameters:
+  BedrockInferenceProfileId:
+    Type: String
+    Default: ""
+    Description: >
+      Cross-region inference profile ID, copied VERBATIM from the Bedrock
+      console. Leave empty to run with Textract only -- the app degrades to a
+      single reader and applies a stricter confidence bar rather than failing.
+
+  FrontendOrigin:
+    Type: String
+    Default: ""
+    Description: >
+      The Amplify origin, e.g. https://main.d111111abcdef8.amplifyapp.com.
+      Added to the CORS allowlist. Never "*": the API returns a user's bill.
+
+  ReservedConcurrency:
+    Type: Number
+    Default: 5
+    Description: Hard ceiling on concurrent executions. See cost notes.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 1024
+    Timeout: 60
+    Architectures: [arm64]      # cheaper per ms than x86_64
+    Environment:
+      Variables:
+        PROVIDER: aws
+        AWS_REGION_NAME: !Ref AWS::Region
+        S3_BUCKET: !Ref UploadBucket
+        DDB_TABLE: !Ref BillsTable
+        BEDROCK_INFERENCE_PROFILE_ID: !Ref BedrockInferenceProfileId
+        FRONTEND_ORIGIN: !Ref FrontendOrigin
+
+Conditions:
+  HasBedrockProfile: !Not [!Equals [!Ref BedrockInferenceProfileId, ""]]
+
+Resources:
+
+  # -------------------------------------------------------------------------
+  # Uploads. Private, encrypted, and gone within a day.
+  # -------------------------------------------------------------------------
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          # A patient's bill is not ours to keep. One day is long enough to
+          # process it and short enough to be defensible.
+          - Id: DeleteUploadsAfterOneDay
+            Status: Enabled
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  # -------------------------------------------------------------------------
+  # Bill records. On-demand, and they expire with the uploads they describe.
+  # -------------------------------------------------------------------------
+  BillsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: bill_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: bill_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # -------------------------------------------------------------------------
+  # The API. One Lambda, FastAPI behind Mangum.
+  # -------------------------------------------------------------------------
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: app.main.handler
+      Description: BillSahi API - reads, verifies and audits a bill
+      ReservedConcurrentExecutions: !Ref ReservedConcurrency
+      Policies:
+        # Least privilege, written out rather than using a managed policy so
+        # that every permission granted is visible on one screen.
+        - Statement:
+            - Sid: ReadWriteUploads
+              Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource: !Sub "${UploadBucket.Arn}/*"
+            - Sid: ReadWriteBillRecords
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource: !GetAtt BillsTable.Arn
+            - Sid: ReadBillsWithTextract
+              Effect: Allow
+              Action:
+                - textract:AnalyzeExpense
+              Resource: "*"   # Textract's action is not resource-scoped
+        - !If
+          - HasBedrockProfile
+          - Statement:
+              - Sid: InvokeClaudeForReadingAndExplaining
+                Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                Resource: "*"   # a cross-region profile fans out by design
+          - !Ref AWS::NoValue
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: ANY
+
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 7
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      # CORS is also enforced in the app. Declaring it here too means a
+      # preflight never reaches Lambda, which is faster and cheaper.
+      CorsConfiguration:
+        AllowOrigins:
+          - !If [HasBedrockProfile, !Ref FrontendOrigin, !Ref FrontendOrigin]
+        AllowMethods: [GET, POST, PUT, OPTIONS]
+        AllowHeaders: [Content-Type]
+        MaxAge: 600
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for the API. Put this in the frontend's VITE_API_BASE.
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  UploadBucketName:
+    Description: Uploads land here and are deleted after one day.
+    Value: !Ref UploadBucket
+
+  BillsTableName:
+    Description: Bill records, TTL one day.
+    Value: !Ref BillsTable
+
+  FunctionName:
+    Description: Use with `sam logs -n` to tail the API logs.
+    Value: !Ref ApiFunction

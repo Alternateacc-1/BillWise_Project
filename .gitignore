@@ -46,3 +46,6 @@ samconfig.toml
 Thumbs.db
 .idea/
 .vscode/
+
+# Staged into the Lambda bundle by scripts/stage_lambda.py
+backend/reference_data/

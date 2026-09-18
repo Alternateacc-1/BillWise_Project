@@ -36,7 +36,26 @@ from ..models import ItemCategory, MatchType, NormalizedItem, VerifiedItem
 from .salt_synonyms import normalise_spelling
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-BRAND_INDEX_CSV = REPO_ROOT / "data" / "reference" / "brand_index.csv"
+def _reference_path(name: str) -> Path:
+    """Locate a reference file in the repo OR in the Lambda bundle.
+
+    Repo layout:   <root>/data/reference/<name>
+    Lambda bundle: <task root>/reference_data/<name>, staged there by
+                   scripts/stage_lambda.py because CodeUri is backend/ and
+                   nothing outside it is deployed.
+    """
+    import os
+
+    override = os.getenv("REFERENCE_DIR")
+    if override:
+        return Path(override) / name
+    bundled = Path(__file__).resolve().parents[2] / "reference_data" / name
+    if bundled.exists():
+        return bundled
+    return REPO_ROOT / "data" / "reference" / name
+
+
+BRAND_INDEX_CSV = _reference_path("brand_index.csv")
 
 FUZZY_BRAND_MIN = 92
 

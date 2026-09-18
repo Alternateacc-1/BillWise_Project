@@ -1,0 +1,14 @@
+# Lambda runtime dependencies ONLY.
+#
+# Deliberately NOT the root requirements.txt: pytest, reportlab, pillow,
+# pdfplumber and httpx are build/dev tools and would bloat the bundle and the
+# cold start for no benefit. Versions match the root file, which is the one
+# that gets tested.
+fastapi==0.141.1
+pydantic==2.13.5
+python-multipart==0.0.32
+mangum==0.22.0
+rapidfuzz==3.14.6
+# boto3 is present in the Lambda runtime, but pinning it here keeps local and
+# deployed behaviour identical rather than depending on what AWS ships today.
+boto3==1.43.97

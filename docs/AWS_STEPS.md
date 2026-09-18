@@ -323,7 +323,163 @@ say so — a missing claim is fine, an unmeasured one is not. See NOTES.md,
 
 ---
 
-# Section 3 onwards — deployment
+# Section 3 — Deploy the backend
 
-Being written now. Sections 1 and 2 do not depend on it and should already be
-running.
+**Do Sections 0-2 first.** This section assumes the budget alarms exist and
+that you know whether Bedrock is available in ap-south-1.
+
+**Cost: pennies.** Lambda, API Gateway and DynamoDB are all within free tier
+at demo volume. S3 holds a few MB for one day.
+
+**Time: 20 minutes, most of it waiting for CloudFormation.**
+
+---
+
+## 3.1 Install the tools (once)
+
+```bash
+winget install --id Amazon.AWSCLI --exact
+```
+
+```bash
+winget install --id Amazon.SAM-CLI --exact
+```
+
+Close and reopen the terminal, then check both:
+
+```bash
+aws --version && sam --version
+```
+
+---
+
+## 3.2 Sign in
+
+```bash
+aws configure sso
+```
+
+Follow the prompts, then confirm you are who you think you are **and in the
+right region**:
+
+```bash
+aws sts get-caller-identity && aws configure get region
+```
+
+**Verify:** the region reads `ap-south-1` (or `us-east-1` if Section 1 sent
+you there). Getting this wrong deploys into a region with no model access.
+
+---
+
+## 3.3 Stage the reference data
+
+**Do not skip this.** The SAM template's `CodeUri` is `backend/`, so anything
+outside that folder is not deployed. Without this step the Lambda starts fine
+and then fails on the first bill, in production, which is the worst place to
+find out.
+
+```bash
+python scripts/stage_lambda.py
+```
+
+**Verify:** it prints `staged reference_prices.csv  3.26 MB`.
+
+It deliberately does **not** stage `brand_index.csv` (36 MB). The engine
+handles its absence by falling back to generic-name resolution — branded
+names like "Augmentin" will go gray until Phase 4 loads the index into
+DynamoDB. That is a coverage reduction, not a failure.
+
+---
+
+## 3.4 Build and deploy
+
+```bash
+sam build --template infra/template.yaml
+```
+
+```bash
+sam deploy --guided --stack-name billsahi
+```
+
+Answer the prompts:
+
+| Prompt | Answer |
+|---|---|
+| Stack Name | `billsahi` |
+| AWS Region | `ap-south-1` (must match 3.2) |
+| Parameter BedrockInferenceProfileId | paste from Section 1.2, or leave blank |
+| Parameter FrontendOrigin | leave blank for now — Section 4 fills it in |
+| Parameter ReservedConcurrency | `5` |
+| Confirm changes before deploy | `y` |
+| Allow SAM CLI IAM role creation | `y` |
+| Disable rollback | `N` |
+| Save arguments to samconfig.toml | `y` |
+
+**Verify:** the Outputs table prints `ApiUrl`. Copy it.
+
+```
+ApiUrl = ____________________________________________
+```
+
+---
+
+## 3.5 Smoke-test the API before touching the frontend
+
+```bash
+curl https://YOUR-API-URL/health
+```
+
+**Expect:** `{"status":"ok","provider":"aws", ...}`.
+
+If `provider` says `local`, the environment variable did not apply — check
+the template deployed cleanly.
+
+Now the real test, with a bill:
+
+```bash
+curl -X POST -F "file=@eval/demo_bills/bill_02.jpg" https://YOUR-API-URL/bills
+```
+
+**Expect:** JSON with a `bill_id` and `items_read` greater than 0.
+
+**This is the first time Textract has ever run in this project.** Whatever
+`items_read` says is the real number. Record it:
+
+```
+items_read on bill_02.jpg (mild scan):  ____ of 6
+items_read on bill_05.jpg (heavy scan): ____ of 3
+```
+
+Then fetch the report:
+
+```bash
+curl https://YOUR-API-URL/bills/THE-BILL-ID
+```
+
+**If something fails,** get the logs:
+
+```bash
+sam logs --stack-name billsahi --tail
+```
+
+---
+
+## 3.6 Report back before going further
+
+Paste me:
+- the `ApiUrl`
+- the `/health` response
+- `items_read` for both scans
+- any error from `sam logs`
+
+**Do not deploy the frontend until the API smoke test passes.** A broken API
+behind a working UI is harder to debug than no UI at all.
+
+---
+
+# Section 4 — Deploy the frontend
+
+Written once Section 3 reports a working API, because the frontend needs the
+`ApiUrl` and the API needs the Amplify origin for CORS. Chicken and egg, so
+it is done in that order: deploy API, deploy UI, then update the API's
+`FrontendOrigin` parameter and redeploy.

@@ -33,6 +33,12 @@ AWS_REGION = os.getenv("AWS_REGION", "ap-south-1").strip()
 #: docs/OPEN_QUESTIONS.md Q1.
 BEDROCK_INFERENCE_PROFILE_ID = os.getenv("BEDROCK_INFERENCE_PROFILE_ID", "").strip()
 
+S3_BUCKET = os.getenv("S3_BUCKET", "").strip()
+DDB_TABLE = os.getenv("DDB_TABLE", "").strip()
+
+#: The deployed frontend's origin, added to the CORS allowlist in AWS mode.
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "").strip()
+
 
 # --------------------------------------------------------------------------
 # Audit thresholds
