@@ -867,6 +867,95 @@ JPEG, which previously worked.
 
 ---
 
+---
+
+# A6 -- synonym-tier crossing, enumerated and attacked (2026-09-19)
+
+D4 accepted an asymmetry on the grounds that its impact stayed inside the 25%
+red margin. That was an observation about ASPIRIN. This tests whether it holds
+across the whole published list.
+
+Harness: `eval/cross_tier_audit.py`.
+
+## Part 1 -- the enumeration, and it is a much stronger claim than D4's
+
+Every salt+form+strength+unit group in the 915 usable ceiling rows was grouped
+by its SYNONYM-canonical key, then split by EXACT spelling. Any group holding
+more than one exact spelling is a place where the two tiers can see different
+rows, and therefore different ceilings.
+
+**Result: exactly ONE such group exists in the entire published list.**
+
+| Group | Tier 1 (exact) | Tier 2 (synonym) | Gap |
+|---|---|---|---|
+| `aspirin`, tablet 75 mg, per 1 tablet | **0.3600** dispersible `CEIL-0214` | **0.3900** plain `CEIL-0009` | **8.3%** |
+
+  groups where the tiers disagree : 1
+  red margin                      : 25%
+  gaps EXCEEDING the margin       : 0
+  widest gap measured             : 8.3%
+
+**D4's asymmetry is now BOUNDED, not merely accepted.** No cross-tier
+disagreement in the published data is wide enough to change a verdict, because
+the widest is 8.3% against a 25% margin -- a factor of three of headroom. The
+aspirin note stops being an anecdote about one drug and becomes a measured
+property of the reference data.
+
+**This bound is a property of the DATA, not of the code**, and it must be
+re-measured whenever the reference list is rebuilt. If NPPA ever publishes a
+cross-tier pair wider than 25%, the asymmetry becomes capable of producing a
+red and D4 must be revisited. `eval/cross_tier_audit.py` exists so that check
+is one command.
+
+## Part 2 -- the attacks, with the pack gate stubbed
+
+The previous A6 attempt proved nothing: `pack_size_unknown` blocked it before
+the ceiling comparison ran. Setting `pack_count=1` from `bill_text` makes the
+pack CERTAIN and collapses the interpretations to one, so the pricing path
+actually executes.
+
+| # | Attack | Result |
+|---|---|---|
+| A6a | Aspirin priced AT the plain-row ceiling, gated on the DT row | **amber Rs 0.03** |
+| A6b | Same, just under the tier-1 red threshold (0.504) | **amber Rs 0.10** |
+| A6c | Two lines resolving to the SAME ceiling row | 2 green |
+| A6d | `form_modifier` on the bill, absent from every matched row | gray |
+
+**FALSE REDS: 0.**
+
+### NEAR-MISS: the asymmetry does cost an amber
+
+A6a is a line priced exactly at the ceiling that genuinely governs it -- the
+plain 75 mg tablet at Rs 0.39 ex-GST -- and it comes back AMBER, because
+"Aspirin" matches tier 1, which holds only the dispersible row at Rs 0.36.
+
+The amount affected is **Rs 0.03**. It cannot become red: the 25% margin
+needs Rs 0.504 and `RED_MIN_AMOUNT_AFFECTED` needs Rs 50, so this is doubly
+blocked. But it IS a flag on a compliant line, and D4 should say so rather
+than implying the asymmetry is free. It costs an amber, not a red.
+
+Worth noting separately: an amber worth **Rs 0.03** is noise in its own right.
+The red path has a Rs 50 floor; the amber path has none. That is a candidate
+rule -- an amber below some floor is not worth a patient's attention -- but it
+is a NEW rule rather than a fix, and it is not being made tonight.
+
+### A6d confirms D5 holds under attack
+
+A bill stating `SR` where the published rows are plain and dispersible only
+did NOT silently borrow the plain row's ceiling. It returned **gray**, because
+no row matched the stated modifier. `form_modifier` is product identity and
+the matcher refuses rather than approximates -- exactly the Phase 0b rule,
+now tested adversarially instead of assumed.
+
+### A6c: no interaction between lines sharing a ceiling row
+
+Two distinct lines resolving to the same reference row were priced
+independently and both came back green. Neither poisoned the other, and the
+duplicate rules did not fire on different products that happen to share a
+ceiling.
+
+---
+
 ## Still to probe
 
 A bill in a regional script · handwritten annotations over a printed bill ·
