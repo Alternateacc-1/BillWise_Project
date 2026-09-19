@@ -786,6 +786,87 @@ propose the general rule, change nothing.
 
 ---
 
+---
+
+# The accidental controlled experiment (2026-09-19)
+
+**The same bill, read by the deployed system twice, two hours apart. The only
+variable that changed was whether the second reader was available.**
+
+Bedrock stopped working mid-session: the account cannot complete the AWS
+Marketplace subscription for the model (`INVALID_PAYMENT_INSTRUMENT: A valid
+payment instrument must be provided`). Credits do not satisfy a Marketplace
+subscription. Textract was unaffected, so the primary reading is identical.
+
+This is the cleanest evidence the project has for its own architecture, and
+nobody designed it.
+
+## `bill_02.jpg`, both ways
+
+| | 22:46 UTC — TWO readers | 00:4x UTC — ONE reader |
+|---|---|---|
+| Line 1, `"Particulars"` (the column HEADER) | `readers_disagree_on_name:34` -> gray | **`confidence: high`** |
+| Line 3, Amoxicillin `20 x "1" = 22.00` | `readers_disagree_on_name:57` -> gray | **`R1 amber Rs 2.00`** |
+| Lines rated HIGH confidence | **0 of 7** | **4 of 7** |
+| Findings reported | **0** | **1, and it is FALSE** |
+
+## The false finding, in detail
+
+Ground truth for line 3 is `20 x 1.10 = 22.00`. **The bill is correct.**
+Textract lost the decimal and read `1.10` as `1`, so `20 x 1 = 20` and the
+arithmetic rule reported a Rs 2.00 discrepancy that does not exist.
+
+With a second reader, that line never reached the rule: the readers disagreed
+on the name, the line went `unverified_reading`, and R1 abstained.
+
+Note also line 1. `"Particulars"` is a COLUMN HEADING. With one reader it is
+now `confidence: high` and classified as an unidentified medicine. The system
+is confidently wrong about what the line even is.
+
+## What it demonstrates, precisely
+
+**A single reader cannot doubt itself.** Textract returned the same values
+both times, with per-field confidences of 96-99. Nothing in that output
+signals the decimal loss or the column shift. Confidence is not accuracy, and
+a reader's own score cannot detect a systematic misalignment.
+
+**Disagreement is the signal.** The second reader is not there to be more
+accurate than the first. It is there to DISAGREE, and disagreement is what
+converts a confident misread into an honest silence.
+
+**The cost of losing it is a false accusation, not a missed finding.** Both
+degradations here run toward saying MORE, not less: four lines promoted to
+high confidence, and one amber raised against a correct bill.
+
+## Consequences for what may be claimed
+
+**Claimable, and now measured rather than argued:** the two-reader
+cross-check catches confident misreads that no single-reader confidence
+score exposes. Both sides of the comparison are recorded in the deployed
+system's own stored reports.
+
+**NOT claimable while the subscription is unresolved:** that the DEPLOYED
+system currently performs this check. It does not. Every bill uploaded now
+gets one reader, and `only_one_reader_ran` appears on every line saying so.
+
+The honest sentence, and it must be said in the video if the claim is made:
+
+> The two-reader design is implemented and measured. The deployed demo is
+> currently running one reader, because the AWS account cannot complete the
+> Marketplace subscription for the model.
+
+## Resolution
+
+A valid payment method on the AWS account. Anthropic models on Bedrock are
+Marketplace subscriptions, and credits alone do not satisfy one. This is the
+only blocker found tonight that is not fixable in code.
+
+**The PDF document-block fix is UNTESTED, not disproven.** It never got far
+enough to fail on its own terms -- the same AccessDeniedException occurs for
+JPEG, which previously worked.
+
+---
+
 ## Still to probe
 
 A bill in a regional script · handwritten annotations over a printed bill ·
