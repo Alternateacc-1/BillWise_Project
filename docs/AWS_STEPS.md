@@ -832,3 +832,119 @@ Written once Section 3 reports a working API, because the frontend needs the
 `ApiUrl` and the API needs the Amplify origin for CORS. Chicken and egg, so
 it is done in that order: deploy API, deploy UI, then update the API's
 `FrontendOrigin` parameter and redeploy.
+
+---
+
+# Section 9 — Cost control, and what to do before sleeping
+
+Written 2026-09-19 when the deadline was one day out and the stack had to
+survive the night. **Read the first paragraph before doing anything: the
+instinct to tear it all down is probably wrong here.**
+
+## 9.0 What this stack actually costs while nobody uses it
+
+**Effectively nothing.** Every resource is either pay-per-request or already
+capped, and this is by construction rather than luck — check `template.yaml`
+and you will find:
+
+| Resource | Idle cost | Why |
+|---|---|---|
+| Lambda | **$0** | Billed per invocation-ms. No invocations, no bill. |
+| HTTP API | **$0** | Billed per request. |
+| DynamoDB | **$0** | `BillingMode: PAY_PER_REQUEST` — no provisioned capacity to pay for. Records carry a 1-day TTL. |
+| S3 uploads | **~$0** | `ExpirationInDays: 1`. A few MB for under a day is a fraction of a cent. |
+| CloudWatch Logs | **~$0** | `RetentionInDays: 7`. Kilobytes. |
+| Bedrock / Textract | **$0** | Billed per call only. Nothing calls them while you sleep. |
+
+There is no hourly resource in this stack. No NAT gateway, no VPC endpoint,
+no provisioned concurrency, no RDS, no EC2 — those are the things that bill
+you for existing, and none of them is here.
+
+**So: you can close the laptop. Idle, this stack does not move the bill.**
+
+## 9.1 The real exposure, which is not idling
+
+**The API is PUBLIC and UNAUTHENTICATED, and it has no throttle.**
+
+    https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com
+
+Anyone who finds that URL can POST a bill to it, and every upload spends real
+money: Textract AnalyzeExpense is charged per page, plus Lambda time and a
+Bedrock call. That is the ONLY path from here to a $5 surprise, and it has
+nothing to do with whether you are asleep.
+
+The risk is low — the URL is unlisted, and API Gateway hostnames are not
+enumerable in practice — but it is the one that is real, so it gets the
+mitigation rather than the idle cost that does not exist.
+
+## 9.2 Do this — a hard $5 budget alert (3 minutes, console, free)
+
+This is the ONE thing worth doing before bed. It does not stop spend, it tells
+you the moment it starts, which is what you actually need overnight.
+
+1. Sign in, then open **Billing and Cost Management → Budgets**:
+   https://us-east-1.console.aws.amazon.com/costmanagement/home#/budgets
+2. **Create budget** → **Customize (advanced)** → Budget type: **Cost budget**.
+3. Period **Monthly**, Budget renewal **Recurring**.
+4. Budgeted amount: **5.00** USD. Name it `billsahi-hard-cap`.
+5. **Add an alert threshold** — and add all three, because the first one is
+   the only one that arrives early enough to act on:
+   - **50%** of budgeted amount (**$2.50**) — actual
+   - **80%** (**$4.00**) — actual
+   - **100%** (**$5.00**) — **forecasted**, not actual
+6. Email: your own address. Confirm the subscription email if prompted.
+
+Budgets themselves are free (the first two are). Alerts can lag actual spend
+by several hours — that is an AWS property, not a setting — which is exactly
+why the 50% threshold matters more than the 100% one.
+
+## 9.3 Optional — throttle the API so abuse cannot run away
+
+Only if 9.2 does not let you sleep. This caps the blast radius rather than
+detecting it after the fact.
+
+Console: **API Gateway → APIs → the `billsahi` HTTP API → Stages → `$default`
+→ Default route throttling → Edit**
+
+    Rate  (requests/second) : 2
+    Burst (requests)        : 5
+
+Generous for a demo and a judge clicking through; useless to anyone trying to
+run up a bill. **Set it back to something higher before filming** if you plan
+to click quickly through several bills.
+
+## 9.4 If you want certainty instead — delete the stack
+
+**RECOMMENDED AGAINST TONIGHT, and here is the honest reason.** This costs
+nothing to keep and a great deal to rebuild: the first deploy hit SIX separate
+environment failures (see "Troubleshooting the first deploy"), and a redeploy
+under deadline pressure with no sleep is where this project would actually get
+hurt. Deleting also CHANGES THE API URL, so anything already pointing at it
+breaks.
+
+Keep it. But if you want the certainty anyway, the command is:
+
+```bash
+sam delete --stack-name billsahi --region us-east-1
+```
+
+It asks twice before doing anything. It empties and removes the upload bucket,
+the table, the function, the API and the log group. Everything needed to bring
+it back is in git — `template.yaml` plus Section 3 — but budget an hour, not
+ten minutes.
+
+**What `sam delete` does NOT remove:** the `aws-sam-cli-managed-default-*`
+artifacts bucket SAM created for build uploads. It holds a few tens of MB of
+deployment zips and costs well under a cent a month. Leave it; it is reused by
+the next deploy.
+
+## 9.5 What does NOT need shutting down
+
+- **The local dev servers** (`:8000` FastAPI, `:5173` Vite). They run on your
+  machine and cost nothing. Close the terminals if you like.
+- **Bedrock model access.** Granted access is not a subscription and is not
+  billed. It bills per call, and right now it is not even succeeding
+  (`INVALID_PAYMENT_INSTRUMENT`).
+- **The Docker containers** left over from the SAM build. Local, free — though
+  reclaiming the disk is worth it for other reasons.
+
