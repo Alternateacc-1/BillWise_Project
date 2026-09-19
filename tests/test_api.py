@@ -578,3 +578,66 @@ def test_a_second_reader_failure_is_logged_without_bill_content(caplog):
     assert "document blocks not supported" in logged, "the cause must be visible"
     assert "PATIENT NAME" not in logged, "bill content reached the logs"
     assert "%PDF" not in logged
+
+
+# --------------------------------------------------------------------------
+# Local/production parity.
+#
+# THE MOST EXPENSIVE BUG CLASS OF 2026-09-19, and it had no gate at all.
+# Four separate failures shared one shape: WHAT WE TEST IS NOT WHAT RUNS.
+#   - the brand index existed locally and was never deployed, so brand
+#     resolution worked in every test and in no real request
+#   - eval/fixtures/ was never staged, so /bills/sample returned a bare 500
+#   - pdfplumber backed the page guard but is absent from the Lambda bundle,
+#     so the guard was inert in the only environment that bills per page
+#   - reference_data/ was missed entirely at the first deploy
+#
+# Each was found by a human hitting the deployed URL. None was found by the
+# 270 tests, because every one of them tested the local filesystem.
+# --------------------------------------------------------------------------
+
+def test_everything_the_app_reads_at_runtime_is_staged_for_the_bundle():
+    """Any file the engine loads must be in backend/, or it will not deploy.
+
+    CodeUri is backend/, so NOTHING outside it reaches Lambda. This asserts
+    that the paths the app actually resolves at runtime live inside the
+    staged directory -- not merely that some copy exists somewhere on disk.
+    """
+    from app.pipeline import match, normalize, reader
+
+    staged = Path(__file__).resolve().parent.parent / "backend"
+
+    runtime_paths = {
+        "reference_prices.csv": match.REFERENCE_CSV,
+        "brand_index.csv": normalize.BRAND_INDEX_CSV,
+        "fixtures/": reader.FIXTURE_DIR,
+    }
+
+    unstaged = {
+        name: path for name, path in runtime_paths.items()
+        if staged not in Path(path).resolve().parents
+    }
+    assert not unstaged, (
+        "these are read at runtime but resolve OUTSIDE backend/, so they will "
+        f"not be deployed: {unstaged}. Run scripts/stage_lambda.py."
+    )
+
+
+def test_the_staged_brand_index_is_the_one_the_app_resolves():
+    """Local and production must read the SAME brand index.
+
+    Before 2026-09-19 local read the full 36 MB file and production read
+    nothing, so every local brand result was unreproducible on AWS. The
+    reduced index is now staged into backend/reference_data/ and the
+    bundle-aware path prefers it in both places.
+    """
+    from app.pipeline import normalize
+
+    resolved = Path(normalize.BRAND_INDEX_CSV)
+    if not resolved.exists():
+        pytest.skip("brand index not built; run scripts/build_brand_index.py")
+
+    assert resolved.parent.name == "reference_data", (
+        f"the app resolves its brand index to {resolved}, which is not the "
+        "staged copy -- local and production would disagree"
+    )
