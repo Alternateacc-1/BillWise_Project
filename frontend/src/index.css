@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* The page itself must declare a background and a colour scheme.
+ *
+ * Without this, `body` and `html` are TRANSPARENT: only the report card
+ * carried `bg-white`, so on a browser set to dark mode everything around it
+ * rendered black and the app looked broken. Found 2026-09-19 on a dark-mode
+ * browser; invisible on a light-mode one, which is why it survived so long.
+ *
+ * `color-scheme: light` is the other half. It stops the browser applying its
+ * dark-mode treatment to form controls and scrollbars, which would otherwise
+ * give dark inputs inside a white card on the review screen.
+ *
+ * This app has no dark theme. A bill is a document people read, compare
+ * against paper and print; one light surface is the honest choice rather
+ * than a half-built second theme. */
+html {
+  color-scheme: light;
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+body {
+  background-color: #f1f5f9; /* slate-100 -- the card reads as a card */
+  margin: 0;
+}
