@@ -385,11 +385,16 @@ BILLS = [
                  why="Blocked on brand resolution. MRP/pack 13.40 = billed/unit."),
             Line("SINALATE TAB", "8", mrp="67.50", pack=10,
                  line_total_override="54.00",
-                 expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling",
-                 why="Resolves via the alias to CAFFEINE 30 + DIPHENHYDRAMINE "
-                     "25, tablet, pack 10. DIPHENHYDRAMINE has NO ceiling row "
-                     "at all and CAFFEINE only oral-liquid/injection rows, so "
-                     "the absence is real. MRP/pack 6.75 = billed/unit."),
+                 expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
+                 why="MOVED 2026-09-19 when the REDUCED brand index shipped. "
+                     "SINALATE is CAFFEINE + DIPHENHYDRAMINE, and "
+                     "DIPHENHYDRAMINE appears in ZERO ceiling rows, so the "
+                     "member-rule filter drops the brand and the deployed data "
+                     "cannot identify it. could_not_identify is the ACCURATE "
+                     "statement about what ships: we hold nothing at all about "
+                     "that molecule. With the full 36 MB index it resolves and "
+                     "reads no_public_ceiling -- which is why local and "
+                     "production must use the SAME file."),
             Line("EFERIM SP TAB", "8", mrp="97.97", pack=10,
                  line_total_override="78.32",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",

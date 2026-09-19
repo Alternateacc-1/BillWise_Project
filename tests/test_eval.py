@@ -177,8 +177,20 @@ def test_the_gray_split_is_pinned(results):
     """The split is a CLAIM about what this tool can and cannot check.
 
     Pinned deliberately, so that a change to gray-reason semantics has to be
-    argued for rather than absorbed silently. Moved once, on 2026-09-19, from
-    23/11 to 26/8 when R9 gained a third branch: a drug that RESOLVES
+    argued for rather than absorbed silently.
+
+    MOVED TWICE, both on 2026-09-19.
+
+    26/8 -> 25/9 when the REDUCED brand index shipped. One line moved:
+    bill_06 line 3, SINALATE = CAFFEINE + DIPHENHYDRAMINE. Diphenhydramine
+    appears in ZERO ceiling rows, so the member-rule filter drops the brand
+    and the deployed data cannot identify it. That is ACCURATE: with what
+    ships we hold nothing about that molecule. The alternative -- shipping the
+    full 36 MB index so it reads no_public_ceiling -- was rejected on cold
+    start, and local now uses the same file as production so the two cannot
+    disagree.
+
+    23/11 -> 26/8 when R9 gained a third branch: a drug that RESOLVES
     COMPLETELY but has no row in the published list is no_public_ceiling, not
     could_not_identify. Three lines moved, all verified individually:
 
@@ -195,7 +207,7 @@ def test_the_gray_split_is_pinned(results):
     """
     no_ceiling = sum(r["no_public_ceiling"] for r in results)
     could_not_verify = sum(r["could_not_verify"] for r in results)
-    assert (no_ceiling, could_not_verify) == (26, 8), (
+    assert (no_ceiling, could_not_verify) == (25, 9), (
         f"gray split moved to {no_ceiling}/{could_not_verify}; verify each "
         "moved line resolved completely before re-pinning"
     )
