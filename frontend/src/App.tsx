@@ -358,6 +358,37 @@ export default function App() {
     (i) => i.gray_detail === "pack_size_unknown",
   );
 
+  // EVERY NUMBER IN EVERY SENTENCE BELOW IS DERIVED FROM THE RENDERED ARRAYS.
+  //
+  // Not from report.stats, not from report.gray_breakdown. Those are computed
+  // on a different partition than the one the groups render, and they drifted:
+  // on bill_01 the headline said "10 ... have no published ceiling" above a
+  // group rendering 9, because main.py counts by gray_reason while the group
+  // also requires severity === "gray", and one amber item carries both.
+  // Deriving from the array that is rendered makes the sentence unable to lie.
+  const total = report?.by_item.length ?? 0;
+  // A PRICE VERDICT, NOT A COLOUR. An item can be amber from the duplicate or
+  // arithmetic rules while its price was never compared to anything -- bill_01
+  // line 9 is an amber duplicate that also has no published ceiling, and line
+  // 13 is an amber arithmetic flag on a line we could not read. Counting those
+  // as "compared" inflates the denominator with lines we never priced, which
+  // is the same overstatement as the headline this replaced. `gray_reason` is
+  // set exactly when no price verdict was reached, so it is the test.
+  const compared = (report?.by_item ?? []).filter(
+    (i) => i.severity !== "gray" && !i.gray_reason,
+  ).length;
+  const readHigh = (report?.by_item ?? []).filter(
+    (i) => i.confidence === "high",
+  ).length;
+  // Bill-level flags (a total that does not add up, say) are findings too and
+  // render as their own cards above the groups, so both numbers must include
+  // them -- which is what report.findings_count did before this was derived.
+  const billFlags = report?.bill_level_flags ?? [];
+  const findingsCount = findings.length + billFlags.length;
+  const findingsTotal =
+    findings.reduce((sum, i) => sum + Number(i.amount_affected ?? 0), 0) +
+    billFlags.reduce((sum, f) => sum + Number(f.amount_affected ?? 0), 0);
+
   return (
     <div className="mx-auto min-h-screen max-w-3xl bg-white p-6 text-slate-900">
       <header className="mb-6">
@@ -479,38 +510,79 @@ export default function App() {
               Bill date {report.bill_date}
             </p>
 
-            <p className="mt-3">
-              We found{" "}
-              <span className="font-semibold">
-                {report.findings_count}{" "}
-                {report.findings_count === 1 ? "thing" : "things"}
-              </span>{" "}
-              worth asking about, worth{" "}
-              <span className="font-semibold">
-                {rupees(report.total_amount_affected)}
-              </span>
-              .
-            </p>
-            <p className="mt-1 text-sm text-slate-700">
-              {report.gray_breakdown.no_public_ceiling} of the{" "}
-              {report.stats.total_items} charges have no published ceiling in
-              India, so we checked those for duplication and arithmetic only.
-            </p>
+            {/* THE DENOMINATOR COMES FIRST, ALWAYS.
+              *
+              * "We found 0 things worth asking about" reads as "your bill is
+              * fine". On a bill where nothing could be compared it is true and
+              * it is a lie, and falsely reassuring a patient about a medical
+              * bill is the same failure as falsely accusing a pharmacy --
+              * pointed the other way. Found 2026-09-19 on a real retail
+              * pharmacy bill: 6 of 6 lines gray, 0 compared, rendered green
+              * and calm with a "Write a clarification letter" button.
+              *
+              * So the count of what we CHECKED leads, and a report that
+              * checked nothing says so in its first sentence. */}
+            {compared === 0 ? (
+              <>
+                <p className="mt-3">
+                  We could not compare <span className="font-semibold">any</span>{" "}
+                  of the <span className="font-semibold">{total}</span>{" "}
+                  {total === 1 ? "charge" : "charges"} on this bill against a
+                  published ceiling.
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  This does not mean the bill is fine. It means we found
+                  nothing to check it against. Each group below says which
+                  lines, and why.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-3">
+                  We compared{" "}
+                  <span className="font-semibold">{compared}</span> of the{" "}
+                  <span className="font-semibold">{total}</span>{" "}
+                  {total === 1 ? "charge" : "charges"} against a published
+                  ceiling, and found{" "}
+                  <span className="font-semibold">
+                    {findingsCount}{" "}
+                    {findingsCount === 1 ? "thing" : "things"}
+                  </span>{" "}
+                  worth asking about, worth{" "}
+                  <span className="font-semibold">
+                    {rupees(findingsTotal.toFixed(2))}
+                  </span>
+                  .
+                </p>
+                {total - compared > 0 && (
+                  <p className="mt-1 text-sm text-slate-700">
+                    The other {total - compared} could not be compared against
+                    a price. The groups below say which, and why. They were
+                    still checked for duplication and arithmetic.
+                  </p>
+                )}
+              </>
+            )}
 
-            {/* The primary action, before sixteen cards rather than after. */}
-            <div className="mt-4">
-              <LetterButton
-                onClick={onLetter}
-                busy={busy}
-                label="Write a clarification letter"
-              />
-            </div>
+            {/* The primary action, before sixteen cards rather than after --
+              * but ONLY when there is something to ask about. Offering to
+              * write a complaint about a bill we found nothing wrong with is a
+              * credibility leak in the exact place the product earns trust.
+              * The letter stays reachable at the foot of the page. */}
+            {findingsCount > 0 && (
+              <div className="mt-4">
+                <LetterButton
+                  onClick={onLetter}
+                  busy={busy}
+                  label="Write a clarification letter"
+                />
+              </div>
+            )}
 
             <p className="mt-3 text-xs text-slate-500">
-              {report.stats.auto_high}/{report.stats.total_items} lines read at
-              high confidence &middot; {reconciliationLabel(report.stats.reconciliation)}{" "}
-              &middot; prices as per NPPA data retrieved{" "}
-              {report.reference_retrieved_on}
+              {readHigh}/{total} lines read at high confidence &middot;{" "}
+              {reconciliationLabel(report.stats.reconciliation)} &middot; prices
+              as per NPPA data retrieved {report.reference_retrieved_on}
             </p>
           </div>
 
@@ -597,12 +669,28 @@ export default function App() {
             <ItemList items={couldNotIdentify} />
           </Group>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <LetterButton
-              onClick={onLetter}
-              busy={busy}
-              label="Write a clarification letter"
-            />
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {/* With findings, this is the action. Without them it is still
+              * reachable -- a patient may want to ask about the lines we could
+              * not check -- but it is a plain link, not a filled button, and
+              * it is honest about what such a letter can say. */}
+            {findingsCount > 0 ? (
+              <LetterButton
+                onClick={onLetter}
+                busy={busy}
+                label="Write a clarification letter"
+              />
+            ) : (
+              <button
+                onClick={onLetter}
+                disabled={busy}
+                className="px-1 py-2 text-sm text-slate-600 underline underline-offset-2 disabled:opacity-50"
+              >
+                {busy
+                  ? "Working..."
+                  : "Write a letter asking about the charges we could not check"}
+              </button>
+            )}
             <button
               onClick={() => {
                 setReport(null);

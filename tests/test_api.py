@@ -641,3 +641,111 @@ def test_the_staged_brand_index_is_the_one_the_app_resolves():
         f"the app resolves its brand index to {resolved}, which is not the "
         "staged copy -- local and production would disagree"
     )
+
+
+# --------------------------------------------------------------------------
+# Every number the summary states must be derivable from the rendered items.
+#
+# CLASS: A REPORT THAT CHECKED NOTHING MUST NOT READ AS A CLEAN BILL.
+#
+# Found 2026-09-19 on the real retail pharmacy bill (bill_06): all six lines
+# came back gray -- one with no published ceiling, five unidentified, so ZERO
+# were compared against any price -- and the summary rendered
+# "We found 0 things worth asking about, worth Rs 0.00" with a
+# "Write a clarification letter" button. Every word true; the page says the
+# bill is fine. Falsely reassuring a patient about a medical bill is the same
+# failure as falsely accusing a pharmacy, pointed the other way, and the whole
+# project is built around not doing the second one.
+#
+# The frontend now derives the summary from `by_item` and `bill_level_flags`
+# instead of `stats` and `gray_breakdown`, so these assert that the derivation
+# is possible and agrees with the server's own totals.
+# --------------------------------------------------------------------------
+
+
+def _derived(report):
+    """Recompute the summary the way the UI does -- from rendered arrays."""
+    items = report["by_item"]
+    findings = [i for i in items if i["severity"] in ("red", "amber")]
+    return {
+        "total": len(items),
+        # A price verdict, not a colour: an amber duplicate on a line with no
+        # published ceiling was never priced. gray_reason is set exactly when
+        # no price verdict was reached.
+        "compared": len([i for i in items
+                         if i["severity"] != "gray" and not i["gray_reason"]]),
+        "findings": len(findings) + len(report["bill_level_flags"]),
+        "amount": sum(Decimal(i["amount_affected"]) for i in findings)
+        + sum(Decimal(f["amount_affected"]) for f in report["bill_level_flags"]),
+        "read_high": len([i for i in items if i["confidence"] == "high"]),
+    }
+
+
+@pytest.mark.parametrize("fixture", [f"bill_0{n}" for n in range(1, 7)])
+def test_summary_numbers_are_derivable_from_the_rendered_items(client, fixture):
+    report = client.post(f"/bills/sample?fixture={fixture}").json()
+    report = client.get(f"/bills/{report['bill_id']}").json()
+    d = _derived(report)
+
+    assert d["total"] == report["stats"]["total_items"]
+    assert d["findings"] == report["findings_count"]
+    assert d["amount"] == Decimal(report["total_amount_affected"])
+    assert d["read_high"] == report["stats"]["auto_high"], (
+        "the confidence on by_item must agree with stats.auto_high, or the "
+        "summary line '{n}/{t} lines read at high confidence' is a second "
+        "source of truth".format(n=report["stats"]["auto_high"], t=d["total"])
+    )
+
+
+def test_a_bill_where_nothing_was_compared_is_distinguishable_from_a_clean_one(
+    client,
+):
+    """bill_06 is the real-pharmacy-layout fixture. Zero lines get a price.
+
+    The assertion is not that this SHOULD be zero -- Class A and R6 are meant
+    to raise it. It is that when it IS zero, the data says so plainly, so the
+    UI can lead with "we could not compare any of these" rather than with a
+    finding count of nothing.
+    """
+    report = client.post("/bills/sample?fixture=bill_06").json()
+    report = client.get(f"/bills/{report['bill_id']}").json()
+    d = _derived(report)
+
+    assert d["findings"] == 0
+    assert d["compared"] == 0, (
+        "if bill_06 ever starts comparing lines this test should be updated "
+        "with the new number, not deleted -- the invariant it guards is that "
+        "`compared` exists and is derivable, not that it stays 0"
+    )
+    assert d["total"] == 6
+    # A clean bill and this bill BOTH have findings == 0. Only `compared`
+    # tells them apart, which is exactly why the summary must state it.
+    assert d["compared"] < d["total"]
+
+
+def test_compared_counts_price_verdicts_not_colours(client):
+    """An amber from R1/R3 is not evidence that a price was checked.
+
+    bill_01 line 9 is a duplicate (amber) on a line with no published ceiling,
+    and line 13 is an arithmetic flag (amber) on a line we could not read.
+    Neither was compared against a ceiling, so a summary saying "we compared N"
+    must not count them -- that is the same overstatement as a zero-finding
+    report reading as a clean bill, one level down.
+    """
+    report = client.post("/bills/sample?fixture=bill_01").json()
+    report = client.get(f"/bills/{report['bill_id']}").json()
+
+    flagged_but_unpriced = [
+        i for i in report["by_item"]
+        if i["severity"] in ("red", "amber") and i["gray_reason"]
+    ]
+    assert flagged_but_unpriced, (
+        "this fixture is meant to contain flagged-but-unpriced lines; if it "
+        "no longer does, point this test at one that does rather than drop it"
+    )
+    d = _derived(report)
+    assert d["compared"] == len(
+        [i for i in report["by_item"]
+         if i["severity"] != "gray" and not i["gray_reason"]]
+    )
+    assert d["compared"] + len(flagged_but_unpriced) <= d["total"]
