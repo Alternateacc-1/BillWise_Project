@@ -316,6 +316,57 @@ def pack_certainty(normalized: NormalizedItem) -> str:
     return UNKNOWN
 
 
+#: Unit bases that are CONTINUOUS MEASURES rather than counts of discrete
+#: things. The distinction decides whether a stated pack size is the ceiling
+#: row's own unit quantity or merely how many items came in the box.
+#:
+#:   "Injection 500 ml"  -> the ceiling row IS priced per 500 ml, so the
+#:                          stated 500 is the row's unit quantity.
+#:   "Tablet, PACK 15"   -> the ceiling row is priced per 1 TABLET. The 15 is
+#:                          a pack count and must NOT be used as the row's
+#:                          unit quantity, or the lookup searches for a
+#:                          ceiling priced per-fifteen-tablets and finds none.
+#:
+#: Today only the first case reaches this code, because pack_count_source is
+#: "bill_text" only when a volume appears in the item name. Class C will make
+#: the second case reachable by reading the PACK column, and without this
+#: guard every packed tablet would silently lose its ceiling and go gray.
+MEASURE_UNIT_BASES = frozenset({"ml", "gm", "g", "mg", "litre", "l"})
+
+
+def ceiling_row_unit_qty_for(normalized: NormalizedItem) -> Decimal:
+    """The CEILING ROW's unit quantity for this item -- never a pack count."""
+    if (
+        normalized.pack_count_source == "bill_text"
+        and normalized.pack_count
+        and normalized.unit_basis in MEASURE_UNIT_BASES
+    ):
+        return normalized.pack_count
+    return Decimal("1")
+
+
+def _trusted_interpretations(
+    interpretations: list[dict], normalized: NormalizedItem
+) -> list[dict]:
+    """Drop readings we hold EVIDENCE AGAINST. See D11.
+
+    `per_billed_unit` treats the billed quantity as a count of base units --
+    one strip read as one tablet. When pack_count is known that reading is not
+    merely unlikely, it is CONTRADICTED: a strip of 10 is not 1 tablet, and we
+    know it is 10.
+
+    Measured 2026-09-19 in the adversarial audit: a compliant line (10 tablets
+    at Rs 1.00 against a Rs 1.0416 allowance) was flagged AMBER for Rs 0.00,
+    solely because the contradicted reading of Rs 10.00/tablet exceeded.
+
+    Kept when pack_count == 1, where the two readings coincide anyway.
+    """
+    if not normalized.pack_count or normalized.pack_count <= 1:
+        return interpretations
+    kept = [i for i in interpretations if i["label"] != "per_billed_unit"]
+    return kept or interpretations
+
+
 def _interpretations(item: VerifiedItem, normalized: NormalizedItem) -> list[dict]:
     """The two readings of an ambiguous quantity.
 
@@ -465,9 +516,36 @@ def rule_r5_above_ceiling(
     # The interpretation LEAST favourable to a flag decides. Using the
     # minimum per-unit price means an ambiguous pack size can never be the
     # reason an item turns red.
-    decisive = min(interpretations, key=lambda i: i["per_unit"])
+    # D11, AND THE DIRECTION IS DELIBERATELY ASYMMETRIC.
+    #
+    # Newly-trusted pack evidence may REMOVE a flag immediately. It may not
+    # RAISE one tonight: suppression can only narrow what we say, while
+    # promotion opens a new path to red and deserves its own validation pass.
+    # A false accusation destroys the product; silence does not.
+    #
+    #   any_reading_above_amber -> computed on the TRUSTED set, so a
+    #       contradicted reading can no longer raise a flag at all.
+    #   every_reading_above_red -> computed on the FULL set, so dropping a
+    #       reading can never turn an amber into a red.
+    trusted = _trusted_interpretations(interpretations, normalized)
+
+    decisive = min(trusted, key=lambda i: i["per_unit"])
     every_reading_above_red = all(i["above_red_threshold"] for i in interpretations)
-    any_reading_above_amber = any(i["above_amber_threshold"] for i in interpretations)
+    any_reading_above_amber = any(i["above_amber_threshold"] for i in trusted)
+
+    # WHY THERE IS NO "UPGRADE WITHHELD" BRANCH HERE.
+    #
+    # Dropping per_billed_unit is STRUCTURALLY INCAPABLE of promoting an amber
+    # to a red through this variable, and proving that is better than gating
+    # it. per_billed_unit divides by qty; per_pack_unit divides by
+    # qty * pack_count. With pack_count > 1 the dropped reading is always the
+    # HIGHER one, and removing the largest element from a set can only make
+    # `all(above_threshold)` stay the same or become False -- never True.
+    #
+    # The real promotion lever is elsewhere: `ratio` below uses the HIGHEST
+    # per-unit reading, and narrowing THAT would shrink the ratio and let a
+    # line past the 50x misread guard. It is deliberately left on the FULL
+    # set, so the guard stays exactly as hard as it was before D11.
 
     if not any_reading_above_amber:
         return None
@@ -744,7 +822,7 @@ def audit(
                 strength_mg=norm.strength_mg,
                 strength_kind=norm.strength_kind,
                 unit_basis=norm.unit_basis or _unit_basis_for(norm),
-                unit_qty=norm.pack_count if norm.pack_count_source == "bill_text" else Decimal("1"),
+                ceiling_row_unit_qty=ceiling_row_unit_qty_for(norm),
                 form_modifier=norm.form_modifier,
             )
             ceiling_search_exhausted = ceiling is None

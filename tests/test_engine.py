@@ -943,3 +943,99 @@ def test_the_absence_wording_never_says_the_price_is_fine():
     for forbidden in ("within the ceiling", "price is fine", "correctly priced",
                       "no issue", "approved"):
         assert forbidden not in text, f"wording implies approval: {forbidden!r}"
+
+
+def test_a_pack_count_can_never_become_the_ceiling_rows_unit_quantity():
+    """THE 747 FENCE. `ceiling_row_unit_qty` is a property of the NPPA ROW.
+
+    It is the "1" in "Rs 0.93 per 1 tablet" and the "500" in "Rs 66.50 per
+    500 ml bag". A PACK COUNT is a different thing entirely, and passing one
+    here searches for a ceiling priced per-ten-tablets, which does not exist:
+
+        ceiling_row_unit_qty=1   -> FOUND 0.93
+        ceiling_row_unit_qty=10  -> NO CEILING FOUND
+
+    Found in the adversarial audit of 2026-09-19 as DEAD CODE that would
+    activate the instant Class C read the PACK column, silently turning every
+    packed tablet from green to gray -- the opposite of Class C's purpose.
+    """
+    from app.pipeline.audit import ceiling_row_unit_qty_for
+
+    # A stated VOLUME is the ceiling row's unit quantity. Ringer Lactate's
+    # row really is priced per 500 ml.
+    volume = NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["RINGER LACTATE"],
+        unit_basis="ml", pack_count=Decimal("500"), pack_count_source="bill_text",
+    )
+    assert ceiling_row_unit_qty_for(volume) == Decimal("500")
+
+    # A stated COUNT of discrete units is NOT. This is the Class C case: the
+    # ceiling row is per 1 tablet however many came in the strip.
+    count = NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["PARACETAMOL"],
+        unit_basis="tablet", pack_count=Decimal("15"), pack_count_source="bill_text",
+    )
+    assert ceiling_row_unit_qty_for(count) == Decimal("1"), (
+        "a PACK COUNT reached ceiling_row_unit_qty; the ceiling lookup will "
+        "find nothing and the item will silently go gray"
+    )
+
+    # Brand-index packs are never the row's unit quantity either.
+    from_index = NormalizedItem(
+        index=1, category=ItemCategory.DRUG, salt_components=["PARACETAMOL"],
+        unit_basis="tablet", pack_count=Decimal("10"), pack_count_source="brand_index",
+    )
+    assert ceiling_row_unit_qty_for(from_index) == Decimal("1")
+
+
+def test_d11_pack_evidence_may_narrow_a_claim_but_not_broaden_it():
+    """D11, and the DIRECTION is the point.
+
+    Suppression: a reading we hold evidence against cannot raise a flag. A
+    compliant strip of 10 at Rs 1.00/tablet was flagged AMBER for Rs 0.00
+    purely because the contradicted "one strip = one tablet" reading exceeded.
+
+    Promotion is deliberately WITHHELD: dropping that reading could turn an
+    amber into a red, which opens a new path to a false accusation. Narrowing
+    is safe immediately; broadening waits for its own validation pass.
+    """
+    from app.models import ReadingStats, Reconciliation
+    from app.pipeline.audit import audit
+
+    def verdict(total, pack):
+        it = VerifiedItem(index=1, name="Paracetamol 500mg Tablet",
+                          quantity=Decimal("1"), line_total=Decimal(total),
+                          confidence=ReadingConfidence.HIGH)
+        nz = NormalizedItem(
+            index=1, category=ItemCategory.DRUG, match_type=MatchType.EXACT,
+            salt_components=["PARACETAMOL"], strength_mg=[Decimal("500")],
+            strength_kind="mg", dosage_form="tablet", unit_basis="tablet",
+            pack_count=Decimal(pack), pack_count_source="brand_index",
+        )
+        st = ReadingStats(total_items=1, auto_high=1, rescued_by_reread=0,
+                          still_unverified=0,
+                          reconciliation=Reconciliation.RECONCILED,
+                          sum_of_line_totals=Decimal(total),
+                          printed_grand_total=Decimal(total))
+        return [f for f in audit([it], [nz], st) if f.rule_id == "R5"][0]
+
+    # SUPPRESSION: 10 tablets at Rs 1.00 -- under the Rs 1.0416 allowance.
+    compliant = verdict("10.00", "10")
+    assert compliant.severity is Severity.GREEN, (
+        "a compliant line was flagged because of a reading we have evidence "
+        "against"
+    )
+
+    # NO PROMOTION, and the reason is structural rather than gated.
+    # per_billed_unit divides by qty; per_pack_unit divides by qty*pack_count,
+    # so with pack_count > 1 the DROPPED reading is always the HIGHER one.
+    # Removing the largest element can only make `all(above_red)` stay the
+    # same or become False -- never True. Suppression cannot manufacture a red.
+    excessive = verdict("50.00", "10")
+    assert excessive.severity is not Severity.RED, (
+        "narrowing the interpretation set promoted a flag to red"
+    )
+
+    # And the 50x misread guard -- the one lever that COULD promote, because
+    # it uses the highest per-unit reading -- still sees the full set.
+    assert "ratio_" in " ".join(excessive.evidence.get("not_red_because", []))

@@ -162,11 +162,22 @@ def select_ceiling(
     strength_mg: list[float],
     strength_kind: str,
     unit_basis: str,
-    unit_qty: Decimal,
+    ceiling_row_unit_qty: Decimal,
     form_modifier: str | None = None,
     rows: Iterable[ReferenceRow] | None = None,
 ) -> CeilingMatch | None:
     """The applicable ceiling, or None.
+
+    `ceiling_row_unit_qty` IS THE CEILING ROW'S OWN UNIT QUANTITY -- the "1"
+    in "Rs 0.93 per 1 tablet", or the "500" in "Rs 66.50 per 500 ml bag". It
+    is a property of the NPPA REFERENCE DATA.
+
+    IT IS NOT A PACK COUNT. Passing a pack size here searches for a ceiling
+    priced per-ten-tablets, which does not exist, and the item silently loses
+    its ceiling and goes gray. It was called `unit_qty` until 2026-09-19, and
+    audit.py was one field-assignment away from doing exactly that to every
+    packed tablet the moment Class C read the PACK column. Renamed so the
+    mistake cannot be made by accident; a test pins the meaning.
 
     `form_modifier` distinguishes three cases, and the distinction matters:
       ""    -- the bill says this is a PLAIN tablet. Match plain only.
@@ -184,7 +195,7 @@ def select_ceiling(
         wanted = salt_key(salt_components)
         found = _candidates(
             pool, salt_key, wanted, dosage_form, strength_mg, strength_kind,
-            unit_basis, unit_qty, form_modifier,
+            unit_basis, ceiling_row_unit_qty, form_modifier,
         )
         if not found:
             continue

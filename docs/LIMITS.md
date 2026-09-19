@@ -5,7 +5,8 @@ people their hospital may have charged them too much has to be clear about
 where its authority stops.
 
 Two of these are engineering problems we have solved by refusing to guess.
-The rest are not engineering problems at all.
+The rest are not engineering problems at all. Limit 9 is a capability gap in
+the reader, and the only one on this list with a clear route out.
 
 > **A limit means "we cannot know", never "we did not look."**
 >
@@ -175,6 +176,40 @@ This is exactly why nothing in the interface says *illegal*, *fraud*,
 *cheating* or *overcharged*, and why the output is a question a patient can
 ask rather than a finding they can assert. **We are not an authority and the
 product never pretends to be one.**
+
+---
+
+## 9. Textract cannot read Indian scripts at all.
+
+The primary reader is Amazon Textract. Its documented language support is:
+
+> "Amazon Textract supports English, French, German, Italian, Portuguese, and
+> Spanish text detection."
+
+Latin script only. **A bill printed in Devanagari, Tamil, Bengali, Telugu or
+any other Indian script is unreadable to it by design** — not badly read,
+unreadable. The supported character list is a-z, A-Z, 0-9 and accented Latin.
+(The rupee sign is supported, which is a small mercy.)
+
+This is a real limit for a tool aimed at Indian patients, and it is the
+strongest single answer to "why not just use Textract?". A vision model can
+read Devanagari; Textract cannot.
+
+**We have not solved it, and the vision reader alone does not solve it
+either.** Claude would return a drug name in Devanagari, and the matcher
+normalises to uppercase Latin and compares against NPPA data written in
+English. The name would resolve to nothing. A working multilingual path needs
+transliteration between reading and matching, which is not built.
+
+**What would it take:** transliteration or translation of the item name
+between the reader and the matcher, and a test set of real bills in at least
+one Indic script. Neither exists.
+
+**Related, and the other half of the same argument:** on an English bill
+Textract read the `PARTICULARS` column HEADER as line item 1, shifting every
+drug name onto the next row's numbers — seven rows returned, not one
+correctly attributed. A single reader cannot doubt itself. That is why there
+are two, and why disagreement is treated as a reason to stay silent.
 
 ---
 
