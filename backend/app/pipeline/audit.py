@@ -143,6 +143,28 @@ def rule_r1_line_arithmetic(
     difference = computed - item.line_total
     if abs(difference) <= config.ARITHMETIC_TOLERANCE:
         return None
+
+    # THE DIRECTION OF THE DIFFERENCE IS THE WHOLE POINT -- THE SAME RULE R2
+    # APPLIES TO THE BILL TOTAL, ONE SCALE DOWN.
+    #
+    # `difference > 0` means qty x rate comes to MORE than the line charges.
+    # The patient is being asked for LESS than the line itemises, which is
+    # what a per-line discount column looks like when we did not read it.
+    # Querying that is asking a pharmacy to explain its own discount.
+    #
+    # Class F in FORMAT_FINDINGS.md, and it was the last of the three scales
+    # of one bug still live: bill totals (Class B), section subtotals read as
+    # line items (Class E), and line adjustments (this). B and E fell to the
+    # directional rule in R2; measured 2026-09-19 by eval/class_b_probe.py,
+    # which found this one still firing `R1 amber Rs 12.00` on a correct line
+    # carrying a 10% line discount.
+    #
+    # THIS NARROWS THE RULE, so it cannot introduce a false red. The direction
+    # worth a question -- the line charging MORE than it itemises -- is
+    # untouched, which is why bill_01 line 13 (125.00 computed, 130.00
+    # printed) still fires.
+    if difference > 0:
+        return None
     return Flag(
         rule_id="R1",
         severity=Severity.AMBER,

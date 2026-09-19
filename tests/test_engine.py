@@ -244,6 +244,45 @@ def test_r1_catches_a_line_that_does_not_add_up():
     assert "125.00" in flag.evidence["arithmetic"]
 
 
+def test_r1_abstains_when_the_line_charges_LESS_than_qty_times_rate():
+    """CLASS F. A per-line discount column is not an arithmetic error.
+
+    10 x 12.00 = 120.00 while the line charges 108.00, because the bill shows
+    a 10% discount on the line. Querying that asks a pharmacy to explain its
+    own discount -- the same wrong question R2 used to ask about a bill-level
+    discount, one scale down.
+
+    This is the third and last scale of one bug: bill totals (Class B),
+    section subtotals read as line items (Class E) and line adjustments
+    (Class F). The rule at every scale is the direction, not a subtotal
+    detector: a computed amount ABOVE the printed one means we failed to read
+    a deduction, not that the bill is wrong.
+    """
+    item = VerifiedItem(
+        index=1, name="X", quantity=Decimal("10"),
+        unit_price=Decimal("12.00"), line_total=Decimal("108.00"),
+        confidence=ReadingConfidence.HIGH,
+    )
+    assert rule_r1_line_arithmetic(item) is None
+
+
+def test_r1_still_fires_when_the_line_charges_MORE_than_qty_times_rate():
+    """The other direction, pinned so the Class F fix cannot silence R1.
+
+    The narrowing is only safe because this case survives it. A line asking
+    for more than it itemises is the direction worth a question, and it is
+    what bill_01 line 13 is in the eval.
+    """
+    item = VerifiedItem(
+        index=1, name="X", quantity=Decimal("10"),
+        unit_price=Decimal("12.00"), line_total=Decimal("132.00"),
+        confidence=ReadingConfidence.HIGH,
+    )
+    flag = rule_r1_line_arithmetic(item)
+    assert flag is not None
+    assert flag.amount_affected == Decimal("12.00")
+
+
 def test_r1_tolerates_rounding_within_one_rupee():
     item = VerifiedItem(
         index=1, name="X", quantity=Decimal("3"), unit_price=Decimal("3.33"),
