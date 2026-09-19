@@ -21,6 +21,8 @@ page.
 
 from __future__ import annotations
 
+import logging
+
 import json
 import re
 from decimal import Decimal, InvalidOperation
@@ -141,6 +143,8 @@ def read_with_textract(content: bytes) -> ReaderOutput:
 # --------------------------------------------------------------------------
 
 #: Converse accepts these image formats. A PDF cannot go down this path.
+logger = logging.getLogger(__name__)
+
 IMAGE_FORMATS = {
     "image/jpeg": "jpeg",
     "image/jpg": "jpeg",
@@ -214,10 +218,24 @@ def read_with_bedrock(content: bytes, content_type: str) -> ReaderOutput | None:
         )
         text = response["output"]["message"]["content"][0]["text"]
         payload = json.loads(_strip_fence(text))
-    except Exception:
+    except Exception as exc:
         # Deliberately broad. Model access not granted, a throttle, a
         # malformed response -- every one of them means "no second reader",
         # and none of them should turn into a 500 for the user.
+        #
+        # BUT IT MUST NOT BE SILENT. Swallowing the cause meant PDFs lost the
+        # second reader in production and the logs showed only START/END --
+        # a guarantee quietly absent with no way to find out why. A degraded
+        # reading is acceptable; an undiagnosable one is not.
+        #
+        # The exception TYPE and MESSAGE only. Never the bill bytes, never the
+        # model's output, never the filename: CloudWatch must not become a
+        # place where a patient's bill can be read.
+        logger.warning(
+            "second reader unavailable (%s): %s | format=%s",
+            type(exc).__name__, exc,
+            image_format or document_format,
+        )
         return None
 
     items: list[ReaderItem] = []

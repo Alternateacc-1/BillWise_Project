@@ -549,3 +549,32 @@ def test_cors_is_not_a_wildcard():
     assert "*" not in ALLOWED_ORIGINS
     assert all(o.startswith("http://localhost") or o.startswith("http://127.")
                for o in ALLOWED_ORIGINS)
+
+
+def test_a_second_reader_failure_is_logged_without_bill_content(caplog):
+    """A degraded reading is acceptable; an undiagnosable one is not.
+
+    Swallowing the cause meant PDFs silently lost the second reader in
+    production while CloudWatch showed only START/END. But the log line must
+    carry the exception TYPE and MESSAGE only -- never bill bytes, the model's
+    output, or the filename. CloudWatch must not become somewhere a patient's
+    bill can be read.
+    """
+    import logging
+    from app.pipeline import readers_aws
+
+    secret = b"%PDF-1.4 PATIENT NAME AND EVERY LINE OF THEIR BILL"
+
+    def explode(*_a, **_kw):
+        raise RuntimeError("ValidationException: document blocks not supported")
+
+    with mock.patch.object(readers_aws.aws_clients, "bedrock_runtime", explode), \
+         mock.patch.object(readers_aws.config, "BEDROCK_INFERENCE_PROFILE_ID", "x"), \
+         caplog.at_level(logging.WARNING):
+        assert readers_aws.read_with_bedrock(secret, "application/pdf") is None
+
+    logged = caplog.text
+    assert "RuntimeError" in logged
+    assert "document blocks not supported" in logged, "the cause must be visible"
+    assert "PATIENT NAME" not in logged, "bill content reached the logs"
+    assert "%PDF" not in logged

@@ -283,5 +283,9 @@ Outputs:
     Value: !Ref BillsTable
 
   FunctionName:
-    Description: Use with `sam logs -n` to tail the API logs.
+    Description: >
+      The PHYSICAL function name, for the CloudWatch console and `aws logs`.
+      NOT for `sam logs -n`, which wants the LOGICAL id instead:
+        sam logs -n ApiFunction --stack-name billsahi
+      Passing this value there fails with "Resource name does not exist".
     Value: !Ref ApiFunction
