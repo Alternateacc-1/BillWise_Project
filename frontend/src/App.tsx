@@ -385,6 +385,20 @@ export default function App() {
   // them -- which is what report.findings_count did before this was derived.
   const billFlags = report?.bill_level_flags ?? [];
   const findingsCount = findings.length + billFlags.length;
+  // "14/16 lines read at high confidence" MEANS SOMETHING DIFFERENT WHEN ONLY
+  // ONE READER RAN, and the number alone does not say which.
+  //
+  // Measured on the deployed stack, same bill, one variable changed: bill_02
+  // went from 0 of 7 lines HIGH with two readers to 4 of 7 with one -- and the
+  // one-reader run also produced a false R1 amber. Textract reported per-field
+  // confidence of 96-99 both times. Confidence is not accuracy, and a single
+  // reader cannot doubt itself; the second reader is there to DISAGREE.
+  //
+  // Bedrock has been returning INVALID_PAYMENT_INSTRUMENT since 2026-09-19, so
+  // production runs one reader and this is the live case, not a hypothetical.
+  const singleReader = (report?.items ?? []).some((i) =>
+    (i.reasons ?? []).includes("only_one_reader_ran"),
+  );
   const findingsTotal =
     findings.reduce((sum, i) => sum + Number(i.amount_affected ?? 0), 0) +
     billFlags.reduce((sum, f) => sum + Number(f.amount_affected ?? 0), 0);
@@ -584,6 +598,13 @@ export default function App() {
               {reconciliationLabel(report.stats.reconciliation)} &middot; prices
               as per NPPA data retrieved {report.reference_retrieved_on}
             </p>
+            {singleReader && (
+              <p className="mt-1 text-xs text-slate-500">
+                Only one reader ran on this bill, so nothing cross-checked the
+                reading. Read the confidence above with that in mind — a single
+                reader cannot disagree with itself.
+              </p>
+            )}
           </div>
 
           {letter && (

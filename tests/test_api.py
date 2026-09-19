@@ -749,3 +749,59 @@ def test_compared_counts_price_verdicts_not_colours(client):
          if i["severity"] != "gray" and not i["gray_reason"]]
     )
     assert d["compared"] + len(flagged_but_unpriced) <= d["total"]
+
+
+# --------------------------------------------------------------------------
+# NEVER CLAIM A CROSS-CHECK THAT DID NOT HAPPEN.
+#
+# /health asserted "Reading with Textract and a vision model, then verifying
+# both" unconditionally, on an endpoint that calls neither reader. It was live
+# and false for all of 2026-09-19: Bedrock returns INVALID_PAYMENT_INSTRUMENT,
+# production runs ONE reader, and every line carries `only_one_reader_ran`.
+# /health is the first thing anyone checks.
+# --------------------------------------------------------------------------
+
+
+def test_health_never_asserts_that_both_readers_ran(client):
+    note = client.get("/health").json()["reader"]
+    assert "verifying both" not in note.lower(), (
+        "/health calls no reader, so it cannot report an outcome. Say what is "
+        "CONFIGURED and point at the per-report field for what actually ran."
+    )
+
+
+def test_reader_note_distinguishes_configured_from_absent(monkeypatch):
+    from app import config as cfg
+    from app.pipeline import reader as rdr
+
+    monkeypatch.setattr(cfg, "PROVIDER", "aws")
+    monkeypatch.setattr(cfg, "BEDROCK_INFERENCE_PROFILE_ID", "us.some-profile")
+    with_second = rdr.reader_note()
+    monkeypatch.setattr(cfg, "BEDROCK_INFERENCE_PROFILE_ID", "")
+    without = rdr.reader_note()
+
+    assert with_second != without, (
+        "a configured second reader and no second reader at all must not "
+        "produce the same sentence"
+    )
+    assert "second reader" in with_second.lower()
+    assert "no second reader" in without.lower()
+
+
+def test_only_one_reader_ran_is_visible_on_the_api(client):
+    """The UI derives its single-reader caveat from items[].reasons.
+
+    If this field stops being serialised the caveat silently disappears and
+    the confidence count goes back to overstating itself, so pin the contract.
+    """
+    report = client.post("/bills/sample?fixture=bill_01").json()
+    report = client.get(f"/bills/{report['bill_id']}").json()
+    assert report["items"], "items[] must be on the report for the UI to read"
+    for item in report["items"]:
+        assert isinstance(item.get("reasons"), list)
+
+    # The local fixtures have two readers, so the flag must be ABSENT here --
+    # which is the half of the contract that proves it is not hardcoded on.
+    assert not any(
+        "only_one_reader_ran" in i["reasons"] for i in report["items"]
+    )

@@ -44,11 +44,22 @@ export type ReportItem = {
   flags: Flag[];
 };
 
+/** The verified reading behind a report item. `reasons` is the audit trail
+ *  the verifier writes, and it is the ONLY place that records whether the
+ *  two-reader cross-check actually ran (`only_one_reader_ran`). */
+export type VerifiedItem = {
+  index: number;
+  name: string;
+  confidence: string;
+  reasons: string[];
+};
+
 export type Report = {
   bill_id: string;
   hospital_name: string;
   bill_date: string;
   reference_retrieved_on: string;
+  items: VerifiedItem[];
   by_item: ReportItem[];
   counts: Record<string, number>;
   bill_level_flags: Flag[];

@@ -123,9 +123,33 @@ def _read_upload_aws(bill_id: str, original_filename: str, blob_key: str) -> Bil
 
 
 def reader_note() -> str:
-    """One sentence for the UI about what the reader can currently do."""
+    """One sentence for the UI about what the reader can currently do.
+
+    IT DESCRIBES CONFIGURATION, NOT OUTCOME, AND THE DIFFERENCE IS THE POINT.
+
+    This used to read "Reading with Textract and a vision model, then verifying
+    both." -- asserted unconditionally, on an endpoint that never calls either
+    reader. It was live and false for the whole of 2026-09-19: Bedrock returns
+    INVALID_PAYMENT_INSTRUMENT (Anthropic models are Marketplace subscriptions
+    and credits do not satisfy one), every line came back `only_one_reader_ran`,
+    and /health -- the first thing anyone checks -- promised a cross-check that
+    was not happening.
+
+    Whether the second reader answers is knowable only per request, so this
+    says what is CONFIGURED and points at the per-report field that records
+    what actually ran. Never claim a cross-check that did not happen.
+    """
     if config.PROVIDER == "aws":
-        return "Reading with Textract and a vision model, then verifying both."
+        if config.BEDROCK_INFERENCE_PROFILE_ID:
+            return (
+                "Reading with Textract, with a vision model as a second "
+                "reader. Each report says whether the cross-check actually "
+                "ran on that bill."
+            )
+        return (
+            "Reading with Textract only. No second reader is configured, so "
+            "nothing cross-checks the reading."
+        )
     return (
         "Running offline: there is no OCR in local mode. Use “Try a sample "
         "bill”, or upload one of the files from eval/demo_bills/."
