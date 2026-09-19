@@ -149,6 +149,23 @@ IMAGE_FORMATS = {
     "image/gif": "gif",
 }
 
+#: Converse takes a PDF as a DOCUMENT block rather than an image block.
+#: Without this, PDFs never reached the second reader at all -- read_with_bedrock
+#: returned None before making any call, and the bill silently got ONE reader.
+#: That is worse than a degraded reading: the two-reader cross-check is the
+#: only thing that catches a confident misread, and it is exactly what caught
+#: Textract reading a column HEADER as line item 1 on bill_02.jpg. On a PDF we
+#: were claiming a guarantee we were not providing. Indian hospital bills
+#: arrive as PDFs constantly.
+DOCUMENT_FORMATS = {"application/pdf": "pdf"}
+
+#: A CONSTANT, and deliberately not the uploaded filename. AWS documents this
+#: field as "vulnerable to prompt injections, because the model might
+#: inadvertently interpret it as instructions", and the filename is supplied
+#: by whoever uploads the bill. A fixed neutral string cannot carry an
+#: instruction.
+DOCUMENT_NAME = "bill"
+
 PROMPT = """You are reading an Indian hospital or pharmacy bill.
 
 Return STRICT JSON only. No prose, no markdown fence.
@@ -170,22 +187,28 @@ def read_with_bedrock(content: bytes, content_type: str) -> ReaderOutput | None:
     Returns None rather than raising: a missing second reader costs us
     confidence, not the whole request.
     """
-    image_format = IMAGE_FORMATS.get((content_type or "").split(";")[0].strip().lower())
-    if image_format is None:
-        return None  # PDFs do not go down this path
+    mime = (content_type or "").split(";")[0].strip().lower()
+    image_format = IMAGE_FORMATS.get(mime)
+    document_format = DOCUMENT_FORMATS.get(mime)
+    if image_format is None and document_format is None:
+        return None
     if not config.BEDROCK_INFERENCE_PROFILE_ID:
         return None
+
+    if image_format is not None:
+        source_block = {"image": {"format": image_format,
+                                  "source": {"bytes": content}}}
+    else:
+        source_block = {"document": {"format": document_format,
+                                     "name": DOCUMENT_NAME,
+                                     "source": {"bytes": content}}}
 
     try:
         response = aws_clients.bedrock_runtime().converse(
             modelId=config.BEDROCK_INFERENCE_PROFILE_ID,
             messages=[{
                 "role": "user",
-                "content": [
-                    {"image": {"format": image_format,
-                               "source": {"bytes": content}}},
-                    {"text": PROMPT},
-                ],
+                "content": [source_block, {"text": PROMPT}],
             }],
             inferenceConfig={"maxTokens": 4096, "temperature": 0},
         )

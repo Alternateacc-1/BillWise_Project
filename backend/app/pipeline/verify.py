@@ -154,6 +154,15 @@ def verify_item(a: ReaderItem | None, b: ReaderItem | None) -> VerifiedItem:
             if not total_ok:
                 reasons.append("readers_disagree_on_line_total")
     else:
+        # NEVER IMPLY A CROSS-CHECK THAT DID NOT HAPPEN. `only_one_reader_ran`
+        # is recorded explicitly, because "single_reader_high_confidence:97"
+        # on its own reads like a strong result when it actually means the
+        # second opinion is missing and nothing was compared.
+        #
+        # This mattered: PDFs silently got one reader until 2026-09-19, and
+        # the reports said "low confidence" rather than "no second reader" --
+        # stating a guarantee we were not providing.
+        reasons.append("only_one_reader_ran")
         confidence = primary.confidence
         if confidence is not None and confidence >= SINGLE_READER_CONFIDENCE_MIN:
             agrees = True

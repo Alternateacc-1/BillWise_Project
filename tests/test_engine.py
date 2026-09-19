@@ -1039,3 +1039,46 @@ def test_d11_pack_evidence_may_narrow_a_claim_but_not_broaden_it():
     # And the 50x misread guard -- the one lever that COULD promote, because
     # it uses the highest per-unit reading -- still sees the full set.
     assert "ratio_" in " ".join(excessive.evidence.get("not_red_because", []))
+
+
+def test_a_pdf_reaches_the_second_reader():
+    """REGRESSION. PDFs silently got ONE reader until 2026-09-19.
+
+    read_with_bedrock returned None before making any call, because the
+    format map held images only. The two-reader cross-check -- the only thing
+    that catches a CONFIDENT misread, and exactly what caught Textract
+    reading a column header as line item 1 -- was absent on every PDF bill,
+    while the product claimed it. Indian hospital bills arrive as PDFs
+    constantly.
+
+    Converse takes a PDF as a DOCUMENT block, not an image block. This test
+    pins the routing without calling AWS.
+    """
+    from app.pipeline import readers_aws
+
+    assert readers_aws.DOCUMENT_FORMATS.get("application/pdf") == "pdf"
+    assert readers_aws.IMAGE_FORMATS.get("image/jpeg") == "jpeg"
+
+    # The document name must be a CONSTANT, never the uploaded filename.
+    # AWS documents this field as vulnerable to prompt injection, and the
+    # filename is supplied by whoever uploads the bill.
+    assert readers_aws.DOCUMENT_NAME == "bill"
+    assert readers_aws.DOCUMENT_NAME.isalnum()
+
+
+def test_a_single_reader_result_never_implies_a_cross_check():
+    """The report must not claim agreement that never happened.
+
+    "single_reader_high_confidence:97" alone reads like a strong result. It
+    means the second opinion is missing and nothing was compared.
+    """
+    from app.pipeline.verify import verify_item
+
+    only_a = ReaderItem(index=1, name="Paracetamol 500mg Tablet",
+                        quantity=Decimal("10"), unit_price=Decimal("0.90"),
+                        line_total=Decimal("9.00"), confidence=Decimal("99"))
+    assert "only_one_reader_ran" in verify_item(only_a, None).reasons
+
+    both = verify_item(only_a, only_a)
+    assert "only_one_reader_ran" not in both.reasons
+    assert any(r.startswith("both_readers_agree") for r in both.reasons)
