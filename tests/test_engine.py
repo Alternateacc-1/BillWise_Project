@@ -232,10 +232,13 @@ def test_the_two_gray_reasons_are_never_the_same_value():
 # --------------------------------------------------------------------------
 
 def test_r1_catches_a_line_that_does_not_add_up():
+    # `reasons` is not decoration: R1 only speaks about a line something
+    # CONFIRMED, and in a real bill every line carries one of these markers.
     item = VerifiedItem(
         index=1, name="Pantop 40mg Tablet", quantity=Decimal("10"),
         unit_price=Decimal("12.50"), line_total=Decimal("130.00"),
         confidence=ReadingConfidence.HIGH,
+        reasons=["both_readers_agree:name_similarity=100"],
     )
     flag = rule_r1_line_arithmetic(item)
     assert flag is not None
@@ -262,6 +265,7 @@ def test_r1_abstains_when_the_line_charges_LESS_than_qty_times_rate():
         index=1, name="X", quantity=Decimal("10"),
         unit_price=Decimal("12.00"), line_total=Decimal("108.00"),
         confidence=ReadingConfidence.HIGH,
+        reasons=["both_readers_agree:name_similarity=100"],
     )
     assert rule_r1_line_arithmetic(item) is None
 
@@ -277,6 +281,7 @@ def test_r1_still_fires_when_the_line_charges_MORE_than_qty_times_rate():
         index=1, name="X", quantity=Decimal("10"),
         unit_price=Decimal("12.00"), line_total=Decimal("132.00"),
         confidence=ReadingConfidence.HIGH,
+        reasons=["both_readers_agree:name_similarity=100"],
     )
     flag = rule_r1_line_arithmetic(item)
     assert flag is not None
@@ -1370,3 +1375,42 @@ def test_unrelated_rows_are_not_forced_into_a_pair():
     verified, _ = verify_bill(_bill(a, b))
     assert len(verified) == 2, "nothing matched, so both stand alone"
     assert all("only_one_reader_ran" in i.reasons for i in verified)
+
+
+def test_r1_is_silent_when_the_readers_disagree_about_the_name():
+    """A name disagreement can mean the readers are on DIFFERENT ROWS.
+
+    Found 2026-09-20 on a real hospital bill. The row reads
+    `DOCTOR CHARGE  4 x 500.00 = 2000.00`, which is correct. The reading took
+    the quantity from the row ABOVE -- 3, from DAY CARE TREATMENT -- against
+    DOCTOR CHARGE's rate and total, and R1 reported Rs 500 on a card whose own
+    notes already said "we could not read this line reliably".
+
+    The old rule said arithmetic does not depend on the name. That holds when
+    both readers are on the same row and merely spell it differently; it fails
+    when the name differs BECAUSE they are on different rows -- and then the
+    numbers are from different rows too.
+    """
+    from app.pipeline.audit import rule_r1_line_arithmetic
+
+    item = VerifiedItem(
+        index=1, name="TREATMENT CARE DAY CHARGE", quantity=Decimal("3"),
+        unit_price=Decimal("500.00"), line_total=Decimal("2000.00"),
+        confidence=ReadingConfidence.UNVERIFIED,
+        reasons=["readers_disagree_on_name:similarity=48"],
+    )
+    assert rule_r1_line_arithmetic(item) is None
+
+
+def test_r1_speaks_for_a_lone_reader_above_the_confidence_floor():
+    """Trust is not only agreement. One reader over the floor still counts."""
+    from app.pipeline.audit import rule_r1_line_arithmetic
+
+    item = VerifiedItem(
+        index=1, name="X", quantity=Decimal("10"),
+        unit_price=Decimal("12.00"), line_total=Decimal("132.00"),
+        confidence=ReadingConfidence.HIGH,
+        reasons=["only_one_reader_ran", "single_reader_high_confidence:98"],
+    )
+    flag = rule_r1_line_arithmetic(item)
+    assert flag is not None and flag.amount_affected == Decimal("12.00")

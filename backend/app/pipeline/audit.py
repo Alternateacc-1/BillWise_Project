@@ -62,6 +62,44 @@ def format_unit(qty: Decimal, basis: str) -> str:
 
 
 
+def _reading_is_trusted(item: VerifiedItem) -> bool:
+    """Did anything actually confirm this line's numbers?
+
+    Exactly two things can: the two readers agreed, or a lone reader scored
+    above the confidence floor. Everything else -- a disagreement of any kind,
+    a single reader below the floor -- means nothing confirmed the reading.
+
+    R1 MUST NOT DO ARITHMETIC ON A LINE NOTHING CONFIRMED. That was the last
+    surviving corner of one asymmetry: R5 refuses to PRICE an unverified line,
+    while R1 went on computing qty x rate for it and reporting the difference
+    as the bill's error.
+
+    Measured 2026-09-20 on a real hospital bill. The row reads
+    `DOCTOR CHARGE  4 x 500.00 = 2000.00`, which is correct, and the reading
+    took the quantity from the row above it -- 3 from DAY CARE TREATMENT
+    against DOCTOR CHARGE's rate and total. R1 duly reported Rs 500, on a
+    card whose own notes already said "we could not read this line reliably".
+    One card, two contradictory claims.
+
+    A NAME DISAGREEMENT COUNTS, and that is a change of position. The old rule
+    said arithmetic does not depend on the name, which is true when both
+    readers are on the SAME row and merely spell it differently. It is false
+    when the name differs because they are looking at different rows -- and
+    then the numbers come from different rows too, which is exactly this bill.
+
+    NOT CIRCULAR. Both markers come from `verify.py` BEFORE arithmetic is
+    considered; neither mentions it. `is_high` would be circular, because it
+    requires `arithmetic is not False` and would make R1 dead code. A line
+    that is well-read and genuinely does not add up still carries
+    `both_readers_agree`, still fires, and is what the eval's planted
+    findings depend on.
+    """
+    return any(
+        r.startswith(("both_readers_agree", "single_reader_high_confidence"))
+        for r in item.reasons
+    )
+
+
 def _reading_is_unconfirmed(item: VerifiedItem) -> bool:
     """One reader, and it scored itself below the floor. Nothing confirms it.
 
@@ -163,9 +201,7 @@ def rule_r1_line_arithmetic(
     """
     if item.quantity is None or item.unit_price is None or item.line_total is None:
         return None
-    if _readers_disagreed_on_numbers(item):
-        return None
-    if _reading_is_unconfirmed(item):
+    if not _reading_is_trusted(item):
         return None
     if _line_exceeds_whole_bill(item, grand_total):
         return None
