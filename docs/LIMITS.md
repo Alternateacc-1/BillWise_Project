@@ -260,3 +260,46 @@ returns it), carry it as an explicit field, and ABSTAIN from the whole price
 comparison with a plain message when it is not INR -- the same shape as every
 other abstention here. Do not merely swap the symbol: that would make a
 jurisdiction error look like a formatting one.
+
+### The two readers' confidence numbers are NOT the same kind of number
+
+Recorded 2026-09-20, when the second reader moved from an Anthropic model to
+Amazon Nova. The swap is a parameter, not a code change -- the reader uses the
+Converse API, which is model-agnostic -- but it makes an existing asymmetry
+worth stating plainly.
+
+**Textract's confidence is a calibrated extraction score per field.** The
+model's confidence is SELF-REPORTED: the prompt asks it for "your own
+confidence in that line", and it answers. One is a measurement, the other is
+an opinion, and `verify.py` applies the same >= 95 floor to both.
+
+That is tolerable while Textract is the primary reader and the model is a
+cross-check, because agreement between two independent readings is what the
+verdict actually rests on -- not either score.
+
+**It stops being tolerable on a bill Textract cannot read.** `verify_item()`
+takes `primary = a or b`, so when Textract returns nothing the vision model
+becomes the sole reader, and a line can reach HIGH on nothing but the model's
+own say-so. Today that path is unreachable for Indic scripts, because the
+matcher would fail anyway. **It becomes reachable the moment transliteration
+is built, and the floor must be reconsidered in the same change** -- not
+afterwards.
+
+**Multilingual is FUTURE SCOPE and is not claimed.** Say so plainly rather
+than implying a vision model makes it work; it does not, for the matching
+reason above.
+
+### Why Nova rather than another Claude
+
+Not preference -- availability. The Claude Sonnet 4.6 AWS Marketplace offer
+EXPIRED on 2026-09-19, which surfaced as an acceptance email followed a minute
+later by an expiry notice, the model vanishing from Model access, and a
+misleading `AccessDeniedException` about `aws-marketplace:Subscribe` on the
+Lambda role. That last one looks like an IAM bug and is not: the function was
+trying to auto-subscribe to an offer that no longer exists. **No IAM change
+would have fixed it.**
+
+Nova is a first-party AWS model, so it carries no Marketplace subscription and
+no offer to expire. A different model family is also arguably a BETTER
+cross-check than a second Anthropic model: the second reader exists to
+DISAGREE, and two similar models make correlated mistakes.
