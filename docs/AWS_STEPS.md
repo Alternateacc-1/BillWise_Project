@@ -997,8 +997,13 @@ That reads `.env.production`, so the bundle points at the deployed API. Then:
 1. Open **AWS Amplify**: https://us-east-1.console.aws.amazon.com/amplify/
 2. **Create new app** → **Deploy without Git provider**
 3. App name `billwise`, environment name `prod`
-4. **Drag the `frontend/dist` FOLDER** onto the drop zone (the folder itself,
-   not a zip of it, and not its contents)
+4. Upload **a zip of the CONTENTS of `frontend/dist`**, so `index.html` sits
+   at the ROOT of the archive.
+   **THIS STEP USED TO SAY "drag the dist FOLDER" AND THAT IS WRONG** -- it
+   was written before the first real deploy and corrected on 2026-09-20 after
+   it failed. Uploading the folder (or a zip OF the folder) puts everything
+   under `/dist/` and every asset path 404s, so the site loads a blank page.
+   Section 11 has the command that builds the archive correctly.
 5. **Save and deploy**, then copy the domain it prints. It looks like
    `https://prod.d1a2b3c4d5e6f7.amplifyapp.com`
 
@@ -1098,8 +1103,79 @@ the whole path is live: browser → Amplify → API Gateway → Lambda → the e
 
 ## 10.5 What will still be true afterwards
 
-Until a payment method is on the account, Bedrock stays down, one reader runs,
-and **uploaded** bills come back gray — lines under the 95 single-reader floor
-are never priced. The bundled sample bills are unaffected: they carry two
-readings already, so they exercise the full red/amber path. Demo with those
-until the second reader is back.
+**THIS SECTION USED TO SAY BEDROCK WAS DOWN AND ONLY ONE READER RAN. That was
+true while the Marketplace offer was expired and is NO LONGER TRUE.** Since
+2026-09-20 the second reader is `us.amazon.nova-2-lite-v1:0` and both readers
+run on every upload, measured on the deployed stack. Do not plan a demo around
+the old limitation.
+
+What IS still true: reading quality depends on the image. A clean PDF reads
+well; a degraded phone photograph makes the two readers disagree, and a
+disagreement is deliberately resolved as gray rather than a guess. Uploads are
+capped at **4 MB**, not the 10 the UI once claimed.
+
+---
+
+# Section 11 — Redeploying ONLY the frontend (Amplify)
+
+Use this when the frontend changed and the backend did not. It touches no
+CloudFormation and costs nothing beyond Amplify's hosting, which is already
+running. **The backend does NOT need redeploying for a frontend-only change.**
+
+Written 2026-09-20 for the contributor's redesign. The build is already made and
+verified; step 11.1 only needs re-running if you change frontend code again.
+
+## 11.1 Build, and package it the way Amplify actually wants
+
+```bash
+cd frontend && npm run build
+```
+
+That reads `.env.production`, so the bundle points at the deployed API with
+mocks off. Then, from the REPO ROOT, build the archive:
+
+```bash
+python -c "import zipfile,os; root='frontend/dist'; z=zipfile.ZipFile('billwise-frontend.zip','w',zipfile.ZIP_DEFLATED); [z.write(os.path.join(d,f), os.path.relpath(os.path.join(d,f),root).replace(os.sep,'/')) for d,_,fs in os.walk(root) for f in fs]; z.close(); print('\n'.join(zipfile.ZipFile('billwise-frontend.zip').namelist()))"
+```
+
+**`index.html` MUST appear at the top level of that listing**, with `assets/`
+and `fonts/` beside it. If you see `dist/index.html`, the site will 404 on
+every path.
+
+**Do NOT build this archive with PowerShell's `Compress-Archive`.** On Windows
+PowerShell 5.1 it writes entry names with BACKSLASH separators, which the zip
+spec does not allow. Some unzippers then treat `assets\index-abc.js` as a
+single file named that, sitting at the root — so `index.html` asks for
+`/assets/index-abc.js`, gets a 404, and the page renders blank with no error
+that points at the cause. The Python command above writes forward slashes.
+
+## 11.2 Upload it
+
+1. Open **AWS Amplify**: https://us-east-1.console.aws.amazon.com/amplify/
+2. Choose the existing **billwise** app → the **prod** environment
+3. **Deploy updates**
+4. Upload `billwise-frontend.zip` from the repo root
+5. Wait for the deployment to go green
+
+**You do NOT delete the previous deployment first.** "Deploy updates" replaces
+what is served. There is no need to recreate the app, and recreating it would
+change the domain — which would break CORS, because the API allows exactly one
+origin and that origin is pinned in `samconfig.toml`.
+
+## 11.3 Verify, and do not trust a green tick
+
+Open https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com and check all four:
+
+1. **The page renders with content**, not a blank cream background. A blank
+   page with a 404 on `/assets/...` in the browser's network tab is the
+   backslash-zip problem from 11.1.
+2. **Hard-refresh** (Ctrl+Shift+R). Amplify serves the old bundle from cache
+   otherwise, and you will "verify" the previous deploy.
+3. **Run "Try a sample bill"** and confirm a report renders. That proves the
+   whole path: browser → Amplify → API Gateway → Lambda → engine.
+4. **Confirm there is NO "GitHub" link** in the footer and no "View the
+   source" button. Those are hidden while `REPO_URL` is empty. If they appear,
+   an older bundle is being served.
+
+If the sample works but a real upload fails with a bare "Network error", that
+is the 4 MB ceiling, not a deploy problem. See `docs/LIMITS.md`.
