@@ -1,160 +1,259 @@
 # BillWise
 
-Upload an Indian hospital or pharmacy bill and see which charges may need
-clarification — with the evidence behind each one, and a polite letter you can
-send asking the hospital to explain them.
+**Upload an Indian hospital or pharmacy bill and find out which charges have a
+published government price ceiling — and where each one sits against it.**
 
-> **Status: Phase 3 of 6.** Runs locally end to end — upload, optional review,
-> report, letter. Scored against ground truth: **39/39 findings caught, 0
-> missed, 0 false reds** across 5 synthetic bills. 224 tests green. Not yet
-> deployed to AWS.
+Every claim on screen shows its arithmetic, the government order number, and
+the date that order was published. If a line cannot be checked, the report
+says so plainly instead of implying the bill is fine.
 
----
+**Live:** https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com
+&nbsp;·&nbsp; **API:** https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/health
 
-## What it does
+```
+298 tests green   ·   46/46 planted findings caught, 0 missed   ·   0 FALSE REDS
+0 of 10 adversarial attacks succeeded   ·   deployed on AWS, both readers live
+```
 
-A bill is read, the reading is **verified against itself**, item names are
-resolved to their salts, and those are matched against India's published
-price ceilings. Deterministic rules then produce a red / amber / green / gray
-report where every flag cites its source row, SO number and date.
-
-Three things it deliberately will not do:
-
-- **It never accuses anyone.** The words illegal, fraud, cheating and
-  overcharged appear nowhere in the interface. An item is "above the listed
-  ceiling price" and "may need clarification".
-- **It never guesses a verdict.** If we cannot confidently match an item, it
-  is gray and we say so. Most items on a real hospital bill — room rent,
-  nursing, consumables, procedure fees — have **no public price ceiling at
-  all**, and the report says that plainly rather than implying a gap.
-- **No language model does the arithmetic.** Code decides every verdict; the
-  model only writes the explanation.
+Regenerate those numbers rather than trusting this block — `pytest tests/ -q`,
+`python eval/run_eval.py`, `python eval/adversarial_audit.py`.
 
 ---
 
-## Data sources
+## The problem
 
-**Price ceilings — NPPA (National Pharmaceutical Pricing Authority),
-Government of India.** Retrieved **18 September 2026**. Ceiling prices are
-exclusive of GST and carry the S.O. number and date under which they were
-fixed. Every verdict in the interface displays this retrieval date.
+India's National Pharmaceutical Pricing Authority publishes a maximum legal
+price for **915 scheduled formulations** under the DPCO. No hospital or
+pharmacy may charge above them.
 
-| File | Rows | Role |
-|---|---|---|
-| All Drugs Ceiling Prices | 915 | Scheduled formulations. The only source that can produce a red flag. |
-| Special Feature Schedule | 22 | Higher ceilings for special-feature packs. Additional to the above. |
-| Retail Price Information | 3,881 | Non-scheduled new drugs. Context only, never a red flag. |
+It is a spreadsheet. Nobody standing at a pharmacy counter with a bill in
+their hand is going to look it up.
 
-**Brand names — [Indian Medicine Dataset](https://github.com/junioralive/Indian-Medicine-Dataset)**
-(~254,000 products, **MIT licence**). Used **only** to map brand names and
-pack sizes to salts. Its prices are scraped and stale and are **never** used
-as a price reference — a test enforces that no field from it can reach a
-verdict.
-
-NPPA data is used for public-interest price transparency. BillWise is not
-affiliated with or endorsed by NPPA or any government body.
+BillWise is that lookup, pointed at a photo of your bill.
 
 ---
 
-## Running it
+## What it deliberately will not do
 
-Requires **Python 3.12** (Lambda's ceiling is 3.13; 3.12 is the target).
+These three constraints shaped every part of the build.
+
+- **It never accuses anyone.** The words *illegal*, *fraud*, *cheating* and
+  *overcharged* appear nowhere in the interface. A line is "above the listed
+  ceiling" and "may need clarification". A false accusation against a pharmacy
+  that billed correctly would end this product's credibility permanently;
+  silence would not.
+- **It never guesses a verdict.** If an item cannot be matched confidently, it
+  is grey and the report says which kind of "we don't know" applies. Most
+  lines on a real hospital bill — room rent, nursing, consumables, procedure
+  fees — have **no public ceiling at all**, and saying so is the correct
+  answer, not a failure.
+- **No language model does the arithmetic.** Every comparison and every
+  verdict is plain Python. A model that does your maths cannot explain its
+  answer, and this product has to be able to explain itself to a hospital.
+
+There is a fourth, learned the hard way: **state the denominator before the
+numerator.** A report that checked nothing once rendered as "0 things worth
+asking about" — every word true, and the whole screen a lie. The summary now
+always leads with how many charges were actually compared.
+
+---
+
+## Try it
+
+**Live** — open the site, click **Try a sample bill**. No upload needed.
+
+**Locally, offline, free** — `PROVIDER=local` makes zero network calls.
 
 ```bash
-git clone <this repo> && cd BillSahi_v1
 py -3.12 -m venv venv
-source venv/Scripts/activate        # Windows Git Bash; use bin/activate on Linux/macOS
+source venv/Scripts/activate      # Linux/macOS: venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Build the price reference from the NPPA source files:
-
 ```bash
-PYTHONIOENCODING=utf-8 python scripts/prepare_reference.py
+PYTHONIOENCODING=utf-8 python -m uvicorn app.main:app --reload --app-dir backend --port 8000
 ```
-
-Build the brand-name index. This is the **only** step that needs the network:
-
-```bash
-PYTHONIOENCODING=utf-8 python scripts/fetch_brand_data.py
-```
-
-```bash
-PYTHONIOENCODING=utf-8 python scripts/build_brand_index.py
-```
-
-Audit a sample bill and see a full report:
-
-```bash
-cd backend && python -m app.cli audit ../eval/fixtures/bill_01.json
-```
-
-Score the engine against ground truth:
-
-```bash
-python eval/run_eval.py
-```
-
-Run the tests:
-
-```bash
-PYTHONIOENCODING=utf-8 python -m pytest tests/ -q
-```
-
----
-
-## Running the app
-
-Two terminals. Requires Node 20+ for the frontend.
-
-**Terminal 1 — the API:**
-
-```bash
-cd backend && ../venv/Scripts/python -m uvicorn app.main:app --port 8000 --reload
-```
-
-**Terminal 2 — the UI:**
 
 ```bash
 cd frontend && npm install && npm run dev
 ```
 
-Open <http://localhost:5173> and click **Try a sample bill**.
+Create `frontend/.env` first (it is gitignored):
 
-Everything runs offline. `PROVIDER=local` (the default) makes no network calls
-and costs nothing.
+```
+VITE_API_BASE=http://127.0.0.1:8000
+VITE_USE_MOCKS=false
+```
 
-**Local mode has no OCR.** Uploading an arbitrary scan returns zero lines and
-says so, rather than inventing a reading. To exercise the upload path, use one
-of the generated files in `eval/demo_bills/` — they are named after their
-fixtures. Real reading arrives with Textract and Bedrock in Phase 4.
+Open <http://localhost:5173> and click **Try a sample bill**. Add
+`?fixture=bill_06` for a real retail-pharmacy layout where nothing is
+price-controlled — the most interesting path in the product.
 
-`PYTHONIOENCODING=utf-8` is not optional on Windows — the rupee sign crashes
-the default console codec.
-
-Everything runs **offline**. `PROVIDER=local` (the default) uses no network
-and costs nothing.
+> **`PYTHONIOENCODING=utf-8` is not optional on Windows.** The code prints `₹`
+> and the default console codec throws on it.
+>
+> **Local mode has no OCR**, so uploading a file will not work. Use the sample
+> bills, or point `VITE_API_BASE` at the deployed API.
 
 ---
 
-## Layout
+## How it works
 
 ```
-data/raw/           the NPPA source files, unmodified
-data/reference/     generated: reference_prices.csv, quarantine_log.csv, unit_coverage.json
-scripts/            prepare_reference.py and friends
-backend/app/        config, models, pipeline
+  browser
+     │  photo or PDF, up to 4 MB
+     ▼
+  API Gateway ──► Lambda (Python 3.12, FastAPI via Mangum)
+                     │
+                     ├──► S3            the uploaded bill
+                     ├──► DynamoDB      the finished report
+                     │
+                     ├──► Textract AnalyzeExpense ──┐
+                     │                              ├─► two independent readings
+                     └──► Bedrock / Amazon Nova ────┘   cross-checked against
+                                                         each other
+                     │
+                     ▼
+              the rule engine — pure Python, no ML
+              match → verify → price against NPPA ceilings
+                     │
+                     ▼
+              red / amber / green / grey, every flag citing its S.O. number
+```
+
+Frontend is React 19 + Vite 8 + Tailwind 3.4 on **Amplify**. Infrastructure is
+one **AWS SAM** template. Everything runs in `us-east-1`.
+
+Full detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## The two readers, and why
+
+**The second reader is not there to be more accurate. It is there to
+disagree.**
+
+We measured this on the deployed system — same bill, two hours apart, one
+variable changed:
+
+| `bill_02.jpg` | **Two readers** | One reader |
+|---|---|---|
+| Lines at high confidence | 0 of 7 | 4 of 7 |
+| Findings produced | **0** | **1, and it was wrong** |
+
+Textract reported per-field confidence of **96–99% both times**. It had read a
+column header as a line item and shifted every value onto the next row.
+
+**Confidence is not accuracy, and a single reader cannot doubt itself.** When
+the two readings disagree, the line goes grey and is never priced. Garbage in,
+silence out.
+
+---
+
+## How we know it is not confidently wrong
+
+```
+python eval/run_eval.py            46/46 caught · 0 missed · FALSE REDS 0
+python eval/adversarial_audit.py   0 of 10 attacks produced a false red
+python -m pytest tests/ -q         298 passed
+```
+
+`run_eval.py` scores the engine against six bills with known planted problems.
+**`FALSE REDS: 0` is the number that matters** — it means the system has never
+told a patient a charge was wrong when it was not.
+
+`adversarial_audit.py` actively tries to construct bills that cause one:
+pack-size ambiguity, lost decimal points, alias collisions, fractional
+quantities. None currently succeeds.
+
+---
+
+## What it cannot do
+
+Stated plainly, because a tool like this is only useful if it admits its
+limits. Measurements in [`docs/LIMITS.md`](docs/LIMITS.md).
+
+- **Only the 915 price-controlled formulations can produce a finding.** Most
+  of a real bill is out of NPPA's remit by nature. We report that as
+  "no published ceiling", which is true and honest and not the answer anyone
+  wanted.
+- **English and Latin script only.** A vision model can read Devanagari, but
+  the matcher normalises to Latin and compares against English NPPA data, so a
+  Hindi or Marathi bill resolves to nothing.
+- **Uploads cap at 4 MB**, which most phone cameras exceed. Browser-side
+  downscaling is not built yet.
+- **No reading-accuracy figure is claimed.** On clean PDFs it reads well; on
+  degraded photographs it does not, and it goes grey rather than guessing.
+  We do not have a number here we would defend.
+- **Brand-name coverage is the real ceiling on usefulness.** On two real
+  pharmacy bills, zero of ten brand names resolved.
+
+---
+
+## Deploying
+
+Backend and frontend deploy separately and the frontend usually does not need
+the backend.
+
+Every console step and command — with the failures that cost us hours — is in
+[`docs/AWS_STEPS.md`](docs/AWS_STEPS.md). Two traps worth naming here:
+
+- **`--build-dir` is not optional on `sam build`.** Without it, build and
+  deploy can read different directories and you ship the previous build while
+  CloudFormation reports complete success.
+- **Amplify manual deploy takes a zip of `dist`'s CONTENTS**, so `index.html`
+  sits at the archive root. Zipping the folder puts everything under `/dist/`
+  and every path 404s.
+
+---
+
+## Repo layout
+
+```
+backend/app/        config, models, and the pipeline (match → verify → audit)
+frontend/src/       React app; lib/api.ts is the ONLY file that knows the
+                    backend's field names
+eval/               the correctness suites and six demo bills with ground truth
 tests/              pytest
-docs/               ARCHITECTURE.md, OPEN_QUESTIONS.md, AWS_STEPS.md
+scripts/            reference-data builders; the only networked one fetches brands
+data/raw/           NPPA source files, unmodified
+data/reference/     generated price reference and quarantine log
+infra/              the SAM template
+docs/               see docs/README.md for an index
 ```
 
-`NOTES.md` holds the working notes — environment gotchas, data quirks, and
-the bugs already found and fixed.
+`NOTES.md` is the working engineering log — every significant bug, what was
+measured, and what was decided. It is long because most of it was expensive to
+learn.
+
+---
+
+## Data sources
+
+**Price ceilings — NPPA, Government of India.** Retrieved **18 September
+2026**. Ceilings are exclusive of GST and carry the S.O. number and date under
+which they were fixed. Every verdict displays this retrieval date.
+
+| File | Rows | Role |
+|---|---|---|
+| All Drugs Ceiling Prices | 915 | Scheduled formulations. **The only source that can produce a red flag.** |
+| Special Feature Schedule | 22 | Higher ceilings for special-feature packs. Additional to the above. |
+| Retail Price Information | 3,881 | Non-scheduled new drugs. Context only, never a red flag. |
+
+**Brand names — [Indian Medicine Dataset](https://github.com/junioralive/Indian-Medicine-Dataset)**
+(~254,000 products, MIT). Used **only** to map brand names and pack sizes to
+salts. Its prices are scraped and undated and are **never** used as a
+reference — a test enforces that no field originating in it can reach a
+verdict.
+
+NPPA data is used for public-interest price transparency. **BillWise is not
+affiliated with or endorsed by NPPA or any government body, and nothing here
+is legal or medical advice.**
 
 ---
 
 ## Licence
 
-Code: MIT. NPPA price data is public government information. The brand
-dataset is MIT and credited above.
+Code is MIT — see [LICENSE](LICENSE). NPPA price data is public government
+information. The brand dataset is MIT and credited above.
