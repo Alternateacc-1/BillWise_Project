@@ -607,6 +607,17 @@ def test_everything_the_app_reads_at_runtime_is_staged_for_the_bundle():
 
     staged = Path(__file__).resolve().parent.parent / "backend"
 
+    # This is a DEPLOY-READINESS check, not a correctness one. A fresh clone
+    # has not run scripts/stage_lambda.py, so nothing is staged yet and the
+    # assertion below would fail for a reason that says nothing about the
+    # code. Skip until staging has happened; it must still pass before a
+    # deploy, which is when it matters.
+    # reference_data/ exists on a fresh clone because the reduced brand index
+    # is committed there, so its presence proves nothing. reference_prices.csv
+    # is the file staging actually copies, so that is the honest signal.
+    if not (staged / "reference_data" / "reference_prices.csv").exists():
+        pytest.skip("nothing staged yet -- run: python scripts/stage_lambda.py")
+
     runtime_paths = {
         "reference_prices.csv": match.REFERENCE_CSV,
         "brand_index.csv": normalize.BRAND_INDEX_CSV,

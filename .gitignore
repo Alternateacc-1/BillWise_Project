@@ -54,8 +54,18 @@ Thumbs.db
 .vscode/
 
 # Staged into the Lambda bundle by scripts/stage_lambda.py
-backend/reference_data/
+backend/reference_data/*
 backend/fixtures/
+
+# ...with ONE exception. The reduced brand index (12.9 MB of the 36 MB source)
+# is committed, because without it a fresh clone cannot resolve brand names and
+# eval/run_eval.py FAILS -- Augmentin, Acimol and PANTOCID DSR all go unmatched.
+# Rebuilding it needs a 254k-row network download, so shipping it is the
+# difference between `git clone && pytest` working and not. It is derived from
+# the MIT-licensed Indian Medicine Dataset, credited in README.
+# stage_lambda.py rewrites this file deterministically, so any git diff here
+# means the reduction actually changed -- which is worth seeing.
+!backend/reference_data/brand_index.csv
 
 # The frontend hand-off archive. 33 MB, and it carries screenshots and a
 # WhatsApp photo that may show a real bill -- which must never enter this

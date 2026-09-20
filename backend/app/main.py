@@ -35,7 +35,19 @@ from .pipeline.match import reference_retrieved_on
 from .pipeline.normalize import normalize_bill
 from .pipeline.verify import verify_bill
 
-app = FastAPI(title="BillWise", version="0.3.0")
+# Interactive docs are useful locally and are an invitation in production:
+# this API is public and unauthenticated, and POST /bills spends Textract and
+# Bedrock money per call. The endpoints are visible in the frontend anyway, so
+# this is a speed bump rather than a control -- the actual control is request
+# throttling on the API Gateway stage. Off in AWS, on everywhere else.
+_DOCS_OFF = config.PROVIDER == "aws"
+app = FastAPI(
+    title="BillWise",
+    version="0.3.0",
+    docs_url=None if _DOCS_OFF else "/docs",
+    redoc_url=None if _DOCS_OFF else "/redoc",
+    openapi_url=None if _DOCS_OFF else "/openapi.json",
+)
 
 #: The local dev origins. In AWS the deployed Amplify origin is APPENDED
 #: from FRONTEND_ORIGIN below -- never "*", because this API hands back a

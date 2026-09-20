@@ -13,12 +13,24 @@ uses **your own** account; nothing here points at anyone else's
 infrastructure.
 
 ```
-298 tests green   ·   46/46 planted findings caught, 0 missed   ·   0 FALSE REDS
-0 of 10 adversarial attacks succeeded   ·   11 frontend tests, tsc clean
+46/46 planted findings caught, 0 missed   ·   0 FALSE REDS
+0 of 10 adversarial attacks succeeded     ·   298 tests, 11 frontend tests
 ```
 
-Regenerate those numbers rather than trusting this block — `pytest tests/ -q`,
-`python eval/run_eval.py`, `python eval/adversarial_audit.py`.
+**Those hold on a fresh clone with no extra steps** — clone, install, run. Do
+not trust this block; regenerate it:
+
+```bash
+python -m pytest tests/ -q          # 250 passed, 48 skipped
+python eval/run_eval.py             # caught 46/46 · missed 0 · FALSE REDS 0
+python eval/adversarial_audit.py    # FALSE REDS: 0 / 10 attacks
+```
+
+The 48 skips are honest and each names the command that enables it: 44 test
+the FULL brand-index build, which needs a 254k-row download, and the rest want
+the generated demo bills or a staged Lambda bundle. The reduced brand index
+**is** committed, so matching and the eval work immediately. Run all three
+scripts and it is 298 passed, 0 skipped.
 
 ---
 
