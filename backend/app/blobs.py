@@ -44,6 +44,41 @@ class UploadRejected(Exception):
     """Raised with a message safe to show the user."""
 
 
+#: The opening bytes of each format we accept, as hex.
+#:
+#: THE CLIENT SENDS THE CONTENT TYPE, SO IT IS A CLAIM, NOT A FACT -- and
+#: until 2026-09-20 we took it at face value. The PDF page-count guard below
+#: hangs off that claim: a PDF declared `image/jpeg` was given suffix `.jpg`,
+#: skipped the page check entirely, and went to Textract -- which detects the
+#: real format itself and bills PER PAGE.
+#:
+#: Verified against the live API before fixing: a PDF posted as `image/jpeg`
+#: returned HTTP 200 and was processed. One word in a header defeated the only
+#: thing standing between a public, unauthenticated endpoint and an unbounded
+#: Textract bill.
+#:
+#: Hex rather than escape sequences deliberately -- `\xff\xd8\xff` gets
+#: mangled by shells and editors, and a silently corrupted magic number would
+#: reject every real upload.
+MAGIC = {
+    ".pdf":  bytes.fromhex("255044462d"),        # %PDF-
+    ".jpg":  bytes.fromhex("ffd8ff"),            # JPEG start-of-image
+    ".png":  bytes.fromhex("89504e470d0a1a0a"),  # PNG signature
+    ".webp": bytes.fromhex("52494646"),          # RIFF; WEBP tag checked too
+}
+
+
+def _looks_like(content: bytes, suffix: str) -> bool:
+    """Do the actual bytes match the format the client claimed?"""
+    prefix = MAGIC.get(suffix)
+    if prefix is None or not content.startswith(prefix):
+        return False
+    # RIFF is a container; only the WEBP variant is an image we can read.
+    if suffix == ".webp":
+        return content[8:12] == b"WEBP"
+    return True
+
+
 def validate(content: bytes, content_type: str) -> str:
     """Check an upload and return the suffix to store it under."""
     suffix = ALLOWED_TYPES.get((content_type or "").split(";")[0].strip().lower())
@@ -53,6 +88,12 @@ def validate(content: bytes, content_type: str) -> str:
         )
     if not content:
         raise UploadRejected("That file appears to be empty.")
+    # The BYTES, not the header. See MAGIC above for what this stops.
+    if not _looks_like(content, suffix):
+        raise UploadRejected(
+            "That file does not look like the type it claims to be. Please "
+            "upload a PDF, JPG, PNG or WEBP."
+        )
     if len(content) > MAX_UPLOAD_BYTES:
         raise UploadRejected(
             f"That file is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB. "

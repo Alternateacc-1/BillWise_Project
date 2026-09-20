@@ -805,3 +805,75 @@ def test_only_one_reader_ran_is_visible_on_the_api(client):
     assert not any(
         "only_one_reader_ran" in i["reasons"] for i in report["items"]
     )
+
+
+# --------------------------------------------------------------------------
+# Security audit, 2026-09-20. Both of these were confirmed against the LIVE
+# deployed API before being fixed.
+# --------------------------------------------------------------------------
+
+def test_a_pdf_cannot_masquerade_as_an_image():
+    """The content type is a CLAIM from the client, not a fact.
+
+    The PDF page-count guard hangs off the declared type: a PDF sent as
+    `image/jpeg` took suffix `.jpg`, skipped the page check entirely, and went
+    to Textract -- which detects the real format itself and bills PER PAGE.
+
+    Verified against the live API before fixing: HTTP 200, 16 items processed.
+    One word in a header defeated the only thing standing between a public,
+    unauthenticated endpoint and an unbounded Textract bill.
+    """
+    from app.blobs import UploadRejected, validate
+
+    pdf = Path("eval/demo_bills/bill_01.pdf").read_bytes()
+    jpg = Path("eval/demo_bills/bill_02.jpg").read_bytes()
+
+    assert validate(pdf, "application/pdf") == ".pdf"
+    assert validate(jpg, "image/jpeg") == ".jpg"
+
+    with pytest.raises(UploadRejected):
+        validate(pdf, "image/jpeg")
+    with pytest.raises(UploadRejected):
+        validate(jpg, "application/pdf")
+    with pytest.raises(UploadRejected):
+        validate(b"x" * 5000, "image/jpeg")
+
+
+def test_a_long_bill_cannot_explode_the_response():
+    """R4 is pairwise, so uncapped its output is QUADRATIC.
+
+    Measured before the cap: 200 similar lines at one unit price produced
+    15,228 flags and exactly 10.0 MB of JSON -- API Gateway's response limit
+    -- and 400 lines produced 34.7 MB, which the gateway refuses outright.
+    The bill simply never renders.
+
+    NOT ONLY AN ATTACK SHAPE. A long inpatient bill listing one consumable at
+    one rate with size or batch suffixes is exactly this pattern, and those
+    are the bills most worth checking.
+    """
+    from decimal import Decimal as D
+
+    from app.models import BillInput, ReaderItem, ReaderOutput
+    from app.pipeline.audit import audit
+    from app.pipeline.normalize import normalize_bill
+    from app.pipeline.verify import verify_bill
+
+    n = 300
+    rows = [ReaderItem(index=i, name=f"Surgical Glove Pair Size {i}",
+                       quantity=D("1"), unit_price=D("25"),
+                       line_total=D("25"), confidence=D("99"))
+            for i in range(1, n + 1)]
+    out = lambda src: ReaderOutput(source=src, items=rows,
+                                   printed_grand_total=D(n * 25))
+    verified, stats = verify_bill(BillInput(
+        bill_id="x", hospital_name="", bill_date="",
+        reader_a=out("textract"), reader_b=out("bedrock")))
+    flags = audit(verified, normalize_bill(verified), stats)
+
+    r4 = [f for f in flags if f.rule_id == "R4"]
+    assert len(r4) <= n, (
+        f"R4 produced {len(r4)} flags for {n} lines -- it is quadratic again. "
+        "Uncapped this reached 52,629 flags and 34.7 MB of JSON on 400 lines."
+    )
+    # Every line may appear in at most one near-duplicate flag.
+    assert len({f.item_index for f in r4}) == len(r4)

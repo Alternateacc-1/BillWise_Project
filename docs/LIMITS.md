@@ -426,3 +426,76 @@ instead of a flat multiplier.
 bill including retail ones, where MRP genuinely is tax-inclusive, and would
 turn compliant pharmacy lines red. The basis has to be per-bill and derived,
 not a global constant.
+
+---
+
+## Security audit, 2026-09-20
+
+Two real findings, both confirmed against the LIVE deployed API and both
+fixed. Everything else checked came back clean.
+
+### 1. The declared content type was trusted (FIXED)
+
+`validate()` read the client's `Content-Type` header to pick the file suffix,
+and the suffix decided whether the PDF page-count guard ran. A PDF declared
+`image/jpeg` took suffix `.jpg`, skipped the page check, and went to Textract
+-- which detects the real format itself and **bills per page**.
+
+**Confirmed live before fixing:** a PDF posted as `image/jpeg` returned
+HTTP 200 and processed 16 items. One word in a header defeated the only
+control between a public, unauthenticated, unthrottled endpoint and an
+unbounded Textract bill.
+
+Fixed by checking the opening bytes against the declared type. Stored as hex
+rather than escape sequences, because a silently mangled magic number would
+reject every real upload -- which nearly happened while writing it.
+
+### 2. R4 is pairwise, so its output was quadratic (FIXED)
+
+Near-duplicate detection compares every line against every other. Uncapped:
+
+      200 lines ->  15,228 flags -> 10.0 MB of JSON   (API Gateway's limit)
+      400 lines ->  52,629 flags -> 34.7 MB           (refused outright)
+      800 lines -> 195,099 flags
+
+**Not only an attack shape.** A long inpatient bill listing one consumable at
+one rate with size or batch suffixes is exactly this pattern, and those are
+the bills most worth checking. A realistic 500-line bill was fine (17s, 1,313
+flags); the blowup needs many lines sharing a unit price AND similar names.
+
+Capped at one flag per line: the signal survives ("this line looks like line
+12"), the output becomes linear. 400 lines now yields 799 flags and 0.43 MB.
+Telling somebody their bill contains fifty thousand pairs of similar lines
+was never useful anyway.
+
+### Checked and clean
+
+  - **SQL** -- every statement parameterised; no f-strings or concatenation.
+  - **No `eval`, `exec`, `pickle`, `os.system`, `subprocess`, `shell=True`.**
+  - **Path traversal** -- `path_for()` resolves and refuses anything outside
+    the blob directory.
+  - **Bill ids** -- `secrets.token_urlsafe(16)`, 128 bits. They are the only
+    thing separating one user's bill from another's, since there is no login,
+    and that is stated in the code.
+  - **XSS** -- three `dangerouslySetInnerHTML` calls, all build-time `?raw`
+    imports of local SVGs. No user data reaches any of them.
+  - **No `console.log`, no source maps in `dist/`, nothing in `localStorage`
+    or cookies.** External links carry `rel="noopener"`.
+  - **`npm audit --omit=dev`: 0 vulnerabilities.**
+  - **S3** -- public access blocked on all four settings, AES256 at rest,
+    1-day expiry, multipart uploads aborted.
+  - **CORS** -- one origin, never `*`. Verified: the Amplify origin is
+    allowed and other origins are refused at preflight.
+  - **Robustness** -- twelve edge cases (empty bill, zero and negative
+    quantities, negative and zero totals, a one-crore line, fractional
+    quantity, 200 identical lines, a 5,000-character name, emoji, whitespace-
+    only name) all handled without an exception.
+
+### Known and accepted
+
+  - **No rate limiting.** The endpoint is public and unauthenticated, and
+    every upload costs Textract and Bedrock money. The budget alarm is the
+    only control. API Gateway stage throttling is the fix and is one console
+    setting; see `docs/AWS_STEPS.md` section 9.3.
+  - **No authentication.** Deliberate -- a patient should not need an account
+    to check a bill. The unguessable bill id is the capability.

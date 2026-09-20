@@ -347,11 +347,35 @@ def rule_r3_exact_duplicates(items: list[VerifiedItem]) -> list[Flag]:
     return flags
 
 
+#: A line may appear in at most one near-duplicate flag.
+#:
+#: R4 IS PAIRWISE, SO ITS OUTPUT IS QUADRATIC, AND THAT BROKE THE RESPONSE.
+#: Measured 2026-09-20: 200 lines sharing a unit price with similar names
+#: produced 15,228 flags and exactly 10.0 MB of JSON -- API Gateway's response
+#: limit -- and 400 lines produced 52,629 flags and 34.7 MB, which the gateway
+#: simply refuses. The bill never renders.
+#:
+#: THIS IS NOT ONLY AN ATTACK SHAPE. A long inpatient bill listing the same
+#: consumable at the same rate with batch or size suffixes -- "Surgical Glove
+#: Pair Size 7", "... Size 8" -- is exactly this pattern, and those bills are
+#: the ones most worth checking.
+#:
+#: Capping at one flag per line keeps the SIGNAL ("this line looks like line
+#: 12") while making the output linear. Telling somebody their bill contains
+#: fifty thousand pairs of similar lines was never useful anyway.
+ONE_FLAG_PER_LINE = True
+
+
 def rule_r4_near_duplicates(items: list[VerifiedItem]) -> list[Flag]:
     flags = []
     seen_pairs = set()
+    already_flagged: set[int] = set()
     for i, left in enumerate(items):
+        if ONE_FLAG_PER_LINE and left.index in already_flagged:
+            continue
         for right in items[i + 1:]:
+            if ONE_FLAG_PER_LINE and right.index in already_flagged:
+                continue
             if left.unit_price is None or left.unit_price != right.unit_price:
                 continue
             left_norm = normalise_spelling(left.name)
@@ -365,6 +389,8 @@ def rule_r4_near_duplicates(items: list[VerifiedItem]) -> list[Flag]:
             if key in seen_pairs:
                 continue
             seen_pairs.add(key)
+            already_flagged.add(left.index)
+            already_flagged.add(right.index)
             flags.append(Flag(
                 rule_id="R4",
                 severity=Severity.AMBER,
