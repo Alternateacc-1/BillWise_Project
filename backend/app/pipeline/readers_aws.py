@@ -36,6 +36,20 @@ FIELD_QUANTITY = "QUANTITY"
 FIELD_UNIT_PRICE = "UNIT_PRICE"
 FIELD_PRICE = "PRICE"
 
+#: The fields whose confidence decides whether a line is trustworthy: exactly
+#: the ones we read a value out of, and nothing else. See the note at the
+#: confidence calculation for why this is not simply "every field".
+#:
+#: THIS WIDENS RATHER THAN NARROWS, which is rare here and worth flagging.
+#: Excluding noisy fields RAISES line confidence, so lines that were held gray
+#: can now reach HIGH and be priced -- a new path to a red verdict. It is
+#: justified because the >= 95 floor is meant to bound the risk of trusting a
+#: single reader's NAME AND NUMBERS, and those are precisely these four; a
+#: floor that moves with data we throw away is noise, not caution.
+CONFIDENCE_FIELDS = frozenset({
+    FIELD_ITEM, FIELD_QUANTITY, FIELD_UNIT_PRICE, FIELD_PRICE,
+})
+
 #: Summary field types. SUBTOTAL and TAX are read but not yet used -- the
 #: bill ledger that consumes them is the next piece of work.
 SUMMARY_TOTAL = "TOTAL"
@@ -78,7 +92,17 @@ def read_with_textract(content: bytes) -> ReaderOutput:
         .SummaryFields[]               same shape; TOTAL, SUBTOTAL, TAX
     """
     response = aws_clients.textract().analyze_expense(Document={"Bytes": content})
+    return _parse_expense(response)
 
+
+def _parse_expense(response: dict) -> ReaderOutput:
+    """The pure half: an AnalyzeExpense response in, a reading out.
+
+    Split out from the AWS call so the response SHAPE can be tested without a
+    network, a mock client or an AWS bill. It had no tests at all until
+    2026-09-20, and a bug in this function -- scoring a line on a field we
+    never read -- was deciding on real bills whether a price got compared.
+    """
     items: list[ReaderItem] = []
     printed_total: Decimal | None = None
     index = 0
@@ -97,7 +121,24 @@ def read_with_textract(content: bytes) -> ReaderOutput:
                     if kind and text is not None:
                         values[kind] = text
                     confidence = detected.get("Confidence")
-                    if confidence is not None:
+                    # ONLY THE FIELDS WE ACTUALLY READ COUNT TOWARD CONFIDENCE.
+                    #
+                    # AnalyzeExpense returns more per row than we consume:
+                    # EXPENSE_ROW (the entire row as one string), PRODUCT_CODE,
+                    # and occasionally untyped fields. EXPENSE_ROW in
+                    # particular scores lower than the individual cells,
+                    # because it is a longer and messier piece of text.
+                    #
+                    # The line's score is a MINIMUM, so any one of those drags
+                    # the whole row down -- and in single-reader mode a row
+                    # under 95 is never trusted, so its price is never
+                    # compared. That is a verdict decided by a field we
+                    # discard.
+                    #
+                    # Measured 2026-09-20 on a real invoice: seven lines read
+                    # correctly, names and amounts matching the paper, and six
+                    # came back below the floor.
+                    if confidence is not None and kind in CONFIDENCE_FIELDS:
                         confidences.append(float(confidence))
                     page = field.get("PageNumber") or page
 

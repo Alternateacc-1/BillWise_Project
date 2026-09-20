@@ -1172,3 +1172,61 @@ def test_a_genuinely_broken_reading_is_still_reported_as_misread():
     flags = audit([item], normalize_bill([item]), _stats())
     gray = [f for f in flags if f.gray_detail is not None]
     assert gray and gray[0].gray_detail is GrayDetail.COULD_NOT_READ
+
+
+# --------------------------------------------------------------------------
+# Textract response parsing. There were no tests over this shape at all, and
+# a bug in it decided verdicts on real bills.
+# --------------------------------------------------------------------------
+
+def _expense_response(fields):
+    """An AnalyzeExpense response with one line item carrying `fields`."""
+    return {"ExpenseDocuments": [{
+        "LineItemGroups": [{"LineItems": [{
+            "LineItemExpenseFields": [
+                {"Type": {"Text": k}, "ValueDetection": {"Text": t, "Confidence": c},
+                 "PageNumber": 1}
+                for k, t, c in fields
+            ]}]}],
+        "SummaryFields": [],
+    }]}
+
+
+def test_line_confidence_ignores_fields_we_never_read():
+    """EXPENSE_ROW must not decide whether a price gets compared.
+
+    AnalyzeExpense returns the whole row as one lower-confidence string
+    alongside the cells. The line score is a MINIMUM, so that one field
+    dragged every row under the 95 single-reader floor and the price was
+    never compared -- a verdict decided by data we discard.
+
+    Measured 2026-09-20: seven lines read correctly against the paper, six
+    reported as unreadable.
+    """
+    from app.pipeline.readers_aws import _parse_expense
+
+    resp = _expense_response([
+        ("ITEM", "BENGAY GREASELESS 20Z", 99.4),
+        ("QUANTITY", "2", 99.1),
+        ("PRICE", "28.60", 99.7),
+        ("EXPENSE_ROW", "BENGAY GREASELESS 20Z 2 28.60", 71.2),
+    ])
+    out = _parse_expense(resp)
+    assert len(out.items) == 1
+    assert out.items[0].confidence == Decimal("99.10"), (
+        "the score must be the weakest field WE READ (QUANTITY 99.1), "
+        "not the weakest field Textract happened to return"
+    )
+
+
+def test_line_confidence_still_falls_to_a_weak_field_we_do_read():
+    """The narrowing half: a bad PRICE must still sink the line."""
+    from app.pipeline.readers_aws import _parse_expense
+
+    resp = _expense_response([
+        ("ITEM", "Something", 99.4),
+        ("PRICE", "28.60", 62.0),
+        ("EXPENSE_ROW", "Something 28.60", 99.9),
+    ])
+    out = _parse_expense(resp)
+    assert out.items[0].confidence == Decimal("62.00")
