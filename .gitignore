@@ -56,3 +56,9 @@ Thumbs.db
 # Staged into the Lambda bundle by scripts/stage_lambda.py
 backend/reference_data/
 backend/fixtures/
+
+# The frontend hand-off archive. 33 MB, and it carries screenshots and a
+# WhatsApp photo that may show a real bill -- which must never enter this
+# repo. The code was extracted to frontend/; the archive itself stays out.
+claude.zip
+frontend_old/

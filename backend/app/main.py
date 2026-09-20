@@ -253,6 +253,32 @@ def confirm(bill_id: str) -> dict:
     return _serialise(report)
 
 
+class FeedbackIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    message: str = Field(min_length=1, max_length=4000)
+    email: str | None = Field(default=None, max_length=254)
+
+
+@app.post("/feedback")
+def feedback(body: FeedbackIn) -> dict:
+    """Store a note from the user. Reuses the bill store; it is one JSON table.
+
+    NOTHING HERE IS LOGGED. The message is free text a user typed and the
+    email identifies them, so both are PII: they go to the store and nowhere
+    else. CloudWatch must not become a place where either can be read, which
+    is the same rule the readers follow for bill content.
+
+    No email is sent, and the UI does not claim one is -- it says the note was
+    received, which is all that happens.
+    """
+    fid = "fb_" + _new_bill_id()
+    store.put(fid, "feedback", {
+        "message": body.message.strip(),
+        "email": (body.email or "").strip() or None,
+    })
+    return {"ok": True}
+
+
 @app.post("/bills/{bill_id}/letter")
 def letter(bill_id: str) -> dict:
     report, _ = _load(bill_id)

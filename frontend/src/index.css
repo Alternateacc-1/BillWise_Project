@@ -1,25 +1,1085 @@
-@import "tailwindcss";
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/PlusJakartaSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/PlusJakartaSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/PlusJakartaSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/PlusJakartaSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
 
-/* The page itself must declare a background and a colour scheme.
- *
- * Without this, `body` and `html` are TRANSPARENT: only the report card
- * carried `bg-white`, so on a browser set to dark mode everything around it
- * rendered black and the app looked broken. Found 2026-09-19 on a dark-mode
- * browser; invisible on a light-mode one, which is why it survived so long.
- *
- * `color-scheme: light` is the other half. It stops the browser applying its
- * dark-mode treatment to form controls and scrollbars, which would otherwise
- * give dark inputs inside a white card on the review screen.
- *
- * This app has no dark theme. A bill is a document people read, compare
- * against paper and print; one light surface is the honest choice rather
- * than a half-built second theme. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light; /* opt out of Chrome Auto Dark Mode — no dark mode here */
+  --bg: #faf9f6; /* page background */
+  --surface: #f0eee9; /* FAQ rows, About panel surface */
+  --surface-hover: #ebe8e2;
+  --card: #ffffff; /* panels, FAQ open state, step cards */
+  --border: #e3e0d9;
+  --text: #141414;
+  --text-muted: #6b6b6b;
+  --footer-bg: #1a1e26; /* cool slate */
+  --footer-text: #f2f4f7;
+  --footer-muted: #98a0ad;
+  --footer-line: rgba(242, 244, 247, 0.14);
+  --footer-field: rgba(242, 244, 247, 0.06);
+  --footer-focus: rgba(242, 244, 247, 0.26);
+}
+
 html {
-  color-scheme: light;
-  background-color: #f1f5f9; /* slate-100 */
+  scroll-behavior: smooth;
+}
+
+/* Nav pill — single translucent state, values measured from the layout reference. */
+.nav-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 800px;
+  height: 74px;
+  padding: 18px 30px;
+  border-radius: 37px; /* half the height */
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(20, 20, 20, 0.07);
+  box-shadow: 0 2px 8px rgba(20, 20, 20, 0.06), 0 10px 32px rgba(20, 20, 20, 0.11); /* deepened so the pill still separates from white cards */
+  -webkit-backdrop-filter: blur(48px);
+  backdrop-filter: blur(48px);
+}
+.nav-wordmark {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  color: rgb(20, 20, 20);
+}
+@media (max-width: 479.98px) {
+  .nav-wordmark {
+    display: none;
+  }
+}
+.nav-links {
+  column-gap: 11px;
+  margin-right: -19px; /* link padding 11 + 8 so the last label ends 22px from the pill edge */
+}
+@media (max-width: 639px) {
+  .nav-pill {
+    padding: 18px 14px;
+    border-radius: 37px;
+  }
+}
+
+/* Nav links: padding never changes between states, so the active pill causes no layout shift. */
+.nav-link {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 7px 11px; /* 24px line + 14px = 38px pill = the bar's content box */
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  line-height: 24px;
+  color: rgb(20, 20, 20);
+  background: transparent;
+  white-space: nowrap;
+}
+.nav-link:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.nav-link[aria-current='true'],
+.nav-link[aria-current='true']:hover {
+  background: #111111;
+  color: #ffffff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-link {
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+}
+@media (max-width: 639px) {
+  /* 360px: four links do not fit at 18px; 16px is the floor. */
+  .nav-link {
+    padding: 7px 4px;
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+  .nav-links {
+    column-gap: 4px;
+    margin-right: -4px; /* = mobile link side padding */
+  }
 }
 
 body {
-  background-color: #f1f5f9; /* slate-100 -- the card reads as a card */
+  @apply bg-bg text-ink font-sans antialiased;
+}
+
+@media print {
+  .page-content {
+    position: static;
+    z-index: auto;
+    border-radius: 0;
+  }
+  /* A tinted page wastes ink or gets dropped by the browser. */
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --card: #ffffff;
+  }
+  body {
+    background: #ffffff !important;
+  }
+  @page {
+    margin: 16mm;
+  }
+  /* Letter's print button adds this class for the duration of window.print(). */
+  html.print-letter .print-report {
+    display: none !important;
+  }
+  html.print-letter .print-letter-page {
+    display: block !important;
+  }
+  article,
+  li {
+    break-inside: avoid;
+  }
+}
+
+/* About: two plain flex columns. Below 900px they stack and the left column is not sticky. */
+.about-row {
+  width: 100%;
+  max-width: 1560px;
+  margin-inline: auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.about-left {
+  width: 100%;
+}
+.about-right {
+  width: 100%;
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  .about-row {
+    flex-direction: row;
+  }
+  .about-left {
+    flex: 0 0 40%;
+    width: auto;
+    position: sticky;
+    top: 96px;
+    align-self: flex-start;
+    /* Taller than a 900px viewport at this type size: scroll inside, scrollbar hidden. */
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .about-left::-webkit-scrollbar {
+    display: none;
+  }
+  .about-right {
+    flex: 1 1 60%;
+    width: auto;
+  }
+}
+
+/* About: sticky step list. Below 900px every item is expanded and dark. */
+.about-item {
+  padding: 18px 0;
+  color: #141414;
+}
+.about-item h3 {
+  transition: color 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-item h3 {
+    transition: none;
+  }
+}
+@media (min-width: 900px) {
+  .about-item:not(.is-active) {
+    color: #a8a8a8;
+    border-bottom: 1px solid var(--border);
+  }
+  .about-item:not(.is-active) .about-body {
+    display: none;
+  }
+}
+
+/* The inlined SVG carries width/height attributes; scale it to its box instead. */
+.bill-illustration svg {
+  width: 100%;
+  height: auto;
+}
+
+/* Severity chips: light tinted fill, 1px border, dark text. Shape/size classes come from <Chip/>. */
+.chip {
+  display: inline-block;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-weight: 700;
+  white-space: nowrap;
+  print-color-adjust: exact; /* keep the tint on paper: it is what separates the chips */
+  -webkit-print-color-adjust: exact;
+}
+.chip-red {
+  background: #fbe9e7;
+  border-color: #e8b4ae;
+  color: #8c2f26;
+}
+.chip-amber {
+  background: #fdf3dc;
+  border-color: #e8ce94;
+  color: #6f4e0e; /* darkened from the brief's #7A5610 so amber text is not softer than gray's */
+}
+.chip-green {
+  background: #e7f4ec;
+  border-color: #a9d4bb;
+  color: #1f5c38;
+}
+.chip-gray {
+  background: #f0efec;
+  border-color: #dbd8d2;
+  color: #565350;
+}
+
+/* FAQ accordion */
+.faq-heading {
+  font-size: clamp(32px, 4.8vw, 68px);
+  letter-spacing: -0.5px;
+  word-spacing: 0.12em;
+}
+.faq-row {
+  background: var(--surface);
+  border: none;
+  border-radius: 18px;
+  padding: 32px 40px;
+  transition: background 0.2s ease;
+}
+.faq-row:hover {
+  background: var(--surface-hover);
+}
+.faq-row.is-open {
+  background: var(--card);
+}
+.faq-trigger {
+  font-size: 22px;
+  letter-spacing: -0.2px;
+}
+.faq-answer {
+  font-size: 18px;
+}
+.faq-chevron {
+  color: #141414;
+  margin-top: 3px; /* (22px × 1.3 − 22) / 2 */
+  transition: transform 0.2s ease;
+}
+@media (max-width: 639px) {
+  .faq-heading {
+    word-spacing: 0.06em;
+  }
+  .faq-row {
+    padding: 22px 24px;
+  }
+  .faq-trigger {
+    font-size: 18px;
+  }
+  .faq-answer {
+    font-size: 16px;
+  }
+  .faq-chevron {
+    margin-top: 1px; /* (18px × 1.3 − 22) / 2 */
+  }
+}
+
+/* Contact: social links. Colour/border always transition; transforms only when motion is allowed. */
+.social-link .social-circle {
+  color: #141414;
+  box-shadow: none;
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+.social-link .social-handle {
+  transition: color 0.22s ease;
+}
+.social-link:hover .social-circle,
+.social-link:focus-visible .social-circle {
+  border-color: #141414;
+  color: var(--brand);
+  box-shadow: 0 10px 24px rgba(20, 20, 20, 0.12);
+}
+.social-link:hover .social-handle,
+.social-link:focus-visible .social-handle {
+  color: #141414;
+}
+.social-link:active .social-circle {
+  box-shadow: 0 5px 12px rgba(20, 20, 20, 0.06);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .social-link .social-circle {
+    transform: scale(1);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+  }
+  .social-link:hover .social-circle,
+  .social-link:focus-visible .social-circle {
+    transform: scale(1.08) translateY(-3px);
+  }
+  .social-link:active .social-circle {
+    transform: scale(1.02);
+  }
+}
+
+/* Contact CTA: hover colour always; the one-shot entrance only when motion is allowed. */
+.email-cta {
+  transition: background-color 0.2s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .email-cta {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: background-color 0.2s ease, opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .email-cta.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Footer + feedback */
+.site-footer {
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  padding: 88px 20px 40px;
+}
+/* Scroll reveal: the page content (z 1) slides up over the sticky footer (z 0). Nav is z 100.
+   Their parent (#top) must never get overflow:hidden or a transform. Desktop + motion-ok only. */
+.page-content {
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+}
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+  .page-content {
+    border-bottom-left-radius: 48px;
+    border-bottom-right-radius: 48px;
+  }
+  .site-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 0;
+  }
+}
+.footer-link {
+  display: inline-block;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--footer-text);
+  border-radius: 6px;
+  text-decoration: none;
+  transform-origin: left center;
+  transition: color 0.22s ease, opacity 0.22s ease;
+}
+.footer-link:hover,
+.footer-link:focus-visible {
+  color: #ffffff;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .footer-link {
+    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.22s ease, opacity 0.22s ease;
+  }
+  .footer-link:hover,
+  .footer-link:focus-visible {
+    transform: translateX(8px) scale(1.08);
+  }
+}
+.footer-field {
+  background: var(--footer-field);
+  border: 1px solid var(--footer-line);
+  color: var(--footer-text);
+  transition: border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+}
+.footer-field::placeholder {
+  color: var(--footer-muted);
+}
+.footer-field:focus {
+  outline: none;
+  border-color: var(--footer-focus);
+  background: rgba(242, 244, 247, 0.09);
+  box-shadow: 0 0 0 4px rgba(242, 244, 247, 0.07); /* this ring is the focus indicator */
+}
+.footer-submit {
+  background: var(--footer-text);
+  color: var(--footer-bg);
+  transition: opacity 0.2s ease;
+}
+.footer-submit:hover:not(:disabled) {
+  opacity: 0.88;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .feedback-block {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .feedback-block.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hero drop zone. Transforms never affect layout, so neighbours stay put. */
+.hero-zone {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.hero-zone-preview {
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+}
+.hero-zone:hover {
+  border-color: #c8c4bc;
+  background: var(--card);
+  box-shadow: 0 12px 32px rgba(20, 20, 20, 0.08);
+}
+.hero-zone:hover .hero-zone-preview {
+  opacity: 0.75;
+}
+.hero-zone:active {
+  box-shadow: 0 6px 16px rgba(20, 20, 20, 0.04);
+}
+.hero-zone.is-over {
+  border: 2px dashed #141414;
+  background: #f0eee9;
+}
+.hero-zone.is-over .hero-zone-preview {
+  opacity: 0.25;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-zone {
+    transform: translateY(0);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+  }
+  .hero-zone-cta {
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .hero-zone:hover {
+    transform: translateY(-3px);
+  }
+  .hero-zone:hover .hero-zone-cta {
+    transform: scale(1.03);
+  }
+  .hero-zone:active {
+    transform: translateY(-1px);
+  }
+  .hero-zone.is-over {
+    transform: scale(1.01);
+  }
+  /* Entrance, once: .is-in is added by useRevealOnce. */
+  .hero-zone-wrap {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .hero-zone-wrap.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Page 2: horizontal step flow (≥1100px), stacked below ---------- */
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.flow-step {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px;
+  min-width: 0;
+  position: relative; /* trace overlay + impact ring */
+  box-shadow: none;
+  transition: opacity 0.55s ease, filter 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    flex-basis 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.22s ease, border-color 0.22s ease, box-shadow 0.4s ease;
+}
+/* 3px rule flush to the card's top inside edge, following its radius: accent while active, ink once done, none upcoming.
+   Drawn as a top border on a full-size pseudo (its own border-radius clips it) rather than overflow:hidden on the card,
+   which would clip the completion ring. */
+.flow-step::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 3px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.22s ease;
+}
+.flow-step.is-active {
+  background: color-mix(in srgb, var(--accent) 2%, var(--card));
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.flow-step.is-active::before {
+  border-top-color: var(--accent);
+}
+.flow-step.is-done {
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(20, 20, 20, 0.06);
+  cursor: pointer;
+}
+/* completed card body: the step's result, stacked and centred */
+.flow-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  text-align: center;
+  min-width: 0;
+}
+.flow-done > * {
+  max-width: 100%;
+}
+.flow-step.is-done::before {
+  border-top-color: #141414;
+}
+.flow-circle-active {
+  background: var(--accent);
+}
+/* travelling border: the SVG sits 1px inside the card so a 2px stroke covers the border exactly */
+.flow-trace {
+  position: absolute;
+  inset: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+}
+.flow-trace-base {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.flow-trace-run {
+  stroke: #141414;
+  stroke-width: 2;
+  stroke-dasharray: 100 100; /* static fallback: a solid 2px border */
+}
+.flow-step.is-just-done {
+  border-color: #141414;
+}
+/* upload panel: the drop zone fills the card below the intro line */
+.flow-step.is-upload.is-active,
+.flow-step.is-upload.is-active .flow-body.is-shown,
+.flow-step.is-upload.is-active .flow-body-inner,
+.flow-step.is-upload.is-active .flow-body-inner > div {
+  display: flex;
+  flex-direction: column;
+}
+.flow-step.is-upload.is-active .flow-body.is-shown,
+.flow-step.is-upload.is-active .flow-body-inner,
+.flow-step.is-upload.is-active .flow-body-inner > div {
+  flex: 1;
+  min-height: 0;
+}
+.flow-drop {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  margin-top: 20px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  overflow: hidden;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.flow-drop:hover {
+  background: var(--surface-hover);
+  border-color: #c8c4bc;
+}
+.flow-drop:focus-visible {
+  outline: 2px solid #141414;
+  outline-offset: 2px;
+}
+.flow-drop.is-over {
+  border: 2px dashed #141414;
+  background: #f0eee9;
+}
+.flow-drop-art {
+  position: absolute;
+  right: 20px;
+  bottom: -24px;
+  width: 180px;
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.flow-drop.is-over .flow-drop-art {
+  opacity: 0.14;
+}
+.flow-step.is-done:hover {
+  background: var(--surface-hover);
+  border-color: #c8c4bc;
+}
+.flow-step.is-todo {
+  pointer-events: none;
+}
+.flow-title {
+  font-size: 18px;
+}
+.flow-step.is-active .flow-title {
+  font-size: 24px;
+}
+.flow-body {
+  display: none;
+  padding-top: 28px;
+}
+.flow-body.is-shown {
+  display: block;
+}
+.flow-body-inner {
+  opacity: 1;
+  transform: none;
+}
+
+/* ladder: opacity always; blur + rise only when motion is allowed */
+.is-ahead-1 {
+  opacity: 0.7;
+}
+.is-ahead-2 {
+  opacity: 0.4;
+}
+.is-ahead-3 {
+  opacity: 0.2;
+}
+
+/* arrow connector: 120×24 SVG, gradient track + chevron, three states (colour = the svg's currentColor) */
+.flow-arrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 120px;
+  height: 24px;
+  align-self: center;
+  color: var(--border);
+  transition: opacity 0.55s ease, color 0.22s ease;
+}
+.flow-arrow-svg {
+  display: block;
+  overflow: visible;
+}
+.flow-arrow-head {
+  stroke: var(--text-muted);
+}
+.flow-arrow.is-working {
+  color: var(--accent);
+  opacity: 1;
+}
+.flow-arrow.is-complete {
+  color: #141414;
+  opacity: 1;
+}
+.flow-arrow.is-working .flow-arrow-head,
+.flow-arrow.is-complete .flow-arrow-head {
+  stroke: currentColor;
+}
+.flow-arrow.is-working .flow-arrow-track {
+  opacity: 0.5; /* the runner is the primary motion */
+}
+/* runner: 24×28 figure whose feet (y≈26) sit on the track (y=12 of the 24px box) */
+.flow-runner {
+  position: absolute;
+  left: 0;
+  top: -14px;
+  width: 24px;
+  height: 28px;
+  pointer-events: none;
+  transform: translateX(48px); /* static midpoint; motion below */
+}
+.flow-runner svg {
+  display: block;
+  width: 24px;
+  height: 28px;
+}
+.flow-runner .rf.b {
+  opacity: 0;
+}
+/* stacked (<1100px): the same arrow, pointing down; the rotated 120px visual overhangs the 24px box by 48px each side,
+   so 36px margin + 20px row gap leaves 8px clear of the cards. The runner would lie sideways here, so it is desktop-only. */
+.flow-arrow {
+  transform: rotate(90deg);
+  margin: 36px auto;
+}
+.flow-runner {
+  display: none;
+}
+
+/* report detail: a ghost copy of the row's flex so the down arrow lands under the report column */
+.flow-ghost {
+  display: flex;
+  justify-content: center;
+  height: 120px;
+  margin: 6px 0;
+}
+.flow-ghost-cell {
+  display: none;
+}
+.flow-ghost-cell.is-active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flow-ghost-gap {
+  display: none;
+}
+.flow-arrow.is-down {
+  transform: rotate(90deg) !important;
   margin: 0;
+}
+.flow-detail {
+  margin-top: 6px;
+}
+.flow-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+.flow-detail-col {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .flow-steps {
+    flex-direction: row;
+    justify-content: center;
+    gap: 28px;
+    min-height: 440px;
+    align-items: stretch; /* every column as tall as the active one; completed content sits at the top */
+  }
+  .flow-step {
+    flex: 1 1 15%; /* upcoming: icon + title only */
+  }
+  .flow-step.is-active {
+    flex: 1 1 46%;
+  }
+  .flow-step.is-done {
+    flex-basis: 22%;
+    min-width: 190px; /* room for a middle-ellipsised filename at 14px */
+    padding: 20px;
+  }
+  .flow-arrow {
+    transform: none;
+    align-self: flex-start;
+    margin: 33px 0 0; /* centred on the 34px icon circles (28px padding + 17px) */
+  }
+  .flow-runner {
+    display: block;
+  }
+  .flow-ghost {
+    justify-content: center;
+    gap: 28px;
+  }
+  .flow-ghost-cell {
+    display: block;
+    flex: 1 1 15%;
+    min-width: 0;
+    padding: 0 28px; /* same box as .flow-step so flex-shrink lands on the same widths */
+    border: 1px solid transparent;
+  }
+  .flow-ghost-cell.is-done {
+    flex-basis: 22%;
+    min-width: 190px;
+    padding: 0 20px;
+  }
+  .flow-ghost-cell.is-active {
+    display: flex;
+    flex-basis: 46%;
+  }
+  .flow-ghost-gap {
+    display: block;
+    flex: 0 0 120px; /* = .flow-arrow width */
+  }
+  .flow-detail-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .flow-step.is-ahead-1 {
+    filter: blur(1px);
+    transform: translateY(4px);
+  }
+  .flow-step.is-ahead-2 {
+    filter: blur(2px);
+    transform: translateY(8px);
+  }
+  .flow-step.is-ahead-3 {
+    filter: blur(3px);
+    transform: translateY(12px);
+  }
+  /* travelling border: only while the step is working */
+  .flow-step.is-active .flow-trace-run {
+    stroke-dasharray: 22 78;
+    animation: flow-trace 2s linear infinite;
+  }
+  /* completion, once: border draws in, card settles, one impact ring */
+  .flow-step.is-just-done .flow-trace-run {
+    stroke-dasharray: 100 100;
+    animation: flow-trace-draw 0.45s ease forwards;
+  }
+  .flow-step.is-just-done {
+    animation: flow-settle 0.5s cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+  .flow-step.is-just-done::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: flow-ring 0.6s ease-out forwards;
+  }
+  /* in progress: runner along the track, travelling dash beneath, pulsing chevron — one connector at a time */
+  .flow-runner {
+    transform: translateX(0);
+    animation: run-across 2.2s linear infinite;
+  }
+  .flow-runner .rf.a {
+    animation: gait-a 0.24s steps(1, end) infinite;
+  }
+  .flow-runner .rf.b {
+    animation: gait-b 0.24s steps(1, end) infinite;
+  }
+  /* in progress: travelling dash + pulsing chevron */
+  .flow-arrow.is-working .flow-arrow-track {
+    stroke-dasharray: 10 14;
+    animation: flow-dash 0.9s linear infinite;
+  }
+  .flow-arrow.is-working .flow-arrow-head {
+    animation: flow-pulse 1.8s ease-in-out infinite;
+  }
+  /* completed: draw once left to right, chevron pops */
+  .flow-arrow.is-complete .flow-arrow-track {
+    transform-box: view-box;
+    transform-origin: 0 0;
+    animation: flow-draw 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .flow-arrow.is-complete .flow-arrow-head {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: flow-pop 0.35s ease-out both;
+  }
+  /* content cross-fade */
+  .flow-body-inner {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .flow-body-inner.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .flow-body.is-leaving .flow-body-inner {
+    opacity: 0;
+    transform: none;
+    transition: opacity 0.2s ease;
+  }
+}
+@keyframes run-across {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(96px);
+  }
+}
+@keyframes gait-a {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes gait-b {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes flow-dash {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes flow-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes flow-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes flow-trace {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes flow-trace-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes flow-settle {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.025) translateY(-6px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes flow-ring {
+  from {
+    box-shadow: 0 0 0 0 rgba(20, 20, 20, 0.12);
+    transform: scale(1);
+  }
+  to {
+    box-shadow: 0 0 0 22px rgba(20, 20, 20, 0);
+    transform: scale(1.06);
+  }
+}
+@keyframes flow-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-step,
+  .flow-arrow {
+    transition: none;
+  }
+  .flow-step::before {
+    transition: none;
+  }
+}
+@media (max-width: 639px) {
+  .flow-step {
+    padding: 24px;
+  }
+  .flow-drop {
+    padding: 20px;
+  }
+}
+@media print {
+  .flow-step,
+  .flow-arrow {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .flow-body {
+    padding: 0;
+  }
+  .flow-body-inner {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .flow-trace,
+  .flow-ghost,
+  .flow-arrow,
+  .flow-runner,
+  .flow-step::before,
+  .flow-step:not(.print-report):not(.print-letter-page) {
+    display: none;
+  }
+  .flow-step {
+    background: #ffffff;
+  }
+  .flow-detail {
+    display: block;
+    margin-top: 24px;
+  }
+  .flow-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .flow-detail-col {
+    border: 0;
+    padding: 0;
+    border-top: 1px solid #ddd;
+    border-radius: 0;
+    padding-top: 16px;
+  }
 }

@@ -1,0 +1,305 @@
+{
+  "bill_id": "mock-bill-001",
+  "status": "ready",
+  "hospital_name": "Sample Multispeciality Hospital, Pune",
+  "bill_date": "2026-09-12",
+  "bill_image_url": null,
+  "reading": {
+    "lines_total": 16,
+    "lines_verified": 15,
+    "reconciliation": "reconciled"
+  },
+  "summary": {
+    "above_ceiling": 2,
+    "needs_clarification": 2,
+    "within_ceiling": 2,
+    "not_compared": 10,
+    "no_public_ceiling": 9,
+    "could_not_read": 1,
+    "total_amount_affected": "27690.18"
+  },
+  "reference_version": "NPPA data retrieved 2026-09-18",
+  "items": [
+    {
+      "index": 1,
+      "name": "Room rent — semi-private ward (3 days)",
+      "quantity": "3",
+      "rate": "4500.00",
+      "amount": "13500.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Room rent has no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic",
+        "arithmetic": "3 × 4,500.00 = 13,500.00 (matches)"
+      }
+    },
+    {
+      "index": 2,
+      "name": "Nursing charges (3 days)",
+      "quantity": "3",
+      "rate": "900.00",
+      "amount": "2700.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Nursing charges have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic",
+        "arithmetic": "3 × 900.00 = 2,700.00 (matches)"
+      }
+    },
+    {
+      "index": 3,
+      "name": "Consultant visit charges",
+      "quantity": "6",
+      "rate": "600.00",
+      "amount": "3600.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Doctor visit charges have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic",
+        "arithmetic": "6 × 600.00 = 3,600.00 (matches)"
+      }
+    },
+    {
+      "index": 4,
+      "name": "Operation theatre charges",
+      "quantity": "1",
+      "rate": "25000.00",
+      "amount": "25000.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Operation theatre charges have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic"
+      }
+    },
+    {
+      "index": 5,
+      "name": "Surgeon fee — PTCA",
+      "quantity": "1",
+      "rate": "30000.00",
+      "amount": "30000.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Professional fees have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic"
+      }
+    },
+    {
+      "index": 6,
+      "name": "Anaesthesia charges",
+      "quantity": "1",
+      "rate": "8000.00",
+      "amount": "8000.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Anaesthesia charges have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic"
+      }
+    },
+    {
+      "index": 7,
+      "name": "Coronary stent — drug-eluting (DES)",
+      "quantity": "1",
+      "rate": "65000.00",
+      "amount": "65000.00",
+      "severity": "red",
+      "amount_affected": "26735.00",
+      "headline": "Billed at ₹65,000.00, which is above the listed ceiling price of ₹38,265.00 for a drug-eluting stent.",
+      "rule_id": "PRICE_ABOVE_CEILING",
+      "notes": [
+        "Ceiling is inclusive of GST per the NPPA order; the bill does not show GST separately."
+      ],
+      "evidence": {
+        "reference_row": "Drug Eluting Stents (DES) including metallic DES and bioresorbable vascular scaffold",
+        "ceiling_per_unit": "38265.00",
+        "billed_rate": "65000.00",
+        "quantity": "1",
+        "so_number": "S.O. 1594(E)",
+        "so_date": "2024-04-01",
+        "rule_id": "PRICE_ABOVE_CEILING",
+        "match_confidence": "high"
+      }
+    },
+    {
+      "index": 8,
+      "name": "Inj. Ceftriaxone 1 g vial",
+      "quantity": "6",
+      "rate": "150.00",
+      "amount": "900.00",
+      "severity": "red",
+      "amount_affected": "585.48",
+      "headline": "Billed at ₹150.00 per vial, which is above the listed ceiling price of ₹52.42 per vial.",
+      "rule_id": "PRICE_ABOVE_CEILING",
+      "evidence": {
+        "reference_row": "Ceftriaxone 1 g injection (powder for solution), per vial",
+        "ceiling_per_unit": "52.42",
+        "ceiling_total": "314.52",
+        "billed_rate": "150.00",
+        "quantity": "6",
+        "so_number": "S.O. 2101(E)",
+        "so_date": "2026-04-01",
+        "rule_id": "PRICE_ABOVE_CEILING",
+        "match_confidence": "high"
+      }
+    },
+    {
+      "index": 9,
+      "name": "Tab. Pantoprazole 40 mg",
+      "quantity": "10",
+      "rate": "8.50",
+      "amount": "85.00",
+      "severity": "green",
+      "headline": "Billed at ₹8.50 per tablet, within the published ceiling of ₹9.71 per tablet.",
+      "rule_id": "PRICE_WITHIN_CEILING",
+      "evidence": {
+        "reference_row": "Pantoprazole 40 mg tablet, per tablet",
+        "ceiling_per_unit": "9.71",
+        "billed_rate": "8.50",
+        "quantity": "10",
+        "so_number": "S.O. 2101(E)",
+        "so_date": "2026-04-01",
+        "rule_id": "PRICE_WITHIN_CEILING",
+        "match_confidence": "high"
+      }
+    },
+    {
+      "index": 10,
+      "name": "IV fluid — Sodium chloride 0.9% 500 ml",
+      "quantity": "4",
+      "rate": "35.00",
+      "amount": "140.00",
+      "severity": "green",
+      "headline": "Billed at ₹35.00 per bottle, within the published ceiling of ₹36.21 per bottle.",
+      "rule_id": "PRICE_WITHIN_CEILING",
+      "evidence": {
+        "reference_row": "Sodium chloride 0.9% injection 500 ml, per bottle",
+        "ceiling_per_unit": "36.21",
+        "billed_rate": "35.00",
+        "quantity": "4",
+        "so_number": "S.O. 2101(E)",
+        "so_date": "2026-04-01",
+        "rule_id": "PRICE_WITHIN_CEILING",
+        "match_confidence": "high"
+      }
+    },
+    {
+      "index": 11,
+      "name": "Inj. Paracetamol 1 g / 100 ml IV",
+      "quantity": "3",
+      "rate": "150.00",
+      "amount": "450.00",
+      "severity": "amber",
+      "amount_affected": "346.50",
+      "headline": "This line may need clarification: if it is the 1 g/100 ml infusion, the billed rate of ₹150.00 is above the listed ceiling of ₹34.50, but the pack size on the bill could not be confirmed.",
+      "rule_id": "PRICE_ABOVE_CEILING_LOW_CONFIDENCE",
+      "notes": [
+        "Two NPPA rows could apply (100 ml and 50 ml infusion); the higher ceiling was used."
+      ],
+      "evidence": {
+        "reference_row": "Paracetamol 1000 mg / 100 ml infusion, per bottle",
+        "ceiling_per_unit": "34.50",
+        "ceiling_total": "103.50",
+        "billed_rate": "150.00",
+        "quantity": "3",
+        "so_number": "S.O. 2101(E)",
+        "so_date": "2026-04-01",
+        "rule_id": "PRICE_ABOVE_CEILING_LOW_CONFIDENCE",
+        "match_confidence": "medium"
+      }
+    },
+    {
+      "index": 12,
+      "name": "Tab. Amoxicillin + Clavulanic acid 625 mg",
+      "quantity": "10",
+      "rate": "22.00",
+      "amount": "220.00",
+      "severity": "amber",
+      "amount_affected": "23.20",
+      "headline": "This line may need clarification: billed at ₹22.00 per tablet against a listed ceiling of ₹19.68, but the bill does not state the strength, so the match is not certain.",
+      "rule_id": "PRICE_ABOVE_CEILING_LOW_CONFIDENCE",
+      "notes": [
+        "Matched on name only; 375 mg and 625 mg have different ceilings. The 625 mg row was used."
+      ],
+      "evidence": {
+        "reference_row": "Amoxicillin 500 mg + Clavulanic acid 125 mg tablet, per tablet",
+        "ceiling_per_unit": "19.68",
+        "ceiling_total": "196.80",
+        "billed_rate": "22.00",
+        "quantity": "10",
+        "so_number": "S.O. 2101(E)",
+        "so_date": "2026-04-01",
+        "rule_id": "PRICE_ABOVE_CEILING_LOW_CONFIDENCE",
+        "match_confidence": "medium"
+      }
+    },
+    {
+      "index": 13,
+      "name": "Lab — Complete blood count",
+      "quantity": "1",
+      "rate": "450.00",
+      "amount": "450.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Laboratory tests have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic"
+      }
+    },
+    {
+      "index": 14,
+      "name": "Lab — Lipid profile",
+      "quantity": "1",
+      "rate": "900.00",
+      "amount": "900.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Laboratory tests have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic"
+      }
+    },
+    {
+      "index": 15,
+      "name": "Pharmacy consumables — gloves, syringes, dressing",
+      "quantity": "25",
+      "rate": "160.00",
+      "amount": "4000.00",
+      "severity": "gray",
+      "gray_reason": "no_public_ceiling",
+      "headline": "Consumables have no published ceiling price in India.",
+      "rule_id": "NO_CEILING",
+      "evidence": {
+        "checks_run": "duplication, arithmetic",
+        "arithmetic": "25 × 160.00 = 4,000.00 (matches)"
+      }
+    },
+    {
+      "index": 16,
+      "name": "Inj. Amox— (rest of line unclear)",
+      "quantity": "",
+      "rate": "",
+      "amount": "1180.00",
+      "severity": "gray",
+      "gray_reason": "could_not_read",
+      "headline": "We could not read this line reliably, so we have not compared its price.",
+      "rule_id": "UNREADABLE_LINE",
+      "evidence": {
+        "reader_agreement": "low",
+        "readable_fields": "amount only"
+      }
+    }
+  ]
+}
