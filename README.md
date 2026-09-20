@@ -63,6 +63,8 @@ always leads with how many charges were actually compared.
 **Live** — open the site, click **Try a sample bill**. No upload needed.
 
 **Locally, offline, free** — `PROVIDER=local` makes zero network calls.
+Full setup, including deploying to **your own AWS account**, is in
+[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).
 
 ```bash
 py -3.12 -m venv venv
@@ -207,7 +209,13 @@ limits. Measurements in [`docs/LIMITS.md`](docs/LIMITS.md).
 Backend and frontend deploy separately and the frontend usually does not need
 the backend.
 
-Every console step and command — with the failures that cost us hours — is in
+**To deploy this to your own AWS account, follow
+[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).** Nothing in this repo points
+at anyone else's infrastructure — every AWS identifier is empty in
+`.env.example` and you supply your own. The second reader is optional; without
+Bedrock the app runs on Textract alone and says so on every report.
+
+Every console step, with the failures that cost us hours, is in
 [`docs/AWS_STEPS.md`](docs/AWS_STEPS.md). Two traps worth naming here:
 
 - **`--build-dir` is not optional on `sam build`.** Without it, build and

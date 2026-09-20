@@ -1,8 +1,11 @@
 # AWS steps
 
-Everything that touches an AWS account. **Claude never runs any of this** —
-it writes the steps, prints `AWS CHECKPOINT: run docs/AWS_STEPS.md section N`,
-and stops. You run it and paste the output back.
+Everything that touches an AWS account, written as it was actually done —
+including the failures and what each one really meant.
+
+**If you are deploying this to your own account, start with
+[`SELF_HOSTING.md`](SELF_HOSTING.md)**, which is the short ordered version.
+Come here for the detail, the console screens and the troubleshooting.
 
 Written for someone who has never used AWS. Every step says what it does, what
 it costs, and how to check it worked.
@@ -1034,8 +1037,13 @@ staged last time.
 Then, from the repo root:
 
 ```bash
-sam build --use-container --template infra/template.yaml --build-dir C:/Users/you/billsahi-build
+sam build --use-container --template infra/template.yaml --build-dir <ABSOLUTE_PATH_TO_A_BUILD_DIR>
 ```
+
+Pick any absolute path OUTSIDE the repo and outside any synced folder
+(OneDrive, Dropbox, iCloud) -- e.g. `~/billwise-build` or
+`C:/billwise-build`. A synced folder holds file handles open while SAM
+wipes the build directory, which fails as `[WinError 5] Access is denied`.
 
 **`--build-dir` IS NOT OPTIONAL, AND OMITTING IT DEPLOYS THE WRONG CODE
 SILENTLY.** `samconfig.toml` sets `build_dir`, but on 2026-09-20 a plain

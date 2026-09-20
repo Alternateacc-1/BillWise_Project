@@ -86,3 +86,8 @@ handoff/
 # that can drift. They are synthetic -- fake hospital, no patient names -- but
 # the repo carries no bill files at all, which is the simpler thing to promise.
 eval/demo_bills/
+
+# Per-developer editor/tooling config. launch.json hardcodes this machine's
+# node and venv paths, which differ on every box and break outright on
+# Linux/macOS. The commands it wraps are in the README.
+.vscode/

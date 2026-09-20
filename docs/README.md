@@ -24,6 +24,7 @@ your question is.
 
 | File | Read it when |
 |---|---|
+| [`SELF_HOSTING.md`](SELF_HOSTING.md) | **You want to run this yourself.** Local setup in ten minutes, and the ordered path to deploying it into your own AWS account, with what it costs and what the second reader is optional for. |
 | [`AWS_STEPS.md`](AWS_STEPS.md) | You are deploying, or something in AWS is behaving strangely. Every console step and command, written for someone who has never used AWS — including the six environment failures on the first deploy and exactly what each one actually meant. Section 11 is the frontend redeploy. |
 
 ## Contributing
