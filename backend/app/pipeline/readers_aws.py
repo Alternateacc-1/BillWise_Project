@@ -81,7 +81,7 @@ def parse_money(text: str | None) -> Decimal | None:
 # --------------------------------------------------------------------------
 
 def read_with_textract(content: bytes) -> ReaderOutput:
-    """Synchronous AnalyzeExpense. Caps at 10 MB / 10 pages, enforced upstream.
+    """Synchronous AnalyzeExpense. Caps at 4 MB / 10 pages, enforced upstream.
 
     Response shape per the AnalyzeExpense API reference:
       ExpenseDocuments[]

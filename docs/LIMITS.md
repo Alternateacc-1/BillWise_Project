@@ -303,3 +303,35 @@ Nova is a first-party AWS model, so it carries no Marketplace subscription and
 no offer to expire. A different model family is also arguably a BETTER
 cross-check than a second Anthropic model: the second reader exists to
 DISAGREE, and two similar models make correlated mistakes.
+
+### The upload ceiling is 4 MB, and it is not our choice
+
+Measured against the deployed stack on 2026-09-20, after a user hit a bare
+"Network error" uploading a phone photo:
+
+      3 MB  reached our code
+      4 MB  reached our code
+      5 MB  HTTP 413 from the gateway
+      8 MB  HTTP 413 from the gateway
+
+API Gateway base64-encodes a binary body into the Lambda invocation event,
+inflating it by about a third, and Lambda caps a synchronous event at 6 MB.
+So ~4.5 MB of file is the hard ceiling no matter what the UI claims. We had
+been advertising 10 MB in three places.
+
+**The failure mode is worse than the limit.** The gateway's 413 is generated
+BEFORE our code runs, so it carries no CORS headers, so the browser cannot
+read the response and reports a bare "Network error" instead. The user is told
+a file is within the limit, uploads it, and gets a network failure with no
+reason given.
+
+**A phone photo of a bill is routinely 3-8 MB, so this is the common case,
+not an edge case.** 4 MB will still reject plenty of them.
+
+**The real fix is not a smaller number.** Either downscale in the browser
+before upload -- a bill needs legibility, not 12 megapixels, and Textract does
+not benefit from the extra -- or upload straight to S3 with a presigned URL and
+have Lambda read it from there, which removes the 6 MB event limit entirely.
+The presigned route is the right one and is not built.
+
+Until then the honest thing is to state 4 MB and mean it.

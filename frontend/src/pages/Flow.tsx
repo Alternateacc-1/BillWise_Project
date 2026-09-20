@@ -38,7 +38,25 @@ const STEPS: { n: StepNo; title: string }[] = [
   { n: 4, title: 'Letter' },
 ]
 
-const MAX_BYTES = 10 * 1024 * 1024
+/**
+ * 4 MB, NOT 10 -- AND THE CEILING IS NOT OURS TO CHOOSE.
+ *
+ * API Gateway base64-encodes a binary body into the Lambda invocation event,
+ * which inflates it by about a third, and Lambda caps a synchronous event at
+ * 6 MB. So roughly 4.5 MB of file is the real ceiling, whatever we claim.
+ *
+ * Measured against the deployed stack 2026-09-20: 4 MB reached our code,
+ * 5 MB and 8 MB came back 413 from the gateway.
+ *
+ * THE 413 IS GENERATED BEFORE OUR CODE RUNS, so it carries no CORS headers,
+ * so the browser cannot read it and reports a bare "Network error" instead.
+ * A user with a normal phone photo saw a network failure for a file we had
+ * just told them was within the limit.
+ *
+ * Advertising a limit the infrastructure will not honour is the same class of
+ * problem as the rest of this project: stating something we cannot back.
+ */
+const MAX_BYTES = 4 * 1024 * 1024
 
 /** Drop a forced ?mock= state so the mock sequence can advance. No-op without one. */
 /**
@@ -65,7 +83,7 @@ export function validateFile(file: File): string | null {
     return `We can't read ${ext} files. Please upload a photo (JPG, PNG, HEIC) or a PDF.`
   }
   if (file.size === 0) return 'That file is empty. Please choose another one.'
-  if (file.size > MAX_BYTES) return `This file is ${mb(file.size)} MB. The limit is 10 MB — try a smaller photo or a compressed PDF.`
+  if (file.size > MAX_BYTES) return `This file is ${mb(file.size)} MB. The limit is 4 MB — try a smaller photo, or a compressed PDF.`
   return null
 }
 
@@ -737,7 +755,7 @@ function UploadStep({
           </button>
         </p>
         <ul className="mt-4 flex flex-wrap justify-center gap-2" aria-label="Accepted formats">
-          {['JPG', 'PNG', 'PDF', 'Up to 10 MB'].map((c) => (
+          {['JPG', 'PNG', 'PDF', 'Up to 4 MB'].map((c) => (
             <li key={c} className="rounded-full border border-line bg-card px-2.5 py-1 text-xs font-medium text-muted">
               {c}
             </li>
@@ -754,7 +772,7 @@ function UploadStep({
 
   return (
     <div>
-      <p className="text-muted">A photo or PDF of the bill, up to 10 MB. Clear, flat and well lit reads best.</p>
+      <p className="text-muted">A photo or PDF of the bill, up to 4 MB. Clear, flat and well lit reads best.</p>
       <div
         className={`flow-drop ${over ? 'is-over' : ''}`}
         role="group"

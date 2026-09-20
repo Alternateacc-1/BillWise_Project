@@ -17,7 +17,15 @@ BLOB_DIR = REPO_ROOT / "data" / "blobs"
 #: Upload limits, enforced BEFORE any billable call is made. Textract is
 #: priced per page, so a careless 400-page PDF is a real cost event.
 #: See docs/ARCHITECTURE.md, cost controls.
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024        # 10 MB
+# 4 MB. NOT a policy choice -- API Gateway base64-encodes the body into the
+# Lambda event (+~33%) and Lambda caps a synchronous event at 6 MB, so ~4.5 MB
+# of file is the hard ceiling. Measured 2026-09-20: 4 MB arrived, 5 MB and
+# 8 MB were refused with 413 by the gateway, before this code ran.
+#
+# Keeping 10 MB here would mean promising something the transport refuses --
+# and the gateway's 413 carries no CORS headers, so a browser cannot even read
+# the reason and shows a bare "Network error".
+MAX_UPLOAD_BYTES = 4 * 1024 * 1024         # 4 MB
 MAX_PAGES = 10
 
 #: content type -> file suffix. An upload whose type is not a key here is
