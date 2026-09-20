@@ -10,7 +10,6 @@ const focusRing =
 
 const NAV = ['About', 'FAQ', 'Contact', 'Feedback'] as const
 
-// Placeholders — replace before shipping.
 const CONTACT_EMAIL = 'contact@example.com'
 // No git remote is configured on this repo, so there is no URL to put here.
 // The previous value was INVENTED from the local git username and pointed at
@@ -60,13 +59,19 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
       <div className="page-content pb-24">
       <Nav />
 
-      <main>
+      <main className="relative">
+        {/* Backdrop image behind the hero (public/hero-backdrop.webp, used as supplied). Decorative, out of flow. */}
+        <div aria-hidden="true" className="hero-rays">
+          <img src="/hero-backdrop.webp" alt="" className="hero-backdrop" decoding="async" />
+        </div>
+
         {/* Hero */}
-        <section className="mx-auto max-w-[860px] px-4 pt-10 text-center">
+        <section className="mx-auto max-w-[960px] px-4 pt-10 text-center">
           <Badge />
           {/* Plus Jakarta Sans's full stop carries wide side-bearings; at this size that reads as a gap, so each one is pulled in. */}
           <h1 className="mt-3 text-[clamp(34px,4.6vw,64px)] font-bold leading-[1.05] tracking-[-1.6px] [word-spacing:normal]">
-            Every line of your hospital bill, checked against the price list<span className="-ml-[0.08em]">.</span>
+            Medical billing shouldn't require a detective<span className="-ml-[0.08em]">.</span> We check every line for you
+            <span className="-ml-[0.08em]">.</span>
           </h1>
           <p className="mx-auto mt-[14px] max-w-[660px] text-[19px] leading-[1.5] text-muted">
             Upload a photo or PDF. BillWise compares what has a published ceiling and shows you where every figure came from.
@@ -116,8 +121,7 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                   Questions, corrections to a price reference, or a hospital that wants to talk to us.
                 </p>
                 <EmailButton />
-                <p className="mt-3 text-[13px] text-muted">{CONTACT_EMAIL}</p>
-                <p className="mt-2.5 max-w-[380px] text-[14px] leading-[1.55] text-muted">
+                <p className="mt-3 max-w-[380px] text-[14px] leading-[1.55] text-muted">
                   We read every message. If you are writing about a specific bill, include the line number and the hospital's name — it
                   helps us check the reference faster.
                 </p>
@@ -135,17 +139,17 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                 <div className="rounded-[18px] bg-surface p-6">
                   <h3 className="text-[18px] font-bold">The project</h3>
                   {REPO_URL && (
-                  <a
-                    href={REPO_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`mt-3 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[15px] font-semibold text-[#141414] transition-colors hover:border-[#141414] ${focusRing}`}
-                  >
-                    View the source
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M7 17L17 7M9 7h8v8" />
-                    </svg>
-                  </a>
+                    <a
+                      href={REPO_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`mt-3 inline-flex items-center gap-2 rounded-full border border-line px-4 py-2.5 text-[15px] font-semibold text-[#141414] transition-colors hover:border-[#141414] ${focusRing}`}
+                    >
+                      View the source
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M7 17L17 7M9 7h8v8" />
+                      </svg>
+                    </a>
                   )}
                   <p className="mt-3 text-[14px] text-muted">Built for Bharat Builds, 2026.</p>
                 </div>
@@ -213,19 +217,19 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                   <p className="text-xs font-bold uppercase tracking-[1px] text-[color:var(--footer-muted)]">Project</p>
                   <ul className="mt-4 space-y-3.5">
                     {REPO_URL && (
-                    <li>
-                      <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
-                        GitHub
-                      </a>
-                    </li>
+                      <li>
+                        <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
+                          GitHub
+                        </a>
+                      </li>
                     )}
                     <li>
-                      <a href={`mailto:${CONTACT_EMAIL}`} className={`footer-link ${focusRing}`}>
+                      <a href="#contact" className={`footer-link ${focusRing}`}>
                         Email
                       </a>
                     </li>
                     <li>
-                      <a href="https://www.nppaindia.nic.in" target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
+                      <a href="https://nppa.gov.in/" target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
                         NPPA
                       </a>
                     </li>
@@ -241,7 +245,7 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
           <div className="mt-11 flex flex-col gap-4 border-t pt-6 text-[14px] text-[color:var(--footer-muted)] sm:flex-row sm:justify-between" style={{ borderColor: 'var(--footer-line)' }}>
             <p>© BillWise 2026 · Built for Bharat Builds</p>
             <p className="sm:max-w-[420px] sm:text-right">
-              Not legal or medical advice. Verdicts cite published NPPA data; always confirm with the hospital.
+              BillWise is not legal or medical advice — every verdict cites published NPPA data, so always confirm the details with your hospital.
             </p>
           </div>
         </div>

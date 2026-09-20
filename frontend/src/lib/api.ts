@@ -138,6 +138,9 @@ export interface BillReport {
 export interface CreateBillResponse {
   bill_id: string
   upload_url?: string
+  /** POST /bills only: how many lines the readers returned, and the reader's own note when that is zero. */
+  items_read?: number
+  note?: string
 }
 
 export interface LetterResponse {

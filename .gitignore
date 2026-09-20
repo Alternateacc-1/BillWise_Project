@@ -73,3 +73,9 @@ billwise-handoff.zip
 # source that mattered is integrated and logged in docs/CHANGES_BY_contributor.md.
 frontend-v2.zip
 frontend-handoff-b.zip
+
+# the contributor's working copy of the whole project, delivered as a folder (2026-09-20).
+# His frontend is integrated into frontend/ and his log is docs/CHANGES_BY_contributor.md.
+# NEVER COMMIT THIS FOLDER: data/blobs/ inside it holds REAL uploaded bills, and
+# it carries its own .env. Keep it out of the repo, not just out of `git add -A`.
+handoff/

@@ -3,8 +3,8 @@ import { generateLetter, type ApiError } from '../lib/api'
 
 const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-const btnPrimary = `rounded-full bg-ink px-6 py-3 text-base font-medium text-white transition-opacity disabled:opacity-40 ${focusRing}`
-const btnSecondary = `rounded-full border border-ink/20 bg-card px-6 py-3 text-base font-medium transition-colors hover:border-ink ${focusRing}`
+const btnPrimary = `rounded-full bg-ink px-[18px] py-2.5 text-[14px] font-medium text-white transition-opacity disabled:opacity-40 ${focusRing}`
+const btnSecondary = `rounded-full border border-ink/20 bg-card px-[18px] py-2.5 text-[14px] font-medium transition-colors hover:border-ink ${focusRing}`
 
 type State = { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; error: ApiError } | { kind: 'ready' }
 
@@ -45,14 +45,14 @@ export default function Letter({ billId, onDone, onText }: { billId: string; onD
   if (state.kind === 'idle') {
     return (
       <div>
-        <p className="text-muted">
+        <p className="text-[13px] text-muted">
           A polite letter to the hospital asking them to explain the flagged lines. You can edit it before sending.
         </p>
         <div className="mt-5 flex flex-col gap-[10px]">
-          <button type="button" onClick={generate} className={`${btnPrimary.replace('px-6 py-3', 'px-5 py-[14px]')} w-full whitespace-normal leading-snug`}>
+          <button type="button" onClick={generate} className={`${btnPrimary.replace('px-[18px] py-2.5', 'px-5 py-2.5')} w-full whitespace-normal leading-snug`}>
             <span className="line-clamp-2">Write a clarification letter</span>
           </button>
-          <button type="button" onClick={onDone} className={`${btnSecondary.replace('px-6 py-3', 'px-5 py-[14px]')} w-full whitespace-normal leading-snug`}>
+          <button type="button" onClick={onDone} className={`${btnSecondary.replace('px-[18px] py-2.5', 'px-5 py-2.5')} w-full whitespace-normal leading-snug`}>
             No thanks
           </button>
         </div>

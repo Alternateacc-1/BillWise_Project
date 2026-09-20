@@ -59,7 +59,7 @@ export default function About() {
       <div className="about-row">
         <div className="about-left">
           <h2 className="text-[44px] font-bold leading-[1.05] tracking-[-1px]">How BillWise reads a bill.</h2>
-          <ol className="mt-10">
+          <ol className="mt-8">
             {ITEMS.map((item, i) => (
               <li key={item.title} className={`about-item ${i === active ? 'is-active' : ''}`}>
                 <h3 className="text-[34px] font-bold leading-tight tracking-[-0.5px]">{item.title}</h3>
@@ -67,7 +67,7 @@ export default function About() {
               </li>
             ))}
           </ol>
-          <dl className="mt-9 space-y-5 border-t border-line pt-9">
+          <dl className="mt-7 space-y-4 border-t border-line pt-7">
             {FACTS.map(([label, value]) => (
               <div key={label}>
                 <dt className="text-[12px] uppercase tracking-[0.5px] text-[#9b9b9b]">{label}</dt>
@@ -75,7 +75,7 @@ export default function About() {
               </div>
             ))}
           </dl>
-          <p className="mt-7 max-w-[460px] text-[15px] leading-[1.6] text-[#8a8a8a]">
+          <p className="mt-6 max-w-[460px] text-[15px] leading-[1.6] text-[#8a8a8a]">
             Not compared is an expected result, not a failure. Most of an Indian hospital bill has no published
             ceiling — BillWise says so plainly instead of guessing. BillWise is not legal or medical advice.
           </p>
@@ -179,7 +179,10 @@ function CheckReadingIllustration() {
     <div>
       <p className="text-[15px] text-[#8a8a8a]">One line was hard to read. Confirm it before we check the price.</p>
       <div className="mt-4 flex gap-4">
-        <div className="flex h-36 w-28 shrink-0 items-center justify-center rounded-xl bg-surface-hover text-[11px] text-muted">bill crop</div>
+        {/* A real crop: the illustration at 0.85, offset so the stent line and its neighbours fill the frame. */}
+        <div aria-hidden="true" className="relative h-36 w-28 shrink-0 overflow-hidden rounded-xl border border-line bg-card">
+          <div className="about-crop absolute" style={{ left: -165, top: -201 }} dangerouslySetInnerHTML={{ __html: billIllustration }} />
+        </div>
         <div className="min-w-0 flex-1 space-y-3">
           {fields.map(([label, value]) => (
             <div key={label}>

@@ -10,6 +10,7 @@ export const CHIP_LABEL: Record<Severity, string> = {
 
 const SIZE = {
   md: 'px-2.5 py-0.5 text-xs',
+  s: 'px-2 py-0.5 text-[11px] leading-4',
   sm: 'px-2 py-0.5 text-[10px] leading-4',
   xs: 'px-1.5 py-px text-[9px] leading-3',
 }

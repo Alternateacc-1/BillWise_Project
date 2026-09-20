@@ -69,7 +69,7 @@ export function DropZone({ onStart, id }: { onStart: (file: File | null) => void
         <span className="hero-zone-cta mt-5 rounded-full bg-ink px-8 py-3.5 text-[17px] font-semibold text-white">Upload a bill</span>
         <span className="mt-2 text-sm text-muted">Drop a photo or PDF here, or click to get started</span>
         <span className="mt-3 flex flex-wrap justify-center gap-1.5">
-          {['JPG', 'PNG', 'PDF', 'up to 10MB'].map((t) => (
+          {['JPG', 'PNG', 'PDF', 'up to 4 MB'].map((t) => (
             <span key={t} className="rounded-full border border-line px-2 py-0.5 text-[11px] text-[#9b9b9b]">
               {t}
             </span>

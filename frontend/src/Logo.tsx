@@ -19,11 +19,11 @@ export function Logo({ height = 40, className = '', decorative = false }: { heig
 }
 
 /** Glyph beside the wordmark: print header and the flow page header. */
-export function Lockup({ height = 28 }: { height?: number }) {
+export function Lockup({ height = 28, wordmark = 24 }: { height?: number; wordmark?: number }) {
   return (
     <span className="inline-flex items-center gap-3">
       <Logo height={height} />
-      <span aria-hidden="true" className="text-2xl font-bold tracking-[-0.02em] text-ink">
+      <span aria-hidden="true" style={{ fontSize: wordmark }} className="font-bold tracking-[-0.02em] text-ink">
         BillWise
       </span>
     </span>

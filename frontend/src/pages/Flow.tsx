@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ChangeEvent, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SetStateAction } from 'react'
+import { Fragment, useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ChangeEvent, type Dispatch, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, type SetStateAction } from 'react'
+import { createPortal } from 'react-dom'
 import {
   SAMPLE_BILL_ID,
   confirmBill,
@@ -19,13 +20,13 @@ import runnerSvg from '../../public/runner.svg?raw'
 // Frame b ships hidden inline; the gait animation drives both frames by opacity instead.
 const RUNNER = runnerSvg.replace(' style="display:none"', '')
 import Letter from './Letter'
-import Report, { ReportDetail } from './Report'
+import Report, { DetailedAnalysis } from './Report'
 import { Chip, CHIP_LABEL } from '../Chip'
 
 export const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-bg'
-const btnPrimary = `rounded-full bg-ink px-6 py-3 text-base font-medium text-white transition-opacity disabled:opacity-40 ${focusRing}`
-const btnSecondary = `rounded-full border border-ink/20 bg-card px-6 py-3 text-base font-medium transition-colors hover:border-ink disabled:opacity-40 ${focusRing}`
+const btnPrimary = `rounded-full bg-ink px-[18px] py-2.5 text-[14px] font-medium text-white transition-opacity disabled:opacity-40 ${focusRing}`
+const btnSecondary = `rounded-full border border-ink/20 bg-card px-[18px] py-2.5 text-[14px] font-medium transition-colors hover:border-ink disabled:opacity-40 ${focusRing}`
 
 type StepNo = 1 | 2 | 3 | 4
 // Per-step accents: deliberately outside the verdict palette (red/amber/green/gray) so a step never reads as a verdict.
@@ -111,6 +112,20 @@ export default function Flow({ initialFile, onDone }: Props) {
   const [corrections, setCorrections] = useState<Record<number, ItemCorrection>>({})
   const [letterText, setLetterText] = useState('')
   const [correctionsSaved, setCorrectionsSaved] = useState(false)
+  // Step 2 never advances on its own. The API hands back a finished report
+  // straight from POST (there is no needs_review state on the wire), so the
+  // pause is a client decision: the user confirms, or saves corrections, and
+  // only that moves the flow to the report.
+  const [confirmed, setConfirmed] = useState(false)
+  // The reader's note when an upload came back with no lines at all (local mode has no OCR, say).
+  const [readerNote, setReaderNote] = useState('')
+
+  // Detailed analysis block: manual toggle, plus one automatic open per bill a second after the
+  // report is reached — unless the user has already scrolled or touched anything, in which case
+  // it opens but does not move the page. Reduced motion: opens at once, no scroll.
+  const [detailOpen, setDetailOpen] = useState(false)
+  const autoOpenedFor = useRef<string | null>(null)
+  const detailRef = useRef<HTMLElement>(null)
 
   // Step changes go through history so the browser back button walks the steps.
   const goStep = useCallback((n: StepNo) => {
@@ -139,6 +154,8 @@ export default function Flow({ initialFile, onDone }: Props) {
       setReport(null)
       setCorrections({})
       setCorrectionsSaved(false)
+      setConfirmed(false)
+      setDetailOpen(false)
       setBillId(null)
       clearMockParam() // a fresh upload follows the real sequence, not a forced state
       setUpload({ kind: 'uploading', progress: 0 })
@@ -149,6 +166,7 @@ export default function Flow({ initialFile, onDone }: Props) {
       }
       setUpload({ kind: 'done' })
       setBillId(res.data.bill_id)
+      setReaderNote(res.data.items_read === 0 ? res.data.note ?? '' : '')
       goStep(2)
     },
     [goStep],
@@ -166,6 +184,8 @@ export default function Flow({ initialFile, onDone }: Props) {
     setReport(null)
     setCorrections({})
     setCorrectionsSaved(false)
+    setConfirmed(false)
+    setDetailOpen(false)
     setBillId(null)
     clearMockParam()
     setUpload({ kind: 'uploading', progress: 1 })
@@ -179,6 +199,7 @@ export default function Flow({ initialFile, onDone }: Props) {
     }
     setUpload({ kind: 'done' })
     setBillId(res.data.bill_id)
+    setReaderNote('')
     goStep(2)
   }, [goStep])
 
@@ -192,43 +213,71 @@ export default function Flow({ initialFile, onDone }: Props) {
   }, [initialFile, startUpload])
 
   // ----- step 2: polling -----
-  // Advance happens once, when a ready report arrives — never in an effect, so browser back can revisit step 2.
-  const onPolled = useCallback(
-    (r: BillReport) => {
-      setReport(r)
-      if (r.status === 'ready') goStep(3)
-    },
-    [goStep],
-  )
+  // Polling only fetches the reading. Moving on is the user's click, below.
+  const onPolled = useCallback((r: BillReport) => setReport(r), [])
   const poll = usePoll(billId, active === 2 && upload.kind === 'done' && report?.status !== 'ready', onPolled)
 
   const [submit, setSubmit] = useState<{ kind: 'idle' } | { kind: 'busy' } | { kind: 'error'; error: ApiError; retry: () => void }>({ kind: 'idle' })
 
+  // "Looks right, continue": POST /confirm re-runs the engine on the accepted reading, then the report.
   const doConfirm = useCallback(async () => {
     if (!billId) return
-    if (report?.status === 'ready') return goStep(3) // revisiting a finished reading
+    if (confirmed) return goStep(3) // revisiting: already confirmed, nothing to re-run
     clearMockParam()
     setSubmit({ kind: 'busy' })
     const res = await confirmBill(billId)
     if (!res.ok) return setSubmit({ kind: 'error', error: res.error, retry: doConfirm })
     setSubmit({ kind: 'idle' })
-    onPolled(res.data)
-    if (res.data.status !== 'ready') poll.resume()
-  }, [billId, report?.status, goStep, onPolled, poll])
+    setReport(res.data)
+    setConfirmed(true)
+    goStep(3)
+  }, [billId, confirmed, goStep])
 
+  // "Save corrections": PUT /items stores them, but the engine only re-runs on /confirm —
+  // so saving is PUT then confirm, and the report the user lands on reflects the edits.
   const doSave = useCallback(async () => {
     if (!billId) return
     clearMockParam()
     setSubmit({ kind: 'busy' })
-    const res = await updateItems(billId, Object.values(corrections))
+    const put = await updateItems(billId, Object.values(corrections))
+    if (!put.ok) return setSubmit({ kind: 'error', error: put.error, retry: doSave })
+    const res = await confirmBill(billId)
     if (!res.ok) return setSubmit({ kind: 'error', error: res.error, retry: doSave })
     setSubmit({ kind: 'idle' })
     setCorrectionsSaved(true)
-    onPolled(res.data)
-    if (res.data.status !== 'ready') poll.resume()
-  }, [billId, corrections, onPolled, poll])
+    setReport(res.data)
+    setConfirmed(true)
+    goStep(3)
+  }, [billId, corrections, goStep])
 
   const unreadable = report?.items.filter((i) => i.gray_reason === 'could_not_read') ?? []
+
+  useEffect(() => {
+    if (active !== 3 || !report || !confirmed) return
+    if (autoOpenedFor.current === report.bill_id) return // once per bill: not on re-render, not on coming back
+    autoOpenedFor.current = report.bill_id
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDetailOpen(true)
+      return
+    }
+    let interacted = false
+    const mark = () => {
+      interacted = true
+    }
+    const events = ['wheel', 'touchstart', 'keydown', 'pointerdown', 'scroll'] as const
+    events.forEach((e) => window.addEventListener(e, mark, { passive: true }))
+    const open = window.setTimeout(() => {
+      setDetailOpen(true)
+      if (!interacted) {
+        // after the 0.4s expand, so "centre" is measured on the block's real height
+        window.setTimeout(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 450)
+      }
+    }, 1000)
+    return () => {
+      clearTimeout(open)
+      events.forEach((e) => window.removeEventListener(e, mark))
+    }
+  }, [active, report, confirmed])
 
 
   // Is the active step busy? Drives the animated connector leaving it.
@@ -267,10 +316,10 @@ export default function Flow({ initialFile, onDone }: Props) {
   }, [active, shown])
 
   return (
-    <main className="mx-auto w-full max-w-[1480px] px-5 py-10 sm:py-14">
+    <main className="mx-auto w-full max-w-[1400px] px-8 py-10 sm:py-14">
       <header className="mb-10 flex items-center justify-between print:hidden">
-        <Lockup />
-        <button type="button" onClick={onDone} className={`rounded-full px-2 text-[19px] font-bold text-ink transition-opacity duration-200 [transition-timing-function:ease] hover:opacity-65 ${focusRing}`}>
+        <Lockup height={22} wordmark={17} />
+        <button type="button" onClick={onDone} className={`rounded-full px-2 text-[16px] font-bold text-ink transition-opacity duration-200 [transition-timing-function:ease] hover:opacity-65 ${focusRing}`}>
           Home
         </button>
       </header>
@@ -336,8 +385,11 @@ export default function Flow({ initialFile, onDone }: Props) {
                           corrections={corrections}
                           setCorrections={setCorrections}
                           submit={submit}
+                          confirmed={confirmed}
+                          readerNote={readerNote}
                           onConfirm={doConfirm}
                           onSave={doSave}
+                          onRetake={() => goStep(1)}
                         />
                       )}
                       {n === 3 && report && (
@@ -370,8 +422,8 @@ export default function Flow({ initialFile, onDone }: Props) {
               </Fragment>
             ))}
           </div>
-          <section aria-label="Report details" className="flow-detail print-report">
-            <ReportDetail report={report} />
+          <section ref={detailRef} aria-label="Detailed analysis" className="flow-detail print-report">
+            <DetailedAnalysis report={report} open={detailOpen} onToggle={() => setDetailOpen((o) => !o)} />
           </section>
         </>
       )}
@@ -451,11 +503,11 @@ function Circle({ n, state }: { n: StepNo; state: StepState }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full transition-colors ${
+      className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full transition-colors ${
         state === 'todo' ? 'border border-ink/30 text-muted' : state === 'active' ? 'flow-circle-active text-white' : 'bg-[#141414] text-white'
       }`}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state === 'done' ? 3 : 2} strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={state === 'done' ? 3 : 2} strokeLinecap="round" strokeLinejoin="round">
         {state === 'done' ? <path d="M5 12l5 5L20 7" /> : ICONS[n]}
       </svg>
     </span>
@@ -545,7 +597,7 @@ function MiddleEllipsis({ name }: { name: string }) {
 
 function DocTile() {
   return (
-    <div aria-hidden="true" className="flex h-[120px] w-full items-center justify-center rounded-xl border border-line bg-surface text-muted">
+    <div aria-hidden="true" className="flex h-[104px] w-full items-center justify-center rounded-xl border border-line bg-surface text-muted">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8zM14 3v5h5M9 13h6M9 17h6" />
       </svg>
@@ -555,20 +607,41 @@ function DocTile() {
 
 function UploadDone({ file, mock, onReplace }: { file: File | null; mock: boolean; onReplace: () => void }) {
   const [url, setUrl] = useState<string | null>(null)
+  const [preview, setPreview] = useState(false)
+  const thumbRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    if (!file || !file.type.startsWith('image/')) return setUrl(null)
-    const u = URL.createObjectURL(file)
+    if (!file) return setUrl(null)
+    const u = URL.createObjectURL(file) // one URL serves the thumbnail and the preview; revoked on unmount
     setUrl(u)
     return () => URL.revokeObjectURL(u)
   }, [file])
+  const isImage = !!file && file.type.startsWith('image/')
   const type = file ? (file.type.split('/')[1] || file.name.slice(file.name.lastIndexOf('.') + 1)).toUpperCase() : ''
+  const close = () => {
+    setPreview(false)
+    thumbRef.current?.focus() // focus returns to the thumbnail
+  }
   return (
     <>
-      {url ? (
-        <img src={url} alt="" className="max-h-[180px] w-full rounded-xl border border-line object-cover" />
+      {file && url ? (
+        // The thumbnail opens the preview; the card's own click (go back to step 1) must not fire.
+        <button
+          ref={thumbRef}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setPreview(true)
+          }}
+          aria-label={`Preview ${file.name}`}
+          aria-haspopup="dialog"
+          className={`w-full rounded-xl ${focusRing}`}
+        >
+          {isImage ? <img src={url} alt="" className="max-h-[120px] w-full rounded-xl border border-line object-cover" /> : <DocTile />}
+        </button>
       ) : (
         <DocTile />
       )}
+      {preview && file && url && <PreviewDialog url={url} name={file.name} isImage={isImage} onClose={close} />}
       {file ? <MiddleEllipsis name={file.name} /> : mock ? <span className="text-sm font-semibold">Mock bill</span> : null}
       {file && (
         <span className="text-[13px] text-muted">
@@ -586,6 +659,70 @@ function UploadDone({ file, mock, onReplace }: { file: File | null; mock: boolea
         Replace
       </button>
     </>
+  )
+}
+
+/**
+ * Full-size preview of the uploaded document. Portal to <body> so the fixed
+ * overlay is not caught by a transformed ancestor; clicks inside are stopped
+ * so the completed card underneath does not treat them as "go back to step 1".
+ */
+function PreviewDialog({ url, name, isImage, onClose }: { url: string; name: string; isImage: boolean; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const titleId = useId()
+  useEffect(() => {
+    closeRef.current?.focus()
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !ref.current) return
+      // focus stays inside the dialog
+      const focusable = [...ref.current.querySelectorAll<HTMLElement>('button, iframe, [tabindex]:not([tabindex="-1"])')]
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return createPortal(
+    <div
+      className="preview-backdrop"
+      onClick={(e) => {
+        e.stopPropagation()
+        if (e.target === e.currentTarget) onClose() // backdrop click, not a click on the document
+      }}
+    >
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} className="preview-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <p id={titleId} className="min-w-0 truncate text-[14px] font-semibold">
+            {name}
+          </p>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close preview" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-surface ${focusRing}`}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+        {isImage ? (
+          <img src={url} alt={`Uploaded bill: ${name}`} className="preview-media" />
+        ) : (
+          <iframe src={url} title={`Uploaded bill: ${name}`} className="preview-media preview-frame" />
+        )}
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -743,7 +880,7 @@ function UploadStep({
           <FilePicker label="Take a photo" accept="image/*" capture="environment" onChange={pick} />
           <FilePicker label="Choose a file" accept="image/*,application/pdf" onChange={pick} inputRef={pickRef} secondary />
         </div>
-        <p className="mt-4 text-sm text-muted">or drop a photo or PDF here</p>
+        <p className="mt-4 text-[11px] text-muted">or drop a photo or PDF here</p>
         <p className="mt-4 text-sm text-muted">
           No bill to hand?{' '}
           <button
@@ -772,7 +909,7 @@ function UploadStep({
 
   return (
     <div>
-      <p className="text-muted">A photo or PDF of the bill, up to 4 MB. Clear, flat and well lit reads best.</p>
+      <p className="text-[13px] text-muted">A photo or PDF of the bill, up to 4 MB. Clear, flat and well lit reads best.</p>
       <div
         className={`flow-drop ${over ? 'is-over' : ''}`}
         role="group"
@@ -830,8 +967,11 @@ function ReviewStep({
   corrections,
   setCorrections,
   submit,
+  confirmed,
+  readerNote,
   onConfirm,
   onSave,
+  onRetake,
 }: {
   report: BillReport | null
   poll: Poll
@@ -839,8 +979,11 @@ function ReviewStep({
   corrections: Record<number, ItemCorrection>
   setCorrections: Dispatch<SetStateAction<Record<number, ItemCorrection>>>
   submit: { kind: 'idle' } | { kind: 'busy' } | { kind: 'error'; error: ApiError; retry: () => void }
+  confirmed: boolean
+  readerNote: string
   onConfirm: () => void
   onSave: () => void
+  onRetake: () => void
 }) {
   const status = report?.status
 
@@ -876,8 +1019,6 @@ function ReviewStep({
     )
   }
 
-  // needs_review, or ready when the user came back to look again
-  const ready = status === 'ready'
   const get = (index: number, field: keyof ItemCorrection, fallback: string) =>
     corrections[index]?.[field] != null ? String(corrections[index][field]) : fallback
 
@@ -897,15 +1038,54 @@ function ReviewStep({
   }
 
   const busy = submit.kind === 'busy'
+  const { lines_verified: high, lines_total: total } = report.reading
+
+  // No lines at all: there is nothing to confirm, and "All 0 lines were read at high confidence" is not a sentence.
+  if (total === 0) {
+    return (
+      <div>
+        <Notice role="alert" action={{ label: 'Try another file', onClick: onRetake }}>
+          We could not read any lines from this file.{readerNote ? ` ${readerNote}` : ' A flatter, better-lit photo usually helps.'}
+        </Notice>
+      </div>
+    )
+  }
+
+  // Nothing flagged: still a pause, with one button. The sentence only claims
+  // "all at high confidence" when the count says so.
+  if (unreadable.length === 0) {
+    return (
+      <div>
+        <p className="text-[17px] font-medium leading-[1.4]">
+          {high === total
+            ? `All ${total} lines were read at high confidence. Nothing needs fixing.`
+            : `${high} of ${total} lines were read at high confidence. Nothing needs fixing.`}
+        </p>
+        {high < total && (
+          <p className="mt-3 text-[13px] text-muted">
+            The rest were read, but not confirmed by both readers — the report says which, and their prices are not compared.
+          </p>
+        )}
+        {submit.kind === 'error' && (
+          <Notice role="alert" action={{ label: 'Try again', onClick: submit.retry }} className="mt-5">
+            That didn't go through ({submit.error.message}). Nothing was lost.
+          </Notice>
+        )}
+        <div className="mt-6">
+          <button type="button" onClick={onConfirm} disabled={busy} className={btnPrimary}>
+            {busy ? 'Working…' : confirmed ? 'Continue to report' : 'Looks right, continue'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
-      <p className="text-muted">
-        {unreadable.length === 0
-          ? 'Every line read cleanly — there is nothing to correct here.'
-          : `Our two readers disagreed on ${unreadable.length === 1 ? 'one line' : `${unreadable.length} lines`}. Check ${
-              unreadable.length === 1 ? 'it' : 'them'
-            } against the bill and fix anything that's wrong. The rest of the bill read cleanly and isn't shown here.`}
+      <p className="text-[13px] text-muted">
+        {`Our two readers disagreed on ${unreadable.length === 1 ? 'one line' : `${unreadable.length} lines`}. Check ${
+          unreadable.length === 1 ? 'it' : 'them'
+        } against the bill and fix anything that's wrong. The rest of the bill read cleanly and isn't shown here.`}
       </p>
 
       <ul className="mt-5 space-y-4">
@@ -943,13 +1123,13 @@ function ReviewStep({
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
         <button type="button" onClick={onConfirm} disabled={busy} className={btnPrimary}>
-          {busy ? 'Working…' : ready ? 'Continue to report' : 'Looks right, continue'}
+          {busy ? 'Working…' : confirmed ? 'Continue to report' : 'Looks right, continue'}
         </button>
         <button type="button" onClick={onSave} disabled={busy || Object.keys(corrections).length === 0} className={btnSecondary}>
           Save corrections
         </button>
       </div>
-      <p className="mt-3 text-sm text-muted">
+      <p className="mt-3 text-[11px] text-muted">
         Continuing without fixing a line just means that line goes unchecked — nothing else on the bill is affected.
       </p>
     </div>

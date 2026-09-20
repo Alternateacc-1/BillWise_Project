@@ -20,7 +20,7 @@
   font-family: 'Plus Jakarta Sans';
   src: url('/fonts/PlusJakartaSans-Bold.woff2') format('woff2');
   font-weight: 700;
-  font-display: swap;
+  font-display: block; /* preloaded in index.html; the wordmark and nav links must not swap fonts (and re-flow) mid-entrance */
 }
 @font-face {
   font-family: 'Inter';
@@ -221,15 +221,10 @@ body {
     flex: 0 0 40%;
     width: auto;
     position: sticky;
-    top: 96px;
+    top: 80px;
     align-self: flex-start;
-    /* Taller than a 900px viewport at this type size: scroll inside, scrollbar hidden. */
-    max-height: calc(100vh - 140px);
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-  .about-left::-webkit-scrollbar {
-    display: none;
+    /* No max-height / overflow here: an inner scroll container swallows the wheel, so the page never moves
+       and the panels' IntersectionObserver never fires while the cursor is over this column. */
   }
   .about-right {
     flex: 1 1 60%;
@@ -237,9 +232,16 @@ body {
   }
 }
 
+/* About, step 2 panel: a crop of the bill illustration, scaled so a few line items fill the frame */
+.about-crop svg {
+  display: block;
+  width: 561px; /* 660 × 0.85 */
+  height: auto;
+}
+
 /* About: sticky step list. Below 900px every item is expanded and dark. */
 .about-item {
-  padding: 18px 0;
+  padding: 14px 0;
   color: #141414;
 }
 .about-item h3 {
@@ -331,6 +333,12 @@ body {
     animation: reveal-item var(--reveal-text-dur) ease var(--reveal-text-delay) forwards;
     will-change: filter, transform;
   }
+  /* Nav items animate transform and opacity only — no blur, no layout property. They are laid out in their
+     final position from the first frame; the hint is dropped with .is-arriving when the sequence ends. */
+  .nav-pill.is-arriving .reveal-item {
+    animation-name: reveal-item-flat;
+    will-change: transform, opacity;
+  }
 }
 @keyframes reveal-dot {
   from {
@@ -359,6 +367,19 @@ body {
   100% {
     width: 100%;
     height: 100%;
+  }
+}
+@keyframes reveal-item-flat {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  60% {
+    transform: translateY(20%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 @keyframes reveal-item {
@@ -619,6 +640,48 @@ body {
 }
 
 
+/* Hero background: the supplied image, unaltered, fading out below the drop zone. Motion is a slow drift on transform only. */
+.hero-rays {
+  position: absolute;
+  top: -140px; /* runs up behind the nav */
+  left: 0;
+  right: 0;
+  height: 1240px;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 62%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 62%, transparent 100%);
+}
+.hero-backdrop {
+  position: absolute;
+  top: 0;
+  left: -3%;
+  width: 106%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-backdrop {
+    animation: silk-drift 48s ease-in-out infinite alternate;
+  }
+}
+@keyframes silk-drift {
+  from {
+    transform: translateX(-1.4%);
+  }
+  to {
+    transform: translateX(1.4%);
+  }
+}
+@media print {
+  .hero-rays {
+    display: none;
+  }
+}
+
 /* Hero drop zone. Transforms never affect layout, so neighbours stay put. */
 .hero-zone {
   background: var(--card);
@@ -670,6 +733,43 @@ body {
   }
 }
 
+/* Upload preview overlay (page 2, completed Upload card) */
+.preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 20, 0.6);
+}
+.preview-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: 90vw;
+  max-height: 90vh;
+  background: var(--card);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(20, 20, 20, 0.3);
+  overflow: hidden;
+}
+.preview-media {
+  display: block;
+  max-width: 90vw;
+  max-height: calc(90vh - 56px); /* minus the title bar */
+  object-fit: contain;
+}
+.preview-frame {
+  width: 90vw;
+  height: calc(90vh - 56px);
+  border: 0;
+}
+@media print {
+  .preview-backdrop {
+    display: none;
+  }
+}
+
 /* ---------- Page 2: horizontal step flow (≥1100px), stacked below ---------- */
 .flow-steps {
   display: flex;
@@ -716,8 +816,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 6px;
+  margin-top: 16px;
   text-align: center;
   min-width: 0;
 }
@@ -817,7 +917,7 @@ body {
   font-size: 18px;
 }
 .flow-step.is-active .flow-title {
-  font-size: 24px;
+  font-size: 19px;
 }
 .flow-body {
   display: none;
@@ -930,6 +1030,33 @@ body {
 .flow-detail {
   margin-top: 6px;
 }
+/* The detailed-analysis surface: warm surface, BW glyph pattern + dot grid behind the panels. */
+.flow-detail-surface {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background-color: var(--surface);
+  background-image: radial-gradient(rgba(20, 20, 20, 0.11) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+.flow-detail-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: url('/logo.svg') 0 0 / 120px 144px repeat;
+  opacity: 0.04;
+  pointer-events: none;
+}
+.flow-detail-body.is-open .flow-detail-inner {
+  padding: 48px 32px;
+}
+.flow-detail-inner {
+  padding: 0 32px;
+  transition: padding 0.4s ease;
+}
 .flow-detail-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -938,57 +1065,231 @@ body {
 .flow-detail-col {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 18px;
   min-width: 0;
+}
+/* Report column teaser: five half-height rows fading out */
+.report-teaser {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent);
+  mask-image: linear-gradient(to bottom, #000 40%, transparent);
+}
+.report-teaser > div {
+  height: 14px;
+  line-height: 14px;
+}
+.report-teaser .chip {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 14px;
+}
+/* Detailed analysis: collapsible body */
+.flow-detail-chevron {
+  display: inline-flex;
+  transition: transform 0.2s ease;
+}
+.flow-detail-chevron.is-open {
+  transform: rotate(180deg);
+}
+.flow-detail-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s ease;
+}
+.flow-detail-body.is-open {
+  grid-template-rows: 1fr;
+}
+.flow-detail-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+/* The arc: five panels in one grid cell, positioned by transform. Three visible, centre in focus. */
+.arc {
+  position: relative;
+  padding: 32px 88px 32px 0;
+  outline: none;
+}
+.arc:focus-visible {
+  border-radius: 20px;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px #111111;
+}
+.arc-track {
+  position: relative; /* height is set from the centre panel by DetailedAnalysis */
+}
+.arc-panel {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 450px);
+  width: 900px;
+  max-width: 100%;
+  height: 420px;
+  overflow-y: auto; /* only a panel taller than 420px actually scrolls */
+  border-radius: 20px;
+  transform-origin: center bottom;
+  box-shadow: 0 2px 10px rgba(20, 20, 20, 0.04);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease, box-shadow 0.4s ease;
+}
+.arc-panel.is-centre {
+  z-index: 3;
+  box-shadow: 0 8px 28px rgba(20, 20, 20, 0.08);
+}
+/* entrance, once: the surface fades/rises/unblurs, the three visible panels' contents follow at 0 / 80 / 160ms */
+@media (prefers-reduced-motion: no-preference) {
+  .flow-detail-surface.is-entering {
+    animation: detail-in 0.55s ease both;
+  }
+  .flow-detail-surface.is-entering .arc-panel.is-centre .arc-panel-inner {
+    animation: detail-in 0.55s ease both;
+  }
+  .flow-detail-surface.is-entering .arc-panel.is-left .arc-panel-inner {
+    animation: detail-in 0.55s ease 80ms both;
+  }
+  .flow-detail-surface.is-entering .arc-panel.is-right .arc-panel-inner {
+    animation: detail-in 0.55s ease 160ms both;
+  }
+}
+@keyframes detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.arc-panel.is-left,
+.arc-panel.is-right {
+  z-index: 2;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.arc-panel.is-left {
+  transform: translateX(-22%) translateY(28px) scale(0.86) rotate(-6deg);
+}
+.arc-panel.is-right {
+  transform: translateX(22%) translateY(28px) scale(0.86) rotate(6deg);
+}
+.arc-panel.is-far-left,
+.arc-panel.is-far-right {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+.arc-panel.is-far-left {
+  transform: translateX(-44%) translateY(28px) scale(0.8);
+}
+.arc-panel.is-far-right {
+  transform: translateX(44%) translateY(28px) scale(0.8);
+}
+.arc-controls {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.arc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: #141414;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+}
+.arc-btn:hover:not(:disabled) {
+  border-color: #141414;
+}
+.arc-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* below 1100px: a plain stack */
+.arc.is-stacked {
+  padding: 0;
+}
+.arc.is-stacked .arc-track {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.arc.is-stacked .arc-panel {
+  position: static;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-detail-body,
+  .flow-detail-chevron,
+  .arc-panel {
+    transition: none;
+  }
 }
 
 @media (min-width: 1100px) {
   .flow-steps {
     flex-direction: row;
     justify-content: center;
-    gap: 28px;
-    min-height: 440px;
-    align-items: stretch; /* every column as tall as the active one; completed content sits at the top */
+    gap: 18px;
+    align-items: flex-start; /* landscape cards: inactive ones a fixed 260px, the active one grows */
   }
   .flow-step {
-    flex: 1 1 15%; /* upcoming: icon + title only */
+    flex: 1 1 17.3%;
+    height: 300px;
+    padding: 20px;
+    overflow: hidden;
   }
   .flow-step.is-active {
-    flex: 1 1 46%;
+    flex: 1 1 48%;
+    height: auto;
+    min-height: 300px;
+    overflow: visible; /* grows to its content; no internal scrollbar (the 560px target is measured, not enforced — see the log) */
   }
   .flow-step.is-done {
-    flex-basis: 22%;
-    min-width: 190px; /* room for a middle-ellipsised filename at 14px */
     padding: 20px;
   }
   .flow-arrow {
     transform: none;
     align-self: flex-start;
-    margin: 33px 0 0; /* centred on the 34px icon circles (28px padding + 17px) */
+    margin: 25px 0 0; /* centred on the 30px icon circles (20px padding + 15px − 12px half-height − 1px border) */
   }
   .flow-runner {
     display: block;
   }
   .flow-ghost {
     justify-content: center;
-    gap: 28px;
+    gap: 18px;
   }
   .flow-ghost-cell {
     display: block;
-    flex: 1 1 15%;
+    flex: 1 1 17.3%;
     min-width: 0;
-    padding: 0 28px; /* same box as .flow-step so flex-shrink lands on the same widths */
+    padding: 0 20px; /* same box as .flow-step so flex-shrink lands on the same widths */
     border: 1px solid transparent;
   }
   .flow-ghost-cell.is-done {
-    flex-basis: 22%;
-    min-width: 190px;
     padding: 0 20px;
   }
   .flow-ghost-cell.is-active {
     display: flex;
-    flex-basis: 46%;
+    flex-basis: 48%;
+    padding: 0 20px;
   }
   .flow-ghost-gap {
     display: block;
@@ -1228,6 +1529,40 @@ body {
   .flow-detail {
     display: block;
     margin-top: 24px;
+  }
+  .flow-detail-body {
+    grid-template-rows: 1fr;
+  }
+  .flow-detail-inner {
+    overflow: visible;
+  }
+  .arc {
+    padding: 0;
+  }
+  .arc-track {
+    display: block;
+    height: auto !important;
+  }
+  .arc-panel {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    transform: none !important;
+    opacity: 1 !important;
+    box-shadow: none;
+    margin-bottom: 16px;
+  }
+  .flow-detail-surface,
+  .flow-detail-surface::before {
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  .flow-step {
+    height: auto;
+    max-height: none;
+    overflow: visible;
   }
   .flow-detail-grid {
     grid-template-columns: 1fr;
