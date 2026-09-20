@@ -210,25 +210,15 @@ def rule_r1_line_arithmetic(
     if abs(difference) <= config.ARITHMETIC_TOLERANCE:
         return None
 
-    # THE DIRECTION OF THE DIFFERENCE IS THE WHOLE POINT -- THE SAME RULE R2
-    # APPLIES TO THE BILL TOTAL, ONE SCALE DOWN.
+    # Only an UNDERCHARGE is worth a question.
     #
-    # `difference > 0` means qty x rate comes to MORE than the line charges.
-    # The patient is being asked for LESS than the line itemises, which is
-    # what a per-line discount column looks like when we did not read it.
-    # Querying that is asking a pharmacy to explain its own discount.
+    # difference > 0 means qty x rate exceeds what the line charges, i.e. the
+    # patient is asked for less than the line itemises. That is what an
+    # unread per-line discount looks like, and querying it would be asking a
+    # pharmacy to explain its own discount.
     #
-    # Class F in FORMAT_FINDINGS.md, and it was the last of the three scales
-    # of one bug still live: bill totals (Class B), section subtotals read as
-    # line items (Class E), and line adjustments (this). B and E fell to the
-    # directional rule in R2; measured 2026-09-19 by eval/class_b_probe.py,
-    # which found this one still firing `R1 amber Rs 12.00` on a correct line
-    # carrying a 10% line discount.
-    #
-    # THIS NARROWS THE RULE, so it cannot introduce a false red. The direction
-    # worth a question -- the line charging MORE than it itemises -- is
-    # untouched, which is why bill_01 line 13 (125.00 computed, 130.00
-    # printed) still fires.
+    # The same directional test guards R2 at the bill-total scale. It only
+    # narrows the rule, so it cannot produce a false red.
     if difference > 0:
         return None
     return Flag(
@@ -347,22 +337,16 @@ def rule_r3_exact_duplicates(items: list[VerifiedItem]) -> list[Flag]:
     return flags
 
 
-#: A line may appear in at most one near-duplicate flag.
-#:
-#: R4 IS PAIRWISE, SO ITS OUTPUT IS QUADRATIC, AND THAT BROKE THE RESPONSE.
-#: Measured 2026-09-20: 200 lines sharing a unit price with similar names
-#: produced 15,228 flags and exactly 10.0 MB of JSON -- API Gateway's response
-#: limit -- and 400 lines produced 52,629 flags and 34.7 MB, which the gateway
-#: simply refuses. The bill never renders.
-#:
-#: THIS IS NOT ONLY AN ATTACK SHAPE. A long inpatient bill listing the same
-#: consumable at the same rate with batch or size suffixes -- "Surgical Glove
-#: Pair Size 7", "... Size 8" -- is exactly this pattern, and those bills are
-#: the ones most worth checking.
-#:
-#: Capping at one flag per line keeps the SIGNAL ("this line looks like line
-#: 12") while making the output linear. Telling somebody their bill contains
-#: fifty thousand pairs of similar lines was never useful anyway.
+# A line may appear in at most one near-duplicate flag.
+#
+# R4 is pairwise, so its output is quadratic. Without this cap, a few
+# hundred lines sharing a unit price and a similar name produce tens of
+# thousands of flags and a response too large for API Gateway to return --
+# the bill then never renders.
+#
+# That shape is not only an attack: a long inpatient bill listing the same
+# consumable with size or batch suffixes looks exactly like it. Capping
+# keeps the signal ("this line resembles line 12") and makes output linear.
 ONE_FLAG_PER_LINE = True
 
 
@@ -542,32 +526,24 @@ def rule_r5_above_ceiling(
     amber_at = config.amber_threshold(ceiling.per_base_unit)
     red_at = config.red_threshold(ceiling.per_base_unit)
 
-    # ----------------------------------------------------------------------
-    # THE UPPER-BOUND GATE. This is the strongest correctness claim in the
-    # project, and it exists because a bill that says "Qty 10" often does not
-    # say ten of WHAT.
+    # The upper-bound gate, and the strongest correctness claim here. It
+    # exists because a bill saying "Qty 10" often does not say ten of WHAT.
     #
-    # If one billed unit contains N base units, then
+    # If one billed unit holds N base units, then for some N >= 1:
     #
-    #     price per base unit  =  line_total / (qty x N)   for some N >= 1
-    #                          <= line_total / qty
+    #     per base unit = line_total / (qty * N)  <=  line_total / qty
     #
-    # So line_total/qty is an UPPER BOUND on the real per-unit price, never
-    # the price itself. Two consequences, and they are not symmetric:
+    # So line_total/qty is an UPPER BOUND, never the price. The two cases
+    # are not symmetric:
     #
-    #   bound <= allowance  ->  the item is within the ceiling FOR EVERY
-    #                           possible N. We can say green and be right
-    #                           whatever the pack turns out to be.
+    #   bound <= allowance -> within the ceiling for EVERY N. Safe to call
+    #                         green whatever the pack turns out to be.
+    #   bound >  allowance -> nothing follows. N=1 may be over and N=10
+    #                         under. Any verdict here is a guess.
     #
-    #   bound >  allowance  ->  nothing follows. N=1 might be above the cap
-    #                           and N=10 comfortably under it. Any verdict
-    #                           here is a guess dressed as a finding.
-    #
-    # Treating the bound as if it were the price is what produced a RED flag
-    # on a real wholesale invoice line priced at Rs 36 per STRIP against a
-    # Rs 0.93 per-TABLET ceiling -- 38.7x, which slipped under the 50x
-    # misread guard. See test_wholesale_strip_price_is_never_red.
-    # ----------------------------------------------------------------------
+    # Treating the bound as the price once produced a red on a wholesale
+    # line priced per STRIP against a per-TABLET ceiling.
+    # See test_wholesale_strip_price_is_never_red.
     if pack_certainty(normalized) == UNKNOWN:
         upper_bound = min(i["per_unit"] for i in interpretations)
         if upper_bound <= amber_at:
@@ -630,7 +606,7 @@ def rule_r5_above_ceiling(
     # The interpretation LEAST favourable to a flag decides. Using the
     # minimum per-unit price means an ambiguous pack size can never be the
     # reason an item turns red.
-    # D11, AND THE DIRECTION IS DELIBERATELY ASYMMETRIC.
+    # The direction is deliberately asymmetric.
     #
     # Newly-trusted pack evidence may REMOVE a flag immediately. It may not
     # RAISE one tonight: suppression can only narrow what we say, while
@@ -647,19 +623,15 @@ def rule_r5_above_ceiling(
     every_reading_above_red = all(i["above_red_threshold"] for i in interpretations)
     any_reading_above_amber = any(i["above_amber_threshold"] for i in trusted)
 
-    # WHY THERE IS NO "UPGRADE WITHHELD" BRANCH HERE.
+    # No "upgrade withheld" branch is needed: dropping per_billed_unit cannot
+    # promote an amber to a red. It divides by qty where per_pack_unit divides
+    # by qty * pack_count, so with pack_count > 1 the dropped reading is always
+    # the higher one, and removing a set's largest element can only leave
+    # all(above_threshold) unchanged or make it False.
     #
-    # Dropping per_billed_unit is STRUCTURALLY INCAPABLE of promoting an amber
-    # to a red through this variable, and proving that is better than gating
-    # it. per_billed_unit divides by qty; per_pack_unit divides by
-    # qty * pack_count. With pack_count > 1 the dropped reading is always the
-    # HIGHER one, and removing the largest element from a set can only make
-    # `all(above_threshold)` stay the same or become False -- never True.
-    #
-    # The real promotion lever is elsewhere: `ratio` below uses the HIGHEST
-    # per-unit reading, and narrowing THAT would shrink the ratio and let a
-    # line past the 50x misread guard. It is deliberately left on the FULL
-    # set, so the guard stays exactly as hard as it was before D11.
+    # The lever that COULD promote is `ratio` below, which uses the highest
+    # per-unit reading. It is deliberately left on the full set so the 50x
+    # misread guard stays exactly as hard.
 
     if not any_reading_above_amber:
         return None
@@ -827,7 +799,7 @@ def rule_r9_gray(
     # this medicine is", and a user can act on the first but not the second.
     if not item.is_high:
         detail.append("reading_not_high_confidence")
-        # A LINE NOBODY CHECKED IS NOT A LINE WE MISREAD.
+        # A line nobody checked is not a line we misread.
         #
         # `is_high` is withheld for several different reasons and they are not
         # equally our fault. When the ONLY thing missing is a second reader --
@@ -859,7 +831,7 @@ def rule_r9_gray(
                 "its price. It was still checked for duplication and arithmetic."
             )
     elif ceiling_search_exhausted and _resolution_is_complete(normalized):
-        # WE KNOW WHAT THIS IS, AND INDIA DOES NOT PUBLISH A CEILING FOR IT.
+        # We know what this is, and India does not price-control it.
         #
         # Reporting that as could_not_identify was a false statement about our
         # own system: we had the molecules, the strengths, the form and the
@@ -934,22 +906,16 @@ def audit(
         _line_exceeds_whole_bill(i, grand_total) for i in items
     )
 
-    # A SUM IS ONLY AS SOUND AS ITS WEAKEST TERM, AND THAT MEANS EVERY TERM.
+    # A sum is only as sound as its weakest term.
     #
-    # verify.py builds sum_of_line_totals from EVERY line with a number on it,
-    # trusted or not. So R2 was comparing a total assembled out of lines we had
-    # already refused to price against the printed total, and reporting the gap
-    # as the BILL's problem.
+    # verify.py builds sum_of_line_totals from every line carrying a number,
+    # trusted or not. Without this, R2 compared a total assembled from lines
+    # it had already refused to price against the printed total, and reported
+    # the gap as the bill's problem -- on bills that add up perfectly, where
+    # the reader had simply dropped a line.
     #
-    # Found 2026-09-20 by the user, on a real hospital bill that adds up
-    # perfectly: 7,700.00 + 3,558.84 = 11,258.84 printed. Textract dropped one
-    # 2,400.00 line and shuffled several others across a photographed page, our
-    # sum came to 8,985.68, and the report asked the hospital to explain
-    # Rs 2,273.16 that it had never charged.
-    #
-    # The rule already existed for the narrow case of a line worth more than
-    # the whole bill. The general case is the same argument: if we did not
-    # trust a line enough to price it, we cannot add it up and blame the total.
+    # If we did not trust a line enough to price it, we cannot add it up and
+    # blame the total.
     any_line_unverified = any(not i.is_high for i in items)
 
     bill_total_flag = rule_r2_bill_total(

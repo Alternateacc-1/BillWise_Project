@@ -1,4 +1,4 @@
-"""Uploaded file storage. A local directory now, S3 behind the same interface.
+"""Uploaded file storage. A local directory in local mode, S3 in AWS.
 
 SECURITY: the stored filename is derived ONLY from a server-generated bill id
 and a suffix taken from a fixed allowlist. The client's filename never
@@ -14,17 +14,13 @@ from . import config
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BLOB_DIR = REPO_ROOT / "data" / "blobs"
 
-#: Upload limits, enforced BEFORE any billable call is made. Textract is
-#: priced per page, so a careless 400-page PDF is a real cost event.
-#: See docs/ARCHITECTURE.md, cost controls.
-# 4 MB. NOT a policy choice -- API Gateway base64-encodes the body into the
-# Lambda event (+~33%) and Lambda caps a synchronous event at 6 MB, so ~4.5 MB
-# of file is the hard ceiling. Measured 2026-09-20: 4 MB arrived, 5 MB and
-# 8 MB were refused with 413 by the gateway, before this code ran.
+# Upload limits, enforced before any billable call. Textract is priced per
+# page, so an oversized PDF is a real cost event.
 #
-# Keeping 10 MB here would mean promising something the transport refuses --
-# and the gateway's 413 carries no CORS headers, so a browser cannot even read
-# the reason and shows a bare "Network error".
+# 4 MB is a transport limit, not a policy choice: API Gateway base64-encodes
+# the body into Lambda's event (+~33%) and Lambda caps that at 6 MB. Raising
+# it here would promise something the gateway refuses with a 413 that carries
+# no CORS headers, so the browser shows only "Network error".
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024         # 4 MB
 MAX_PAGES = 10
 
@@ -44,22 +40,15 @@ class UploadRejected(Exception):
     """Raised with a message safe to show the user."""
 
 
-#: The opening bytes of each format we accept, as hex.
-#:
-#: THE CLIENT SENDS THE CONTENT TYPE, SO IT IS A CLAIM, NOT A FACT -- and
-#: until 2026-09-20 we took it at face value. The PDF page-count guard below
-#: hangs off that claim: a PDF declared `image/jpeg` was given suffix `.jpg`,
-#: skipped the page check entirely, and went to Textract -- which detects the
-#: real format itself and bills PER PAGE.
-#:
-#: Verified against the live API before fixing: a PDF posted as `image/jpeg`
-#: returned HTTP 200 and was processed. One word in a header defeated the only
-#: thing standing between a public, unauthenticated endpoint and an unbounded
-#: Textract bill.
-#:
-#: Hex rather than escape sequences deliberately -- `\xff\xd8\xff` gets
-#: mangled by shells and editors, and a silently corrupted magic number would
-#: reject every real upload.
+# Opening bytes of each accepted format.
+#
+# The client-declared content type is a claim, not a fact, and the page-count
+# guard below hangs off it: a PDF declared image/jpeg would skip that check
+# and reach Textract, which detects the real format itself and bills per page.
+# So we check the bytes, not the header.
+#
+# Hex rather than escape sequences: the raw byte literals get mangled by
+# shells and editors, and a corrupted magic number rejects every real upload.
 MAGIC = {
     ".pdf":  bytes.fromhex("255044462d"),        # %PDF-
     ".jpg":  bytes.fromhex("ffd8ff"),            # JPEG start-of-image

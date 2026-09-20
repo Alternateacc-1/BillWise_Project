@@ -154,14 +154,10 @@ def verify_item(a: ReaderItem | None, b: ReaderItem | None) -> VerifiedItem:
             if not total_ok:
                 reasons.append("readers_disagree_on_line_total")
     else:
-        # NEVER IMPLY A CROSS-CHECK THAT DID NOT HAPPEN. `only_one_reader_ran`
+        # Never imply a cross-check that did not happen. `only_one_reader_ran`
         # is recorded explicitly, because "single_reader_high_confidence:97"
-        # on its own reads like a strong result when it actually means the
-        # second opinion is missing and nothing was compared.
-        #
-        # This mattered: PDFs silently got one reader until 2026-09-19, and
-        # the reports said "low confidence" rather than "no second reader" --
-        # stating a guarantee we were not providing.
+        # alone reads like a strong result when it actually means the second
+        # opinion is missing and nothing was compared.
         reasons.append("only_one_reader_ran")
         confidence = primary.confidence
         if confidence is not None and confidence >= SINGLE_READER_CONFIDENCE_MIN:
@@ -306,18 +302,14 @@ def verify_bill(bill: BillInput) -> tuple[list[VerifiedItem], ReadingStats]:
     if printed is None and bill.reader_b is not None:
         printed = bill.reader_b.printed_grand_total
 
-    # THE DIRECTION OF THE DIFFERENCE IS THE WHOLE POINT.
+    # Only an undercharge is worth a question.
     #
-    # R2 exists to protect a patient from being asked for more than the bill
-    # itemises. A printed total BELOW the line sum is the opposite situation:
-    # the patient pays less than the lines justify, which is what a discount
-    # or a round-off looks like when we did not manage to read it.
-    #
-    # Measured on the deployed stack 2026-09-19: Textract read the NET amount
-    # (431.00) rather than the subtotal (453.94) on a retail pharmacy bill,
-    # and we asked the pharmacy to explain the Rs 22.94 difference -- which
-    # was exactly their own printed discount plus round-off. We queried a
-    # bill for charging the patient LESS.
+    # R2 protects a patient from being asked for MORE than the bill itemises.
+    # A printed total BELOW the line sum is the opposite: the patient pays
+    # less than the lines justify, which is what an unread discount or
+    # round-off looks like. Without this, a reader that took a bill's NET
+    # amount instead of its subtotal made us query a pharmacy over its own
+    # printed discount.
     if printed is None:
         reconciliation = Reconciliation.NO_TOTAL_FOUND
     elif line_sum is None:

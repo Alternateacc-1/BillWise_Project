@@ -61,28 +61,21 @@ FUZZY_BRAND_MIN = 92
 
 
 # --------------------------------------------------------------------------
-# Dosage-form abbreviations, for BRAND-INDEX LOOKUP ONLY.
+# Dosage-form abbreviations, for brand-index lookup only.
 #
-# A bill writes "PANTOCID DSR CAP"; the brand index is keyed
-# "pantocid dsr capsule". The lookup missed on CAP vs capsule and the line was
-# labelled could_not_identify -- which blames US for a failure that is really
-# a spelling convention. Measured on a real retail pharmacy bill: three of six
-# lines were lost this way.
+# A bill writes "PANTOCID DSR CAP"; the index is keyed "... capsule". The
+# lookup missed on CAP vs capsule and the line read could_not_identify,
+# blaming us for what is really a spelling convention.
 #
-# DELIBERATELY AN EXPLICIT TABLE, NOT A NORMALISER. Every entry is an
-# unambiguous abbreviation of exactly one dosage form. There is no suffix
-# stripping and no fuzzy form inference, because "SR" and "ER" and "DT" are
-# NOT dosage forms -- they are RELEASE MODIFIERS, and collapsing them is the
-# bug that made dispersible aspirin (Rs 0.36) and plain aspirin (Rs 0.39)
-# collide in Phase 0b. form_modifier stays a match criterion.
+# An explicit table, NOT a normaliser. Every entry expands to exactly one
+# dosage form. No suffix stripping and no fuzzy inference, because SR, ER
+# and DT are release MODIFIERS, not forms -- collapsing them made
+# dispersible aspirin and plain aspirin (different ceilings) collide.
+# To add an entry: it must have no reading under which it means something
+# else.
 #
-# TO ADD AN ENTRY: it must expand to exactly one dosage form, with no reading
-# under which it means something else. If it does not, leave it out.
-#
-# THIS IS A LOOKUP ALIAS AND NOTHING ELSE. It never rewrites the bill's text.
-# item.name keeps the exact printed string, so every flag stays traceable to
-# what was actually on the page, and no expanded form reaches the auditor,
-# the report, or any evidence field.
+# This is a lookup alias only. item.name keeps the bill's exact printed
+# string, so no expanded form reaches the auditor, the report or evidence.
 # --------------------------------------------------------------------------
 
 DOSAGE_FORM_ALIASES = {

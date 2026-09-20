@@ -121,23 +121,17 @@ def _parse_expense(response: dict) -> ReaderOutput:
                     if kind and text is not None:
                         values[kind] = text
                     confidence = detected.get("Confidence")
-                    # ONLY THE FIELDS WE ACTUALLY READ COUNT TOWARD CONFIDENCE.
+                    # Only the fields we actually read count toward the score.
                     #
-                    # AnalyzeExpense returns more per row than we consume:
-                    # EXPENSE_ROW (the entire row as one string), PRODUCT_CODE,
-                    # and occasionally untyped fields. EXPENSE_ROW in
-                    # particular scores lower than the individual cells,
-                    # because it is a longer and messier piece of text.
+                    # AnalyzeExpense returns more per row than we consume --
+                    # EXPENSE_ROW (the whole row as one string), PRODUCT_CODE,
+                    # sometimes untyped fields. EXPENSE_ROW scores lower,
+                    # being longer and messier text.
                     #
                     # The line's score is a MINIMUM, so any one of those drags
-                    # the whole row down -- and in single-reader mode a row
-                    # under 95 is never trusted, so its price is never
-                    # compared. That is a verdict decided by a field we
-                    # discard.
-                    #
-                    # Measured 2026-09-20 on a real invoice: seven lines read
-                    # correctly, names and amounts matching the paper, and six
-                    # came back below the floor.
+                    # the row down, and a row under 95 is never trusted in
+                    # single-reader mode. Including them let a discarded field
+                    # decide whether a real price got compared.
                     if confidence is not None and kind in CONFIDENCE_FIELDS:
                         confidences.append(float(confidence))
                     page = field.get("PageNumber") or page
