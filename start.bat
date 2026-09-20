@@ -7,6 +7,8 @@ setlocal
 set "ROOT=%~dp0"
 
 echo Starting BillWise...
+REM Needs a venv at venv\, `npm install` already run in frontend\, and node
+REM on PATH. See README.md if a window closes immediately.
 echo.
 
 REM --- API (port 8000) -------------------------------------------
@@ -15,7 +17,7 @@ start "BillWise API" cmd /k ^
 
 REM --- UI (port 5173) --------------------------------------------
 start "BillWise UI" cmd /k ^
-  "cd /d "%ROOT%frontend" && "E:\node.exe" node_modules\vite\bin\vite.js --port 5173 --host 127.0.0.1"
+  "cd /d "%ROOT%frontend" && npm run dev -- --port 5173 --host 127.0.0.1"
 
 REM Give the servers a moment, then open the browser on the address
 REM that actually works. Use 127.0.0.1, not localhost: the servers bind
