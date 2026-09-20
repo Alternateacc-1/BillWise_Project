@@ -948,3 +948,130 @@ the next deploy.
 - **The Docker containers** left over from the SAM build. Local, free — though
   reclaiming the disk is worth it for other reasons.
 
+
+---
+
+# Section 10 — Amplify, FrontendOrigin, and the redeploy
+
+One pass. The CORS parameter rides along with the code changes, so this is a
+single `sam deploy`, not two.
+
+**Amplify does NOT need a GitHub repo.** Amplify Hosting has a git mode and a
+manual mode; manual takes a zip of the built folder and is the fast path when
+there is no remote. Use git mode later if you want deploy-on-push.
+
+## 10.0 Why a redeploy at all — measured, not assumed
+
+`FrontendOrigin` alone would NOT need a rebuild: it is a CloudFormation
+parameter, and a parameter change is `sam deploy` on its own. The rebuild is
+for the Python, which is stale. Probed 2026-09-20 against the live stack:
+
+| Probe | Live result | Why it matters |
+|---|---|---|
+| `POST /feedback` | **404** | the new landing page has a feedback form that calls it |
+| `GET /health` → `reader` | *"...verifying both"* | false; Bedrock is down and no cross-check runs |
+| directional R1 (Class F) | not deployed | landed after the last deploy |
+| Textract confidence scoping | not deployed | the fix that stops a discarded field deciding a verdict |
+
+NOT stale, and worth knowing before you plan around it: **the reduced brand
+index IS already deployed.** The live stack returns PANTOCID DSR as
+`no_public_ceiling`, which only resolves if the index is in the bundle.
+
+## 10.1 There is an ordering trap
+
+Amplify assigns the `*.amplifyapp.com` domain, but the API refuses that origin
+until `FrontendOrigin` is set — and the domain does not exist until Amplify
+has deployed. So Amplify goes FIRST, with a frontend that cannot reach the API
+yet, and the deploy in 10.3 is what brings it to life.
+
+Do not try to guess the domain in advance.
+
+## 10.2 Build the frontend and deploy it to Amplify
+
+```bash
+cd frontend && npm run build
+```
+
+That reads `.env.production`, so the bundle points at the deployed API. Then:
+
+1. Open **AWS Amplify**: https://us-east-1.console.aws.amazon.com/amplify/
+2. **Create new app** → **Deploy without Git provider**
+3. App name `billwise`, environment name `prod`
+4. **Drag the `frontend/dist` FOLDER** onto the drop zone (the folder itself,
+   not a zip of it, and not its contents)
+5. **Save and deploy**, then copy the domain it prints. It looks like
+   `https://prod.d1a2b3c4d5e6f7.amplifyapp.com`
+
+**Single-page routing:** this app reads its own URL for `?fixture=`, so a
+deep link must still serve `index.html`. In **App settings → Rewrites and
+redirects**, add:
+
+    Source:  /<*>
+    Target:  /index.html
+    Type:    404 (Rewrite)
+
+Without it a refresh on any path returns Amplify's 404 page.
+
+## 10.3 Stage, build and deploy the backend WITH the origin
+
+```bash
+python scripts/stage_lambda.py
+```
+
+Then, from the repo root — one command, and note it carries the Amplify
+origin you just copied:
+
+```bash
+sam build --use-container --template infra/template.yaml
+```
+
+```bash
+sam deploy --stack-name billsahi --region us-east-1 --capabilities CAPABILITY_IAM --parameter-overrides BedrockInferenceProfileId="us.anthropic.claude-sonnet-4-6" FrontendOrigin="https://PASTE-YOUR-AMPLIFY-DOMAIN" ReservedConcurrency="0"
+```
+
+**Replace `PASTE-YOUR-AMPLIFY-DOMAIN` with the real domain**, with `https://`
+and no trailing slash. A trailing slash does not match a browser's `Origin`
+header and the preflight will still fail.
+
+**`samconfig.toml` caches `FrontendOrigin=""` from the first deploy.** Passing
+`--parameter-overrides` on the command line beats it for this run, but a later
+bare `sam deploy` will silently go back to the blank value and break CORS
+again. Update the `parameter_overrides` line in `samconfig.toml` once the
+domain is known.
+
+The stack name stays `billsahi` even though the product is BillWise. Renaming
+it does not rename a stack — it creates a second one on a new URL and orphans
+this one.
+
+## 10.4 Prove it, from the Amplify origin
+
+```bash
+curl -s -o /dev/null -D - -X OPTIONS "https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/bills/sample" -H "Origin: https://PASTE-YOUR-AMPLIFY-DOMAIN" -H "Access-Control-Request-Method: POST" | grep -i access-control-allow-origin
+```
+
+It must echo your Amplify domain. No header means CORS is still refusing it —
+check for a trailing slash, and that the deploy actually changed the parameter.
+
+```bash
+curl -s -X POST "https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/feedback" -H "Content-Type: application/json" -d "{\"message\":\"deploy check\"}"
+```
+
+`{"ok":true}` means the new code is live. A 404 means the build did not ship.
+
+```bash
+curl -s https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/health
+```
+
+`reader` must no longer say "verifying both". While Bedrock is down it should
+describe a CONFIGURED second reader, not a performed one.
+
+Then open the Amplify URL and run **Try a sample bill**. If the report renders,
+the whole path is live: browser → Amplify → API Gateway → Lambda → the engine.
+
+## 10.5 What will still be true afterwards
+
+Until a payment method is on the account, Bedrock stays down, one reader runs,
+and **uploaded** bills come back gray — lines under the 95 single-reader floor
+are never priced. The bundled sample bills are unaffected: they carry two
+readings already, so they exercise the full red/amber path. Demo with those
+until the second reader is back.
