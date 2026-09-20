@@ -1121,3 +1121,54 @@ def test_a_single_reader_result_never_implies_a_cross_check():
     both = verify_item(only_a, only_a)
     assert "only_one_reader_ran" not in both.reasons
     assert any(r.startswith("both_readers_agree") for r in both.reasons)
+
+
+def test_a_line_nobody_cross_checked_is_not_reported_as_misread():
+    """A missing second reader is not a reading failure.
+
+    Found 2026-09-20 on a real invoice that was read PERFECTLY -- all seven
+    lines matched the paper -- and reported as "We could not read this line
+    reliably" on six of them. The only thing wrong was Bedrock returning
+    INVALID_PAYMENT_INSTRUMENT, so no second reader existed and a lone
+    Textract reading below the 95 floor cannot promote itself.
+
+    Blaming our own reading for a billing outage overstates our
+    unreliability in the one place the product is asking to be trusted.
+    The verdict is unchanged -- gray, unpriced -- only the sentence differs.
+    """
+    from app.models import GrayDetail
+    from app.pipeline.audit import audit
+    from app.pipeline.normalize import normalize_bill
+
+    item = VerifiedItem(
+        index=1, name="BENGAY GREASELESS 20Z", quantity=Decimal("2"),
+        line_total=Decimal("28.60"), confidence=ReadingConfidence.UNVERIFIED,
+        reasons=["only_one_reader_ran", "single_reader_low_confidence:88",
+                 "arithmetic_not_checkable:missing_values"],
+    )
+    flags = audit([item], normalize_bill([item]), _stats())
+    gray = [f for f in flags if f.gray_detail is not None]
+    assert gray, "an unpriceable line must still report a gray detail"
+    assert gray[0].gray_detail is GrayDetail.NOT_CROSS_CHECKED
+    assert "not a sign" in gray[0].explanation.lower()
+
+
+def test_a_genuinely_broken_reading_is_still_reported_as_misread():
+    """The other direction: NOT_CROSS_CHECKED must not swallow real failures.
+
+    Same missing second reader, but the arithmetic does not hold -- that IS
+    evidence against our reading, and it must keep saying so.
+    """
+    from app.models import GrayDetail
+    from app.pipeline.audit import audit
+    from app.pipeline.normalize import normalize_bill
+
+    item = VerifiedItem(
+        index=1, name="Something", quantity=Decimal("2"),
+        unit_price=Decimal("10.00"), line_total=Decimal("999.00"),
+        confidence=ReadingConfidence.UNVERIFIED,
+        reasons=["only_one_reader_ran", "arithmetic_does_not_hold"],
+    )
+    flags = audit([item], normalize_bill([item]), _stats())
+    gray = [f for f in flags if f.gray_detail is not None]
+    assert gray and gray[0].gray_detail is GrayDetail.COULD_NOT_READ

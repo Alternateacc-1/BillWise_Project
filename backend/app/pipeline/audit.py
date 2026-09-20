@@ -735,11 +735,37 @@ def rule_r9_gray(
     # this medicine is", and a user can act on the first but not the second.
     if not item.is_high:
         detail.append("reading_not_high_confidence")
-        gray_detail = GrayDetail.COULD_NOT_READ
-        explanation = (
-            "We could not read this line reliably, so we have not compared "
-            "its price. It was still checked for duplication and arithmetic."
+        # A LINE NOBODY CHECKED IS NOT A LINE WE MISREAD.
+        #
+        # `is_high` is withheld for several different reasons and they are not
+        # equally our fault. When the ONLY thing missing is a second reader --
+        # the arithmetic holds, the figures are sane, there is money on the
+        # line -- we have no evidence the reading is wrong, just nothing
+        # confirming it is right. Saying "we could not read this reliably"
+        # there is a false confession, and on a bill read perfectly it fills
+        # the screen with them.
+        reasons = set(item.reasons)
+        unconfirmed = (
+            "only_one_reader_ran" in reasons
+            and "arithmetic_does_not_hold" not in reasons
+            and "outside_sanity_bounds" not in reasons
+            and item.line_total is not None
         )
+        if unconfirmed:
+            gray_detail = GrayDetail.NOT_CROSS_CHECKED
+            explanation = (
+                "Only one reader ran on this bill, so nothing confirmed this "
+                "line and we have not compared its price. This is not a sign "
+                "the line was read wrongly -- it means it was not "
+                "double-checked. It was still checked for duplication and "
+                "arithmetic."
+            )
+        else:
+            gray_detail = GrayDetail.COULD_NOT_READ
+            explanation = (
+                "We could not read this line reliably, so we have not compared "
+                "its price. It was still checked for duplication and arithmetic."
+            )
     elif ceiling_search_exhausted and _resolution_is_complete(normalized):
         # WE KNOW WHAT THIS IS, AND INDIA DOES NOT PUBLISH A CEILING FOR IT.
         #

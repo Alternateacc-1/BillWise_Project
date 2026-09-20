@@ -227,3 +227,36 @@ yesterday shows **gray** today, because we proved we could not actually tell
 what its per-unit price was. The system got quieter and more correct in the
 same commit. That trade — made deliberately, with an argument behind it — is
 the thing worth demonstrating.
+
+---
+
+## The currency is assumed to be rupees, and nothing checks that
+
+Found 2026-09-20, on a real **Singapore** tax invoice uploaded through the
+deployed stack: amounts in **S$** were rendered as **₹**, line for line.
+
+Nothing in the pipeline reads a currency. `format_inr()` is applied to every
+figure because every bill this was designed for is Indian, and that assumption
+is nowhere stated and nowhere checked.
+
+**The deeper issue is not the symbol.** NPPA ceilings are Indian law. On a
+Singapore bill there is nothing to compare against at all, so every line is
+correctly unpriceable — but for a reason the report does not give. It says
+"No published ceiling" as though it had searched and found none, when the
+truth is the whole reference set is the wrong jurisdiction.
+
+What the report got RIGHT on that bill, and it is worth recording:
+  - all 7 lines read correctly, names and amounts matching the paper
+  - R2 abstained. Textract took a SUBTOTAL as the printed total, the line sum
+    came out above it, and the directional rule correctly said nothing rather
+    than querying a discount. Class B working on a real foreign bill.
+
+What it got WRONG:
+  - S$ shown as ₹
+  - no statement that the bill is outside the reference data's jurisdiction
+
+**Fix, when there is time:** read the currency (Textract AnalyzeExpense
+returns it), carry it as an explicit field, and ABSTAIN from the whole price
+comparison with a plain message when it is not INR -- the same shape as every
+other abstention here. Do not merely swap the symbol: that would make a
+jurisdiction error look like a formatting one.

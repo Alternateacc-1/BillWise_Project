@@ -46,6 +46,27 @@ class GrayDetail(str, Enum):
                           hold, or a value was outside sane bounds. We do not
                           trust our own reading of the line.
 
+    NOT_CROSS_CHECKED  -- we read the line, the arithmetic holds and the
+                          figures are sane, but only ONE reader ran, so
+                          nothing confirmed it. This is NOT a reading failure
+                          and must not be reported as one.
+
+                          Found 2026-09-20 on a real invoice read perfectly:
+                          all seven lines correct against the paper, and the
+                          report said "We could not read this line reliably"
+                          about six of them. The only thing that had gone
+                          wrong was Bedrock returning
+                          INVALID_PAYMENT_INSTRUMENT, so no second reader
+                          existed to agree with Textract -- and a single
+                          reader below the 95 confidence floor cannot be
+                          promoted on its own word.
+
+                          Blaming our own reading for a billing outage
+                          overstates our unreliability in the one place the
+                          product is asking to be trusted. The line stays
+                          gray and unpriced either way; only the sentence
+                          changes.
+
     COULD_NOT_IDENTIFY -- we read the line perfectly well, but could not work
                           out which medicine it is, so there is no ceiling to
                           compare against.
@@ -64,6 +85,7 @@ class GrayDetail(str, Enum):
     """
 
     COULD_NOT_READ = "could_not_read"
+    NOT_CROSS_CHECKED = "not_cross_checked"
     COULD_NOT_IDENTIFY = "could_not_identify"
     PACK_SIZE_UNKNOWN = "pack_size_unknown"
 

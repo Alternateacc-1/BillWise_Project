@@ -30,6 +30,8 @@ const GRAY_EXPLANATION = {
   // could_not_read would blame our reading for something else entirely.
   could_not_identify:
     'We read these lines clearly but could not work out which medicine they are, so there is no ceiling to compare them against.',
+  not_cross_checked:
+    'Only one reader ran on this bill, so nothing confirmed these lines and we have not compared their prices. This is not a sign they were read wrongly — it means they were not double-checked.',
   pack_size_unknown:
     'We know what these are and we read them correctly, but the bill does not say how many units each line covers — ten tablets or ten strips changes the per-unit price tenfold. Rather than guess, we have not compared them.',
 }
@@ -169,6 +171,7 @@ export function ReportDetail({ report }: { report: BillReport }) {
   // lines either vanished or were counted as misreads.
   const unidentified = gray('could_not_identify')
   const packUnknown = gray('pack_size_unknown')
+  const notCrossChecked = gray('not_cross_checked')
 
   return (
     <div>
@@ -213,6 +216,15 @@ export function ReportDetail({ report }: { report: BillReport }) {
             explanation={GRAY_EXPLANATION.pack_size_unknown}
           >
             <Rows items={packUnknown} />
+          </Column>
+        )}
+        {notCrossChecked.length > 0 && (
+          <Column
+            title="Not double-checked"
+            count={notCrossChecked.length}
+            explanation={GRAY_EXPLANATION.not_cross_checked}
+          >
+            <Rows items={notCrossChecked} />
           </Column>
         )}
         {unread.length > 0 && (

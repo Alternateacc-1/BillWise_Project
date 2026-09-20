@@ -40,6 +40,7 @@ export type GrayReason =
   | 'could_not_read'
   | 'could_not_identify'
   | 'pack_size_unknown'
+  | 'not_cross_checked'
 
 export type Reconciliation =
   | 'reconciled'
@@ -91,6 +92,7 @@ export interface BillSummary {
   could_not_read: number
   could_not_identify: number
   pack_size_unknown: number
+  not_cross_checked: number
   /** Lines that actually received a price verdict. The denominator. */
   compared: number
   total_amount_affected: string
@@ -243,6 +245,7 @@ function grayReasonOf(item: RawItem): GrayReason | undefined {
   if (item.gray_reason === 'no_public_ceiling') return 'no_public_ceiling'
   if (item.gray_detail === 'could_not_identify') return 'could_not_identify'
   if (item.gray_detail === 'pack_size_unknown') return 'pack_size_unknown'
+  if (item.gray_detail === 'not_cross_checked') return 'not_cross_checked'
   return 'could_not_read'
 }
 
@@ -289,6 +292,7 @@ function summariseFromItems(items: BillItem[], billFlags: RawFlag[]): BillSummar
     could_not_read: by('could_not_read'),
     could_not_identify: by('could_not_identify'),
     pack_size_unknown: by('pack_size_unknown'),
+    not_cross_checked: by('not_cross_checked'),
     // A PRICE VERDICT, NOT A COLOUR. An item can be amber from the duplicate
     // or arithmetic rules while its price was never compared to anything --
     // an amber duplicate on a line with no ceiling, say. `gray_reason` is set
