@@ -5,7 +5,12 @@ import Landing from './pages/Landing'
 export type Page = 'landing' | 'flow'
 
 const pathFor = (p: Page) => (p === 'flow' ? '/check' : '/')
-const pageFor = (path: string): Page => (path === '/check' ? 'flow' : 'landing')
+// Amplify 301-redirects /check to /check/, so an EXACT match sent every deep
+// link to the landing page on the deployed site while working locally, where
+// the dev server adds no trailing slash. Measured 2026-09-20 against the live
+// URL. Strip it here rather than relying on a console rewrite rule: this is
+// the copy that ships, and ?fixture= deep links are what the demo runs on.
+const pageFor = (path: string): Page => (path.replace(/\/+$/, '') === '/check' ? 'flow' : 'landing')
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => pageFor(window.location.pathname))
