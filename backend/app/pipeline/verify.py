@@ -207,15 +207,97 @@ def verify_item(a: ReaderItem | None, b: ReaderItem | None) -> VerifiedItem:
     return item
 
 
+#: How alike two rows must look before we treat them as THE SAME ROW of the
+#: bill. Deliberately far below NAME_SIMILARITY_MIN (90), which is the bar for
+#: two readings to AGREE. Pairing only decides what to compare; verify_item
+#: still decides whether the comparison passes, so a generous pairing costs
+#: nothing and a mean one throws away cross-checks we could have had.
+PAIR_MIN_SCORE = 55.0
+
+
+def _pair_score(a: ReaderItem, b: ReaderItem) -> float:
+    """How likely are these two readings of the SAME row of the bill?"""
+    score = name_similarity(a.name, b.name)
+    # An identical line total is strong evidence, and it survives the case
+    # this exists for: the two readers disagreeing about the NAME.
+    if (a.line_total is not None and b.line_total is not None
+            and a.line_total == b.line_total):
+        score += 60.0
+    if (a.quantity is not None and b.quantity is not None
+            and a.quantity == b.quantity):
+        score += 10.0
+    return score
+
+
+def _pair_readings(
+    a_items: dict[int, ReaderItem], b_items: dict[int, ReaderItem]
+) -> list[tuple[ReaderItem | None, ReaderItem | None]]:
+    """Match the two readings BY CONTENT, not by position.
+
+    THE OLD PAIRING WAS `a_items.get(i), b_items.get(i)` AND IT WAS FRAGILE.
+    Two readers rarely agree on how many rows a bill has: one counts a column
+    header as an item, the other merges a wrapped description, and from that
+    point on every index refers to a different row in each reading. Measured
+    2026-09-20 on a photographed bill -- Textract found 11 rows, the vision
+    model 9, and most lines reported `only_one_reader_ran` even though both
+    readers had read them perfectly well.
+
+    That failed SAFE (a mismatched pairing disagrees, and disagreement means
+    gray) but it threw away most of the cross-check, which is the one thing
+    protecting the price rules from a confident misread.
+
+    Greedy assignment on `_pair_score`, highest first, each row used once.
+    Ties break on index so the result never depends on dict ordering.
+
+    A WRONG PAIRING CANNOT MANUFACTURE AGREEMENT. verify_item() re-checks the
+    name and every number afterwards, so two rows paired in error disagree and
+    go gray. The only thing a bad pairing costs is a cross-check, which is
+    exactly what the old scheme was already losing.
+    """
+    candidates = [
+        (-_pair_score(a, b), a.index, b.index)
+        for a in a_items.values()
+        for b in b_items.values()
+    ]
+    candidates.sort()
+
+    used_a: set[int] = set()
+    used_b: set[int] = set()
+    matched: dict[int, int] = {}
+    for neg_score, ai, bi in candidates:
+        if -neg_score < PAIR_MIN_SCORE:
+            break
+        if ai in used_a or bi in used_b:
+            continue
+        used_a.add(ai)
+        used_b.add(bi)
+        matched[ai] = bi
+
+    # Order by reader A, whose row order is positionally reliable, then append
+    # anything only reader B saw.
+    pairs: list[tuple[ReaderItem | None, ReaderItem | None]] = []
+    for ai in sorted(a_items):
+        bi = matched.get(ai)
+        pairs.append((a_items[ai], b_items[bi] if bi is not None else None))
+    for bi in sorted(b_items):
+        if bi not in used_b:
+            pairs.append((None, b_items[bi]))
+    return pairs
+
+
 def verify_bill(bill: BillInput) -> tuple[list[VerifiedItem], ReadingStats]:
     """Verify every line, then reconcile the bill against its printed total."""
     a_items = _index_by(bill.reader_a)
     b_items = _index_by(bill.reader_b)
 
-    verified = [
-        verify_item(a_items.get(index), b_items.get(index))
-        for index in sorted(set(a_items) | set(b_items))
-    ]
+    # Renumbered 1..N in reader A's order. The readers' own indices refer to
+    # different rows once their row counts differ, so neither is usable as the
+    # line number a person sees.
+    verified = []
+    for n, (a, b) in enumerate(_pair_readings(a_items, b_items), start=1):
+        item = verify_item(a, b)
+        item.index = n
+        verified.append(item)
 
     totals = [i.line_total for i in verified if i.line_total is not None]
     line_sum = sum(totals, Decimal("0")) if totals else None

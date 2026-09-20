@@ -1289,3 +1289,84 @@ def test_r2_still_speaks_when_every_line_was_read_well():
     r2 = [f for f in flags if f.rule_id == "R2"]
     assert r2, "a bill asking for more than well-read lines justify must fire R2"
     assert r2[0].amount_affected == Decimal("600.00")
+
+
+# --------------------------------------------------------------------------
+# Pairing the two readings BY CONTENT rather than by row position.
+# --------------------------------------------------------------------------
+
+def _ri(index, name, total, qty=None):
+    from app.models import ReaderItem
+    return ReaderItem(index=index, name=name, quantity=qty,
+                      line_total=Decimal(total), confidence=Decimal("99"))
+
+
+def _bill(a_items, b_items):
+    from app.models import BillInput, ReaderOutput
+    return BillInput(
+        bill_id="p", hospital_name="", bill_date="",
+        reader_a=ReaderOutput(source="textract", items=a_items),
+        reader_b=ReaderOutput(source="bedrock", items=b_items),
+    )
+
+
+def test_one_extra_row_in_a_reading_does_not_destroy_the_cross_check():
+    """The bug this pairing exists for.
+
+    Textract counts a column header as a line item; the vision model does not.
+    Under index pairing every row after it compared against the WRONG row, so
+    a bill both readers had read correctly came back mostly gray with
+    `only_one_reader_ran`. Measured 2026-09-20: 11 rows against 9.
+
+    Content pairing must recover every real row and leave only the header
+    unmatched.
+    """
+    a = [_ri(1, "PARTICULARS", "0.00"),        # the header, read as an item
+         _ri(2, "Paracetamol 500mg Tablet", "18.00"),
+         _ri(3, "Ringer Lactate 500 ml", "288.00")]
+    b = [_ri(1, "Paracetamol 500mg Tablet", "18.00"),
+         _ri(2, "Ringer Lactate 500 ml", "288.00")]
+
+    verified, _ = verify_bill(_bill(a, b))
+    paired = [i for i in verified
+              if any(r.startswith("both_readers_agree") for r in i.reasons)]
+    lonely = [i for i in verified if "only_one_reader_ran" in i.reasons]
+
+    assert len(paired) == 2, "both real rows must find their partner"
+    assert len(lonely) == 1 and lonely[0].name == "PARTICULARS"
+
+
+def test_pairing_survives_a_name_disagreement_when_the_amount_matches():
+    """The readers disagreeing on the NAME is the case worth cross-checking.
+
+    If a name mismatch stopped them pairing, the disagreement would be
+    reported as "only one reader ran" -- hiding the very conflict we want to
+    surface. The identical line total is what holds them together.
+    """
+    # Similarity 70.8: far enough apart to fail the agreement bar of 90, close
+    # enough plus an identical total to pair. "Amoxicillin"/"Amaricillin"
+    # scores 90.5 and AGREES -- which is itself the fix working, because
+    # under index pairing that row was being compared against a different one
+    # and reported a spurious 34.
+    a = [_ri(1, "Paracetamol 500mg Tablet", "120.00")]
+    b = [_ri(1, "Pantoprazole 40mg Tablet", "120.00")]
+
+    verified, _ = verify_bill(_bill(a, b))
+    assert len(verified) == 1
+    assert any(r.startswith("readers_disagree_on_name") for r in verified[0].reasons)
+    assert "only_one_reader_ran" not in verified[0].reasons
+
+
+def test_unrelated_rows_are_not_forced_into_a_pair():
+    """Greedy matching must not marry two rows that share nothing.
+
+    A wrong pairing cannot manufacture agreement -- verify_item re-checks
+    everything -- but it would still cost a cross-check, so the threshold has
+    to hold.
+    """
+    a = [_ri(1, "Room Rent Semi Private", "10500.00")]
+    b = [_ri(1, "Surgical Gloves Pair", "220.00")]
+
+    verified, _ = verify_bill(_bill(a, b))
+    assert len(verified) == 2, "nothing matched, so both stand alone"
+    assert all("only_one_reader_ran" in i.reasons for i in verified)

@@ -336,7 +336,7 @@ The presigned route is the right one and is not built.
 
 Until then the honest thing is to state 4 MB and mean it.
 
-### The two readings are paired by ROW INDEX, and that is fragile
+### The two readings are paired by CONTENT (was ROW INDEX -- fixed 2026-09-20)
 
 Measured 2026-09-20 on a photographed bill. `verify_bill()` does:
 
@@ -357,10 +357,23 @@ On one real bill this produced all three outcomes at once: line 1 agreed at
 and disagreement produces gray -- never a false red. The cost is silence on
 lines both readers actually read correctly.
 
-**The fix is to pair on CONTENT rather than position** -- match each reading's
-rows to the other's by name similarity and amount, the way a person would,
-and treat leftovers as single-reader. Not built. Until it is, a single stray
-row at the top of a bill costs most of the cross-check.
+**FIXED.** `_pair_readings()` now matches each reading's rows to the other's
+by name similarity and amount, the way a person would, greedy on score and
+tie-broken on index so the result never depends on dict ordering. Leftovers
+are single-reader. Rows are renumbered 1..N in reader A's order, because once
+the readers' row counts differ neither reading's own index is the line number
+a person sees.
+
+**A wrong pairing cannot manufacture agreement**, which is why a generous
+threshold (55, against an agreement bar of 90) is safe: `verify_item()`
+re-checks the name and every number afterwards, so two rows paired in error
+disagree and go gray. A bad pairing costs a cross-check -- exactly what the
+old scheme was already losing.
+
+Measured effect: on the degraded scan where the readers previously reported
+`readers_disagree_on_name:similarity=34`, they now pair correctly and AGREE at
+90.5. That 34 was never a real disagreement; it was two different rows being
+compared.
 
 **A reporting bug rode on this and is fixed.** The summary said "Only one
 reader ran on this bill" whenever ANY line was unpaired, which claimed the
