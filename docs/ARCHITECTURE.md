@@ -1,4 +1,4 @@
-# BillSahi — architecture
+# BillWise — architecture
 
 Living document. Phase 0 sections are final; later sections fill in as the
 phases land.

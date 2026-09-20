@@ -58,7 +58,7 @@ export default function About() {
       {/* Plain flex row; see .about-* in index.css for the exact column rules. */}
       <div className="about-row">
         <div className="about-left">
-          <h2 className="text-[52px] font-bold leading-[1.05] tracking-[-1px]">How BillSahi reads a bill.</h2>
+          <h2 className="text-[52px] font-bold leading-[1.05] tracking-[-1px]">How BillWise reads a bill.</h2>
           <ol className="mt-10">
             {ITEMS.map((item, i) => (
               <li key={item.title} className={`about-item ${i === active ? 'is-active' : ''}`}>
@@ -77,7 +77,7 @@ export default function About() {
           </dl>
           <p className="mt-7 max-w-[460px] text-base leading-[1.6] text-[#8a8a8a]">
             Not compared is an expected result, not a failure. Most of an Indian hospital bill has no published
-            ceiling — BillSahi says so plainly instead of guessing. BillSahi is not legal or medical advice.
+            ceiling — BillWise says so plainly instead of guessing. BillWise is not legal or medical advice.
           </p>
         </div>
 

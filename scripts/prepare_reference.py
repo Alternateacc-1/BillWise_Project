@@ -1053,7 +1053,7 @@ def report(rows: list[ReferenceRow]) -> None:
     reasons = Counter(r.quarantine_reason for r in rows if r.status == STATUS_QUARANTINED)
 
     print("=" * 68)
-    print("BillSahi reference data  --  NPPA lists retrieved", RETRIEVED_ON)
+    print("BillWise reference data  --  NPPA lists retrieved", RETRIEVED_ON)
     print("=" * 68)
     for source in ("ceiling", "special_feature", "retail_new_drug"):
         total = by_source[source]

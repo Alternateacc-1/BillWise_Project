@@ -224,7 +224,7 @@ export function ReportDetail({ report }: { report: BillReport }) {
 
       <footer className="mt-8 hidden border-t border-ink/10 pt-4 text-xs text-muted print:block">
         Reference: {report.reference_version}. Ceilings are compared as published on that date. This report is
-        information to help you ask questions about a bill; it is not legal or medical advice. Prepared with BillSahi.
+        information to help you ask questions about a bill; it is not legal or medical advice. Prepared with BillWise.
       </footer>
     </div>
   )

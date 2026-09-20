@@ -645,7 +645,7 @@ not show it, because the local fixture bypasses brand resolution entirely.
 
 # Adversarial audit (2026-09-19)
 
-Goal: **actively construct a bill that makes BillSahi emit a FALSE RED.** Not
+Goal: **actively construct a bill that makes BillWise emit a FALSE RED.** Not
 a regression suite -- an attack. Every bill below is CORRECTLY PRICED, so any
 red is a false accusation of a hospital or pharmacy.
 

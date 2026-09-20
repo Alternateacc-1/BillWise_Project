@@ -12,7 +12,12 @@ const NAV = ['About', 'FAQ', 'Contact', 'Feedback'] as const
 
 // Placeholders — replace before shipping.
 const CONTACT_EMAIL = 'contact@example.com'
-const REPO_URL = 'https://github.com/Alternateacc-1/BillSahi'
+// No git remote is configured on this repo, so there is no URL to put here.
+// The previous value was INVENTED from the local git username and pointed at
+// a repository that may not exist -- a fabricated link on a public page is
+// worse than no link. Set this when the repo is pushed; the footer hides the
+// link while it is empty.
+const REPO_URL = ''
 // Brand marks from Simple Icons (CC0, simpleicons.org) — path data copied verbatim, not redrawn.
 const SOCIAL = [
   { name: 'X', handle: '@HANDLE_X', href: 'https://x.com/HANDLE_X', brand: '#000000', path: 'M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z' },
@@ -23,7 +28,7 @@ const SOCIAL = [
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'What does BillSahi check?',
+    q: 'What does BillWise check?',
     a: 'It reads each line of your bill, matches medicines and devices to the price ceilings published by India\'s National Pharmaceutical Pricing Authority (NPPA), and marks each line as above the listed ceiling, may need clarification, within the ceiling, or not compared. Every verdict comes with the reference row, the government order number and date, and the rule that produced it.',
   },
   {
@@ -35,12 +40,12 @@ const FAQ: { q: string; a: string }[] = [
     a: 'Because most of a hospital bill is not medicines. Room rent, nursing, consultant visits, operation theatre, consumables and lab tests have no published ceiling price in India, so there is nothing to compare them against. We still check those lines for duplication and arithmetic. This is expected, not an error.',
   },
   {
-    q: 'What if BillSahi read a line wrongly?',
+    q: 'What if BillWise read a line wrongly?',
     a: 'Two independent readers check each line. Lines they disagree on are shown to you before the report, next to the bill image, so you can correct the name, quantity, rate or amount. Lines you skip simply go unchecked.',
   },
   {
     q: 'Is this legal or medical advice?',
-    a: 'No. BillSahi is an information tool. The report and the letter are starting points for a conversation with your hospital. For a dispute, contact your state\'s health department or a lawyer.',
+    a: 'No. BillWise is an information tool. The report and the letter are starting points for a conversation with your hospital. For a dispute, contact your state\'s health department or a lawyer.',
   },
   {
     q: 'Where do the price ceilings come from?',
@@ -59,14 +64,14 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
         {/* Hero */}
         <section className="mx-auto max-w-[1000px] px-4 pt-14 text-center sm:pt-[72px]">
           <span className="inline-block rounded-lg border-[1.5px] border-[rgb(20,20,20)] bg-transparent px-3 py-1.5 text-xs font-semibold leading-4 tracking-[0.2px] text-[rgb(20,20,20)]">
-            BillSahi
+            BillWise
           </span>
           {/* Plus Jakarta Sans's full stop carries wide side-bearings; at this size that reads as a gap, so each one is pulled in. */}
           <h1 className="mt-7 text-[clamp(2.5rem,8.5vw,6rem)] font-bold leading-[0.95] tracking-[-0.03em] [word-spacing:normal]">
             Every line of your hospital bill, checked against the price list<span className="-ml-[0.08em]">.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-[760px] text-xl text-muted sm:text-[22px] sm:leading-snug">
-            Upload a photo or PDF. BillSahi compares what has a published ceiling and shows you where every figure came from.
+            Upload a photo or PDF. BillWise compares what has a published ceiling and shows you where every figure came from.
           </p>
         </section>
 
@@ -120,12 +125,13 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                 <div className="rounded-[18px] bg-surface p-7">
                   <h3 className="text-xl font-bold">Found a wrong reference?</h3>
                   <p className="mt-2 text-[17px] leading-[1.6] text-muted">
-                    Tell us which line and which bill, and we will check it against the published order. BillSahi is
+                    Tell us which line and which bill, and we will check it against the published order. BillWise is
                     only as good as the data it cites.
                   </p>
                 </div>
                 <div className="rounded-[18px] bg-surface p-7">
                   <h3 className="text-xl font-bold">The project</h3>
+                  {REPO_URL && (
                   <a
                     href={REPO_URL}
                     target="_blank"
@@ -137,6 +143,7 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                       <path d="M7 17L17 7M9 7h8v8" />
                     </svg>
                   </a>
+                  )}
                   <p className="mt-3 text-[15px] text-muted">Built for Bharat Builds, 2026.</p>
                 </div>
               </div>
@@ -182,7 +189,7 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
           <div className="grid grid-cols-1 gap-16 min-[900px]:grid-cols-[40fr_60fr]">
             {/* Left */}
             <div>
-              <p className="text-[44px] font-bold leading-none tracking-[-1.2px] text-[color:var(--footer-text)]">BillSahi</p>
+              <p className="text-[44px] font-bold leading-none tracking-[-1.2px] text-[color:var(--footer-text)]">BillWise</p>
               <p className="mt-5 max-w-[380px] text-[21px] leading-[1.5] text-[color:var(--footer-muted)]">
                 Check your hospital bill against India's published price ceilings.
               </p>
@@ -202,11 +209,13 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[1px] text-[color:var(--footer-muted)]">Project</p>
                   <ul className="mt-4 space-y-4">
-                    <li>
-                      <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
-                        GitHub
-                      </a>
-                    </li>
+                    {REPO_URL && (
+                      <li>
+                        <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className={`footer-link ${focusRing}`}>
+                          GitHub
+                        </a>
+                      </li>
+                    )}
                     <li>
                       <a href={`mailto:${CONTACT_EMAIL}`} className={`footer-link ${focusRing}`}>
                         Email
@@ -227,7 +236,7 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
           </div>
 
           <div className="mt-14 flex flex-col gap-4 border-t pt-7 text-[15px] text-[color:var(--footer-muted)] sm:flex-row sm:justify-between" style={{ borderColor: 'var(--footer-line)' }}>
-            <p>© BillSahi 2026 · Built for Bharat Builds</p>
+            <p>© BillWise 2026 · Built for Bharat Builds</p>
             <p className="sm:max-w-[420px] sm:text-right">
               Not legal or medical advice. Verdicts cite published NPPA data; always confirm with the hospital.
             </p>
@@ -288,7 +297,7 @@ function Nav() {
         <nav ref={navRef} aria-label="Main" className="nav-pill mx-auto">
           <a
             href="#top"
-            aria-label="BillSahi"
+            aria-label="BillWise"
             onClick={(e) => {
               e.preventDefault() // scroll to top without writing #top into the URL
               window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -296,7 +305,7 @@ function Nav() {
             className={`flex shrink-0 items-center gap-2.5 rounded-full ${focusRing}`}
           >
             <Logo height={30} decorative />
-            <span className="nav-wordmark">BillSahi</span>
+            <span className="nav-wordmark">BillWise</span>
           </a>
           {/* Negative margin cancels the link's own side padding so the last label ends exactly at the pill's 24px padding edge. */}
           <ul className="nav-links flex shrink-0 items-center">

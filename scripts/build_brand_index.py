@@ -329,7 +329,7 @@ def main() -> int:
 
     mb = report["output_bytes"] / 1_000_000
     print("=" * 68)
-    print("BillSahi brand index")
+    print("BillWise brand index")
     print("=" * 68)
     print(f"  source rows            {report['source_rows']:>9,}")
     print(f"  indexed names          {report['indexed_names']:>9,}")

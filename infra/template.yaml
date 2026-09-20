@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  BillSahi - checks an Indian hospital or pharmacy bill against NPPA published
+  BillWise - checks an Indian hospital or pharmacy bill against NPPA published
   price ceilings. Everything here is serverless and scales to zero: there is no
   VPC, no NAT Gateway, no provisioned capacity, and nothing that costs money
   while idle.
@@ -161,7 +161,7 @@ Resources:
     Properties:
       CodeUri: ../backend/
       Handler: app.main.handler
-      Description: BillSahi API - reads, verifies and audits a bill
+      Description: BillWise API - reads, verifies and audits a bill
       ReservedConcurrentExecutions: !If
         - HasReservedConcurrency
         - !Ref ReservedConcurrency

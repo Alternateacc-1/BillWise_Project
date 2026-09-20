@@ -1,20 +1,20 @@
 @echo off
 REM ---------------------------------------------------------------
-REM  BillSahi - start everything.
+REM  BillWise - start everything.
 REM  Double-click this file, or run  start.bat  from a terminal.
 REM ---------------------------------------------------------------
 setlocal
 set "ROOT=%~dp0"
 
-echo Starting BillSahi...
+echo Starting BillWise...
 echo.
 
 REM --- API (port 8000) -------------------------------------------
-start "BillSahi API" cmd /k ^
+start "BillWise API" cmd /k ^
   ""%ROOT%venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --app-dir "%ROOT%backend""
 
 REM --- UI (port 5173) --------------------------------------------
-start "BillSahi UI" cmd /k ^
+start "BillWise UI" cmd /k ^
   "cd /d "%ROOT%frontend" && "E:\node.exe" node_modules\vite\bin\vite.js --port 5173 --host 127.0.0.1"
 
 REM Give the servers a moment, then open the browser on the address

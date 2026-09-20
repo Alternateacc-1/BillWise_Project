@@ -26,4 +26,4 @@ Yours sincerely,
 [Patient ID / IP number]
 [Contact number]
 
-Prepared with BillSahi. This letter is a request for clarification and not legal or medical advice.`
+Prepared with BillWise. This letter is a request for clarification and not legal or medical advice.`

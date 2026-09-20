@@ -642,7 +642,7 @@ def test_duplicate_consumable_is_flagged_but_never_priced():
 def test_cli_runs_and_exits_zero(capsys):
     assert run_audit(FIXTURE) == 0
     out = capsys.readouterr().out
-    assert "BillSahi report" in out
+    assert "BillWise report" in out
     assert "no public price ceiling" in out.lower()
     assert "NPPA data retrieved" in out
 

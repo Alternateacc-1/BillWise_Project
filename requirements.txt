@@ -1,4 +1,4 @@
-# BillSahi backend. Python 3.12 (matches the AWS Lambda runtime ceiling).
+# BillWise backend. Python 3.12 (matches the AWS Lambda runtime ceiling).
 # All packages are free and OSI-licensed.
 #
 # Versions below are the ones actually resolved and tested on 2026-09-18 --

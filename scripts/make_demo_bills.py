@@ -689,7 +689,7 @@ def main() -> int:
         directory.mkdir(parents=True, exist_ok=True)
 
     print("=" * 68)
-    print("BillSahi demo bills")
+    print("BillWise demo bills")
     print("=" * 68)
 
     for spec in BILLS:

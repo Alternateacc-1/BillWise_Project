@@ -1,4 +1,4 @@
-# BillSahi
+# BillWise
 
 Upload an Indian hospital or pharmacy bill and see which charges may need
 clarification — with the evidence behind each one, and a polite letter you can
@@ -51,7 +51,7 @@ pack sizes to salts. Its prices are scraped and stale and are **never** used
 as a price reference — a test enforces that no field from it can reach a
 verdict.
 
-NPPA data is used for public-interest price transparency. BillSahi is not
+NPPA data is used for public-interest price transparency. BillWise is not
 affiliated with or endorsed by NPPA or any government body.
 
 ---

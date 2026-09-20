@@ -160,7 +160,7 @@ def main() -> int:
 
     print()
     print("=" * 74)
-    print(bold("  BillSahi evaluation"))
+    print(bold("  BillWise evaluation"))
     print("=" * 74)
     print(f"  PROVIDER={config.PROVIDER}   GST={config.GST_PERCENT}%   "
           f"red needs >={config.RED_EXCESS_FRACTION * 100}% excess, "

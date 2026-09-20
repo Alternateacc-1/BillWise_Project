@@ -46,7 +46,7 @@ EXPECTED_HEADER = (
 
 def download(url: str, target: Path) -> bytes:
     print(f"  Fetching {url}")
-    request = urllib.request.Request(url, headers={"User-Agent": "BillSahi/0.1"})
+    request = urllib.request.Request(url, headers={"User-Agent": "BillWise/0.1"})
     try:
         with urllib.request.urlopen(request, timeout=120) as response:
             if response.status != 200:

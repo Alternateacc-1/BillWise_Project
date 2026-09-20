@@ -35,7 +35,7 @@ from .pipeline.match import reference_retrieved_on
 from .pipeline.normalize import normalize_bill
 from .pipeline.verify import verify_bill
 
-app = FastAPI(title="BillSahi", version="0.3.0")
+app = FastAPI(title="BillWise", version="0.3.0")
 
 #: Locked to the local dev origins. Phase 4 replaces this with the Amplify
 #: origin -- never "*", because the API returns a user's uploaded bill.

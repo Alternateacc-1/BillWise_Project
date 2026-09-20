@@ -1,4 +1,4 @@
-"""ADVERSARIAL AUDIT. Goal: make BillSahi emit a FALSE RED.
+"""ADVERSARIAL AUDIT. Goal: make BillWise emit a FALSE RED.
 
 Every bill below is CORRECTLY PRICED. Any red is a false accusation.
 """

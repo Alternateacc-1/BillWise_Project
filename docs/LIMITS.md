@@ -1,4 +1,4 @@
-# What BillSahi cannot do
+# What BillWise cannot do
 
 Written deliberately, and kept where anyone can find it. A tool that tells
 people their hospital may have charged them too much has to be clear about
@@ -27,7 +27,7 @@ the reader, and the only one on this list with a clear route out.
 
 **This is the biggest limitation, and it is total.**
 
-BillSahi reads a bill and checks the arithmetic and the prices *of the lines
+BillWise reads a bill and checks the arithmetic and the prices *of the lines
 on it*. A charge for a syringe that was never used, a doctor's visit that
 never took place, a test that was billed but not run — all of it is invisible
 to us. The line looks perfect. The arithmetic holds. The price is under the

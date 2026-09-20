@@ -1,11 +1,11 @@
-/** BillSahi glyph, inlined from public/logo.svg so `currentColor` resolves. Set height only — width follows the 30:36 box. */
+/** BillWise glyph, inlined from public/logo.svg so `currentColor` resolves. Set height only — width follows the 30:36 box. */
 export function Logo({ height = 40, className = '', decorative = false }: { height?: number; className?: string; decorative?: boolean }) {
   return (
     <svg
       viewBox="0 0 30 36"
       height={height}
       role={decorative ? undefined : 'img'}
-      aria-label={decorative ? undefined : 'BillSahi'}
+      aria-label={decorative ? undefined : 'BillWise'}
       aria-hidden={decorative ? 'true' : undefined}
       className={className}
     >
@@ -24,7 +24,7 @@ export function Lockup({ height = 28 }: { height?: number }) {
     <span className="inline-flex items-center gap-3">
       <Logo height={height} />
       <span aria-hidden="true" className="text-2xl font-bold tracking-[-0.02em] text-ink">
-        BillSahi
+        BillWise
       </span>
     </span>
   )

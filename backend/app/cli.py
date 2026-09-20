@@ -89,7 +89,7 @@ def run_audit(fixture_path: Path, as_json: bool = False) -> int:
         by_index.setdefault(flag.item_index, []).append(flag)
 
     print()
-    print(BOLD(f"  BillSahi report  -  {bill.bill_id}"))
+    print(BOLD(f"  BillWise report  -  {bill.bill_id}"))
     print(f"  {bill.hospital_name}")
     print(f"  Bill date {bill.bill_date}")
     print()
