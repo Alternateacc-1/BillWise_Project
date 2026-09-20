@@ -104,10 +104,12 @@ export default function Report({ report, onLetter, onWrong, onNewBill }: Props) 
       {/* "Verified by BOTH readers" is FALSE when only one ran, and the count
         * alone does not say which. Same bill on the deployed stack: 0 of 7
         * high-confidence with two readers, 4 of 7 with one. */}
-      {reading.single_reader && (
+      {reading.single_reader_lines > 0 && (
         <p className="mt-1 text-sm text-muted">
-          Only one reader ran on this bill, so nothing cross-checked the reading. A single reader
-          cannot disagree with itself — read the confidence above with that in mind.
+          {reading.single_reader_lines} of {reading.lines_total}{' '}
+          {reading.single_reader_lines === 1 ? 'line was' : 'lines were'} seen by only one reader,
+          so nothing cross-checked {reading.single_reader_lines === 1 ? 'it' : 'them'}. A single
+          reader cannot disagree with itself — read the confidence above with that in mind.
         </p>
       )}
       {/* R2 reports ONLY at the whole-bill level, so without this a bill whose

@@ -335,3 +335,33 @@ have Lambda read it from there, which removes the 6 MB event limit entirely.
 The presigned route is the right one and is not built.
 
 Until then the honest thing is to state 4 MB and mean it.
+
+### The two readings are paired by ROW INDEX, and that is fragile
+
+Measured 2026-09-20 on a photographed bill. `verify_bill()` does:
+
+    verify_item(a_items.get(index), b_items.get(index))
+    for index in sorted(set(a_items) | set(b_items))
+
+So line 3 of Textract is compared with line 3 of the vision model, and nothing
+checks that those are the same ROW OF THE BILL. One extra or missing row near
+the top -- a column header read as an item, a wrapped description counted
+twice -- shifts every index after it and destroys agreement for the rest of
+the bill. Unmatched indices report `only_one_reader_ran` even though the
+second reader ran normally on every other line.
+
+On one real bill this produced all three outcomes at once: line 1 agreed at
+100 similarity, line 2 disagreed at 34, line 3 had no partner at all.
+
+**The failure is SAFE but LOSSY.** A shifted pairing produces disagreement,
+and disagreement produces gray -- never a false red. The cost is silence on
+lines both readers actually read correctly.
+
+**The fix is to pair on CONTENT rather than position** -- match each reading's
+rows to the other's by name similarity and amount, the way a person would,
+and treat leftovers as single-reader. Not built. Until it is, a single stray
+row at the top of a bill costs most of the cross-check.
+
+**A reporting bug rode on this and is fixed.** The summary said "Only one
+reader ran on this bill" whenever ANY line was unpaired, which claimed the
+second reader had not run at all. It now states how many lines of how many.

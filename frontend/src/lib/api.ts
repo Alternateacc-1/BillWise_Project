@@ -70,7 +70,14 @@ export interface BillReading {
   lines_verified: number
   reconciliation: Reconciliation
   /**
-   * TRUE when any line reports `only_one_reader_ran`.
+   * HOW MANY lines only one reader saw -- NOT whether the second reader ran.
+   *
+   * The two readings are paired BY ROW INDEX, so when Textract finds 11 rows
+   * and the vision model finds 9, the unmatched indices carry
+   * `only_one_reader_ran` while the rest were cross-checked normally. A
+   * boolean over that made the report say "only one reader ran on this bill"
+   * when in fact most lines had two, which overstates the problem in the same
+   * way the old summary understated it.
    *
    * "N of M lines verified by both readers" is FALSE when only one reader
    * ran, and the count alone does not say which. Measured on the deployed
@@ -80,7 +87,7 @@ export interface BillReading {
    * disagree with itself. Bedrock is currently returning
    * INVALID_PAYMENT_INSTRUMENT in production, so this is the live case.
    */
-  single_reader: boolean
+  single_reader_lines: number
 }
 
 export interface BillSummary {
@@ -327,9 +334,9 @@ function adaptReport(raw: RawReport): BillReport {
       lines_total: items.length,
       lines_verified: items.filter((i) => i.confidence === 'high').length,
       reconciliation,
-      single_reader: (raw.items ?? []).some((v) =>
+      single_reader_lines: (raw.items ?? []).filter((v) =>
         (v.reasons ?? []).includes('only_one_reader_ran'),
-      ),
+      ).length,
     },
     summary: summariseFromItems(items, billFlags),
     reference_version: raw.reference_retrieved_on,

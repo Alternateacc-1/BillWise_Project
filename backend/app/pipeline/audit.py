@@ -62,6 +62,34 @@ def format_unit(qty: Decimal, basis: str) -> str:
 
 
 
+def _reading_is_unconfirmed(item: VerifiedItem) -> bool:
+    """One reader, and it scored itself below the floor. Nothing confirms it.
+
+    With two readers, disagreement is the signal and
+    `_readers_disagreed_on_numbers()` catches it. With ONE reader there is
+    nothing to disagree with, so that guard never fires -- and R1 went on
+    doing arithmetic on numbers nothing had confirmed.
+
+    Measured 2026-09-20 on a real hospital bill. The line reads
+    `DOCTOR CHARGE  4 x 500.00 = 2000.00`, which is correct. Textract read the
+    quantity as 3, so 3 x 500 came to 1500 against a printed 2000, and we
+    asked the hospital to explain Rs 500 of arithmetic that was never wrong.
+    The line's own evidence panel already said "we could not read this line
+    reliably" while the finding sat above it.
+
+    NOT CIRCULAR, and that distinction is the whole reason this is safe to
+    gate on. `verify.py` awards `single_reader_high_confidence` from the
+    READER's confidence alone, with no reference to arithmetic -- unlike
+    `is_high`, which requires `arithmetic is not False` and would make R1 dead
+    code. A line can be well-read and still fail its arithmetic; that case
+    still fires, which is what the eval's planted findings depend on.
+    """
+    reasons = item.reasons
+    if not any(r == "only_one_reader_ran" for r in reasons):
+        return False
+    return not any(r.startswith("single_reader_high_confidence") for r in reasons)
+
+
 def _readers_disagreed_on_numbers(item: VerifiedItem) -> bool:
     """Did the two readers differ on quantity, rate or line total?
 
@@ -136,6 +164,8 @@ def rule_r1_line_arithmetic(
     if item.quantity is None or item.unit_price is None or item.line_total is None:
         return None
     if _readers_disagreed_on_numbers(item):
+        return None
+    if _reading_is_unconfirmed(item):
         return None
     if _line_exceeds_whole_bill(item, grand_total):
         return None
