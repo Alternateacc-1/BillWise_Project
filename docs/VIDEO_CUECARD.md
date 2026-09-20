@@ -116,7 +116,7 @@ about · we couldn't check this
 ## Safe numbers
 
 915 ceilings · 46/46 found, 0 missed · **0 false alarms** · 0 of 10 attacks ·
-296 tests · two readers live in production
+298 tests · two readers live in production
 
 **No accuracy percentage.** If pushed: *"Good on clean documents, poor on bad
 photos — and when it isn't sure it says so instead of guessing."*

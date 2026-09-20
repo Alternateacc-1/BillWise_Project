@@ -255,7 +255,7 @@ not accusing anybody — we're helping someone ask.
 - **915** ceiling-price formulations, from NPPA's published list
 - **46 of 46** planted problems found, **0 missed**
 - **0 false alarms**, and **0 of 10** deliberate attempts to cause one
-- **296** automated tests
+- **298** automated tests
 - Two readers, cross-checking, **running live in production**
 
 **Do not claim a reading-accuracy percentage.** We don't have one we trust —
