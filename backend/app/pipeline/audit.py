@@ -31,7 +31,6 @@ from ..models import (
     Flag,
     GrayDetail,
     GrayReason,
-    ItemCategory,
     NO_CEILING_CATEGORIES,
     NormalizedItem,
     ReadingStats,
