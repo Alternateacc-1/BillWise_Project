@@ -7,12 +7,14 @@ Every claim on screen shows its arithmetic, the government order number, and
 the date that order was published. If a line cannot be checked, the report
 says so plainly instead of implying the bill is fine.
 
-**Live:** https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com
-&nbsp;·&nbsp; **API:** https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/health
+Runs **fully offline with no AWS account** — the rule engine, the eval suite
+and the whole UI work locally at zero cost. Deploying to AWS is optional and
+uses **your own** account; nothing here points at anyone else's
+infrastructure.
 
 ```
 298 tests green   ·   46/46 planted findings caught, 0 missed   ·   0 FALSE REDS
-0 of 10 adversarial attacks succeeded   ·   deployed on AWS, both readers live
+0 of 10 adversarial attacks succeeded   ·   11 frontend tests, tsc clean
 ```
 
 Regenerate those numbers rather than trusting this block — `pytest tests/ -q`,
@@ -60,11 +62,9 @@ always leads with how many charges were actually compared.
 
 ## Try it
 
-**Live** — open the site, click **Try a sample bill**. No upload needed.
-
-**Locally, offline, free** — `PROVIDER=local` makes zero network calls.
-Full setup, including deploying to **your own AWS account**, is in
-[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).
+**Locally, offline, free** — `PROVIDER=local` makes zero network calls and
+needs no AWS account. Full setup, including deploying to **your own AWS
+account**, is in [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).
 
 ```bash
 py -3.12 -m venv venv

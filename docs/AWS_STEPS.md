@@ -869,7 +869,7 @@ you for existing, and none of them is here.
 
 **The API is PUBLIC and UNAUTHENTICATED, and it has no throttle.**
 
-    https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com
+    https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com
 
 Anyone who finds that URL can POST a bill to it, and every upload spends real
 money: Textract AnalyzeExpense is charged per page, plus Lambda time and a
@@ -1087,20 +1087,20 @@ this one.
 ## 10.4 Prove it, from the Amplify origin
 
 ```bash
-curl -s -o /dev/null -D - -X OPTIONS "https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/bills/sample" -H "Origin: https://PASTE-YOUR-AMPLIFY-DOMAIN" -H "Access-Control-Request-Method: POST" | grep -i access-control-allow-origin
+curl -s -o /dev/null -D - -X OPTIONS "https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com/bills/sample" -H "Origin: https://PASTE-YOUR-AMPLIFY-DOMAIN" -H "Access-Control-Request-Method: POST" | grep -i access-control-allow-origin
 ```
 
 It must echo your Amplify domain. No header means CORS is still refusing it —
 check for a trailing slash, and that the deploy actually changed the parameter.
 
 ```bash
-curl -s -X POST "https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/feedback" -H "Content-Type: application/json" -d "{\"message\":\"deploy check\"}"
+curl -s -X POST "https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com/feedback" -H "Content-Type: application/json" -d "{\"message\":\"deploy check\"}"
 ```
 
 `{"ok":true}` means the new code is live. A 404 means the build did not ship.
 
 ```bash
-curl -s https://YOUR-API-ID.execute-api.us-east-1.amazonaws.com/health
+curl -s https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com/health
 ```
 
 `reader` must no longer say "verifying both". While Bedrock is down it should
@@ -1172,7 +1172,7 @@ origin and that origin is pinned in `samconfig.toml`.
 
 ## 11.3 Verify, and do not trust a green tick
 
-Open https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com and check all four:
+Open https://<YOUR-BRANCH>.<YOUR-APP-ID>.amplifyapp.com and check all four:
 
 1. **The page renders with content**, not a blank cream background. A blank
    page with a 404 on `/assets/...` in the browser's network tab is the
@@ -1195,10 +1195,10 @@ is the 4 MB ceiling, not a deploy problem. See `docs/LIMITS.md`.
 Same manual deploy, driven by `aws amplify` rather than drag-and-drop. Added
 2026-09-20 when the owner asked for commands.
 
-**The app id is in the domain.** `prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com` is
+**The app id is in the domain.** `prod.d1a2b3c4d5e6f7.amplifyapp.com` is
 `<branch>.<app-id>.amplifyapp.com`, so:
 
-    APP_ID      YOUR-AMPLIFY-APP-ID
+    APP_ID      <YOUR-APP-ID>
     BRANCH      prod
     REGION      us-east-1
 
@@ -1208,7 +1208,7 @@ with `curl`; then `start-deployment` tells Amplify to publish what you
 uploaded. Nothing is live until the third call.
 
 ```bash
-aws amplify create-deployment --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --region us-east-1
+aws amplify create-deployment --app-id <YOUR-APP-ID> --branch-name prod --region us-east-1
 ```
 
 That prints `jobId` and `zipUploadUrl`. Both are needed below, and the URL is
@@ -1223,13 +1223,13 @@ success is normal; a 403 usually means the URL expired, so re-run
 `create-deployment`.
 
 ```bash
-aws amplify start-deployment --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1
+aws amplify start-deployment --app-id <YOUR-APP-ID> --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1
 ```
 
 Then poll until `status` is `SUCCEED`:
 
 ```bash
-aws amplify get-job --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1 --query "job.summary.status"
+aws amplify get-job --app-id <YOUR-APP-ID> --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1 --query "job.summary.status"
 ```
 
 **If a flag name differs on your CLI version**, ask it rather than guessing:
@@ -1242,7 +1242,7 @@ one that has actually been exercised here.
 the upload published; it does not prove the zip held the build you meant:
 
 ```bash
-curl -s https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com | grep -oE "index-[A-Za-z0-9_-]+\.(js|css)"
+curl -s https://<YOUR-BRANCH>.<YOUR-APP-ID>.amplifyapp.com | grep -oE "index-[A-Za-z0-9_-]+\.(js|css)"
 ```
 
 Compare that against `grep -oE "index-[A-Za-z0-9_-]+\.(js|css)" frontend/dist/index.html`.
