@@ -8,9 +8,9 @@ fastapi==0.141.1
 pydantic==2.13.5
 python-multipart==0.0.32
 # Counts PDF pages BEFORE Textract is billed per page. pdfplumber is
-# excluded from this file on purpose, which is exactly why the page guard
-# was silently inert on Lambda until 2026-09-19. pypdf is ~1 MB and pure
-# Python, so the guard now runs where it actually matters.
+# excluded from this file on purpose, which once left the page guard
+# silently inert on Lambda. pypdf is ~1 MB and pure Python, so the guard
+# runs where it actually matters.
 pypdf==6.19.0
 mangum==0.22.0
 rapidfuzz==3.14.6

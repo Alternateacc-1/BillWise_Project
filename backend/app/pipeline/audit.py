@@ -74,13 +74,6 @@ def _reading_is_trusted(item: VerifiedItem) -> bool:
     while R1 went on computing qty x rate for it and reporting the difference
     as the bill's error.
 
-    Measured 2026-09-20 on a real hospital bill. The row reads
-    `DOCTOR CHARGE  4 x 500.00 = 2000.00`, which is correct, and the reading
-    took the quantity from the row above it -- 3 from DAY CARE TREATMENT
-    against DOCTOR CHARGE's rate and total. R1 duly reported Rs 500, on a
-    card whose own notes already said "we could not read this line reliably".
-    One card, two contradictory claims.
-
     A NAME DISAGREEMENT COUNTS, and that is a change of position. The old rule
     said arithmetic does not depend on the name, which is true when both
     readers are on the SAME row and merely spell it differently. It is false
@@ -107,13 +100,6 @@ def _reading_is_unconfirmed(item: VerifiedItem) -> bool:
     `_readers_disagreed_on_numbers()` catches it. With ONE reader there is
     nothing to disagree with, so that guard never fires -- and R1 went on
     doing arithmetic on numbers nothing had confirmed.
-
-    Measured 2026-09-20 on a real hospital bill. The line reads
-    `DOCTOR CHARGE  4 x 500.00 = 2000.00`, which is correct. Textract read the
-    quantity as 3, so 3 x 500 came to 1500 against a printed 2000, and we
-    asked the hospital to explain Rs 500 of arithmetic that was never wrong.
-    The line's own evidence panel already said "we could not read this line
-    reliably" while the finding sat above it.
 
     NOT CIRCULAR, and that distinction is the whole reason this is safe to
     gate on. `verify.py` awards `single_reader_high_confidence` from the
@@ -148,10 +134,10 @@ def _line_exceeds_whole_bill(
 ) -> bool:
     """A single line cannot be worth more than the entire bill.
 
-    When it appears to be, OUR READING is wrong -- not the bill. Measured on
-    the deployed stack 2026-09-19: Textract read 72.00 as "7200", and a
-    Rs 7,200 line appeared on a Rs 190 bill. Reporting that as a Rs 7,130
-    arithmetic discrepancy blames the pharmacy for our own lost decimal point.
+    When it appears to be, OUR READING is wrong -- not the bill. A reader that
+    loses a decimal point turns 72.00 into 7200, and a Rs 7,200 line lands on
+    a Rs 190 bill. Reporting that as an arithmetic discrepancy blames the
+    pharmacy for our own misread.
 
     Deliberately generous: only fires when the line EXCEEDS the printed total,
     not when it is merely a large share of it. A single expensive item can
@@ -171,10 +157,10 @@ def rule_r1_line_arithmetic(
 ) -> Flag | None:
     """Check qty x rate == line total, but ONLY on a line we trust.
 
-    THE CONFIDENCE GATE IS NOT OPTIONAL, and it was missing until 2026-09-19.
-    Measured on the deployed stack: Textract read 7.20 as "7" and 72.00 as
-    "7200" -- a lost decimal point, a 100x error -- and this rule faithfully
-    reported a Rs 7,130 discrepancy on a bill whose true total was Rs 190.
+    The confidence gate is not optional. A reader that turns 7.20 into "7" and
+    72.00 into "7200" -- a lost decimal point, a 100x error -- makes this rule
+    faithfully report a Rs 7,130 discrepancy on a bill whose true total is
+    Rs 190.
 
     The arithmetic was correct. The input was nonsense. R5 already refuses to
     price a line whose confidence is unverified_reading; this rule did not
@@ -260,11 +246,6 @@ def rule_r2_bill_total(
     ABSTAINS when any line was read unreliably. A sum is only as sound as its
     weakest term: one misread line total poisons it completely, and the
     resulting "discrepancy" is our own reading error reported as the bill's.
-
-    Measured 2026-09-19 on the deployed stack: a single lost decimal
-    (72.00 -> 7200) produced a false Rs 7,018 reconciliation failure on a
-    Rs 190 bill. Class A's rule at bill level -- a check that cannot run
-    should abstain, not fail.
 
     ONLY FIRES WHEN THE PRINTED TOTAL EXCEEDS THE LINE SUM. The opposite
     direction is `BELOW_LINE_SUM`, not a finding: a bill charging LESS than
@@ -452,10 +433,6 @@ def _trusted_interpretations(
     one strip read as one tablet. When pack_count is known that reading is not
     merely unlikely, it is CONTRADICTED: a strip of 10 is not 1 tablet, and we
     know it is 10.
-
-    Measured 2026-09-19 in the adversarial audit: a compliant line (10 tablets
-    at Rs 1.00 against a Rs 1.0416 allowance) was flagged AMBER for Rs 0.00,
-    solely because the contradicted reading of Rs 10.00/tablet exceeded.
 
     Kept when pack_count == 1, where the two readings coincide anyway.
     """

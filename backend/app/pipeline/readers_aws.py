@@ -98,10 +98,8 @@ def read_with_textract(content: bytes) -> ReaderOutput:
 def _parse_expense(response: dict) -> ReaderOutput:
     """The pure half: an AnalyzeExpense response in, a reading out.
 
-    Split out from the AWS call so the response SHAPE can be tested without a
-    network, a mock client or an AWS bill. It had no tests at all until
-    2026-09-20, and a bug in this function -- scoring a line on a field we
-    never read -- was deciding on real bills whether a price got compared.
+    Split out from the AWS call so the response shape can be tested without a
+    network, a mock client or an AWS bill.
     """
     items: list[ReaderItem] = []
     printed_total: Decimal | None = None

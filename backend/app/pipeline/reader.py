@@ -34,7 +34,7 @@ def _fixture_dir() -> Path:
     path meant FIXTURE_DIR pointed at /var/eval/fixtures on Lambda, glob()
     returned nothing (a missing directory globs empty rather than raising),
     and every sample bill 404'd internally -- surfacing as a 500 on
-    POST /bills/sample. Found on the first deployed smoke test, 2026-09-19.
+    POST /bills/sample.
     """
     bundled = Path(__file__).resolve().parents[2] / "fixtures"
     if bundled.is_dir():
@@ -130,7 +130,8 @@ def reader_note() -> str:
 
     This used to read "Reading with Textract and a vision model, then verifying
     both." -- asserted unconditionally, on an endpoint that never calls either
-    reader. It was live and false for the whole of 2026-09-19: Bedrock returns
+    reader. It can be false for a whole day without anyone noticing: if Bedrock
+    returns
     INVALID_PAYMENT_INSTRUMENT (Anthropic models are Marketplace subscriptions
     and credits do not satisfy one), every line came back `only_one_reader_ran`,
     and /health -- the first thing anyone checks -- promised a cross-check that

@@ -51,16 +51,6 @@ class GrayDetail(str, Enum):
                           nothing confirmed it. This is NOT a reading failure
                           and must not be reported as one.
 
-                          Found 2026-09-20 on a real invoice read perfectly:
-                          all seven lines correct against the paper, and the
-                          report said "We could not read this line reliably"
-                          about six of them. The only thing that had gone
-                          wrong was Bedrock returning
-                          INVALID_PAYMENT_INSTRUMENT, so no second reader
-                          existed to agree with Textract -- and a single
-                          reader below the 95 confidence floor cannot be
-                          promoted on its own word.
-
                           Blaming our own reading for a billing outage
                           overstates our unreliability in the one place the
                           product is asking to be trusted. The line stays

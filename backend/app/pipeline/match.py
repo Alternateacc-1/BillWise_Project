@@ -174,10 +174,9 @@ def select_ceiling(
 
     IT IS NOT A PACK COUNT. Passing a pack size here searches for a ceiling
     priced per-ten-tablets, which does not exist, and the item silently loses
-    its ceiling and goes gray. It was called `unit_qty` until 2026-09-19, and
-    audit.py was one field-assignment away from doing exactly that to every
-    packed tablet the moment Class C read the PACK column. Renamed so the
-    mistake cannot be made by accident; a test pins the meaning.
+    its ceiling and goes gray. The old name `unit_qty` invited exactly that
+    confusion, so it was renamed to make the mistake harder to walk into; a
+    test pins the meaning.
 
     `form_modifier` distinguishes three cases, and the distinction matters:
       ""    -- the bill says this is a PLAIN tablet. Match plain only.

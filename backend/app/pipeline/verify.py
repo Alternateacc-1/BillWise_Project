@@ -230,13 +230,10 @@ def _pair_readings(
 ) -> list[tuple[ReaderItem | None, ReaderItem | None]]:
     """Match the two readings BY CONTENT, not by position.
 
-    THE OLD PAIRING WAS `a_items.get(i), b_items.get(i)` AND IT WAS FRAGILE.
-    Two readers rarely agree on how many rows a bill has: one counts a column
-    header as an item, the other merges a wrapped description, and from that
-    point on every index refers to a different row in each reading. Measured
-    2026-09-20 on a photographed bill -- Textract found 11 rows, the vision
-    model 9, and most lines reported `only_one_reader_ran` even though both
-    readers had read them perfectly well.
+    Pairing by row index breaks as soon as the readers disagree on how many
+    rows a bill has -- one takes a header as an item, the other merges a
+    wrapped description, and from there every index refers to a different row
+    in each reading.
 
     That failed SAFE (a mismatched pairing disagrees, and disagreement means
     gray) but it threw away most of the cross-check, which is the one thing
