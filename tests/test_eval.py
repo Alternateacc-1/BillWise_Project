@@ -21,6 +21,16 @@ GROUND_TRUTH = REPO_ROOT / "eval" / "ground_truth"
 FIXTURES = REPO_ROOT / "eval" / "fixtures"
 DEMO_BILLS = REPO_ROOT / "eval" / "demo_bills"
 
+#: The demo bills are GENERATED, not committed -- they are synthetic and
+#: regenerable, so the repo carries the generator rather than its output.
+#: A fresh clone has the fixtures (which the eval actually scores against)
+#: but not the rendered PDFs, so the artefact tests skip with a message
+#: telling you the one command that fixes it, rather than failing.
+needs_demo_bills = pytest.mark.skipif(
+    not (DEMO_BILLS / "bill_01.pdf").exists(),
+    reason="demo bills not generated -- run: python scripts/make_demo_bills.py",
+)
+
 BILL_IDS = sorted(p.stem for p in GROUND_TRUTH.glob("bill_*.json"))
 
 
@@ -142,12 +152,14 @@ def test_the_gray_majority_is_real(results):
 # Artefacts and safety
 # --------------------------------------------------------------------------
 
+@needs_demo_bills
 @pytest.mark.parametrize("bill_id", BILL_IDS)
 def test_every_bill_has_a_fixture_and_a_pdf(bill_id):
     assert (FIXTURES / f"{bill_id}.json").exists()
     assert (DEMO_BILLS / f"{bill_id}.pdf").exists()
 
 
+@needs_demo_bills
 def test_a_noisy_scan_exists():
     assert (DEMO_BILLS / "bill_05.jpg").exists()
 

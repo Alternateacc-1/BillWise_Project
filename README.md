@@ -71,6 +71,17 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
+The price reference ships with the repo, so there is nothing to build before
+the tests and the eval will run. **The demo bills do not ship** — they are
+generated, and this one offline command emits them:
+
+```bash
+PYTHONIOENCODING=utf-8 python scripts/make_demo_bills.py
+```
+
+Skip it and everything still works; a handful of artefact tests skip with a
+message naming that exact command.
+
 ```bash
 PYTHONIOENCODING=utf-8 python -m uvicorn app.main:app --reload --app-dir backend --port 8000
 ```

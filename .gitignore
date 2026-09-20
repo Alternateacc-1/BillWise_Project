@@ -79,3 +79,10 @@ frontend-handoff-b.zip
 # NEVER COMMIT THIS FOLDER: data/blobs/ inside it holds REAL uploaded bills, and
 # it carries its own .env. Keep it out of the repo, not just out of `git add -A`.
 handoff/
+
+# The demo bills are GENERATED, not committed. scripts/make_demo_bills.py emits
+# them from the same declaration that produces eval/fixtures/ and
+# eval/ground_truth/, so shipping the output as well would be a second copy
+# that can drift. They are synthetic -- fake hospital, no patient names -- but
+# the repo carries no bill files at all, which is the simpler thing to promise.
+eval/demo_bills/

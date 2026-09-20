@@ -825,8 +825,10 @@ def test_a_pdf_cannot_masquerade_as_an_image():
     """
     from app.blobs import UploadRejected, validate
 
-    pdf = Path("eval/demo_bills/bill_01.pdf").read_bytes()
-    jpg = Path("eval/demo_bills/bill_02.jpg").read_bytes()
+    if not (DEMO_BILLS / "bill_01.pdf").exists():
+        pytest.skip("demo bills not generated -- run: python scripts/make_demo_bills.py")
+    pdf = (DEMO_BILLS / "bill_01.pdf").read_bytes()
+    jpg = (DEMO_BILLS / "bill_02.jpg").read_bytes()
 
     assert validate(pdf, "application/pdf") == ".pdf"
     assert validate(jpg, "image/jpeg") == ".jpg"
