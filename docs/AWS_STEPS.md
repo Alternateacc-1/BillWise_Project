@@ -1179,3 +1179,63 @@ Open https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com and check all four:
 
 If the sample works but a real upload fails with a bare "Network error", that
 is the 4 MB ceiling, not a deploy problem. See `docs/LIMITS.md`.
+
+---
+
+## 11.4 Deploying from the CLI instead of the console
+
+Same manual deploy, driven by `aws amplify` rather than drag-and-drop. Added
+2026-09-20 when the owner asked for commands.
+
+**The app id is in the domain.** `prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com` is
+`<branch>.<app-id>.amplifyapp.com`, so:
+
+    APP_ID      YOUR-AMPLIFY-APP-ID
+    BRANCH      prod
+    REGION      us-east-1
+
+**Three calls, and the middle one is a plain HTTP PUT, not an AWS call.**
+`create-deployment` hands back a presigned S3 URL; you upload the zip to it
+with `curl`; then `start-deployment` tells Amplify to publish what you
+uploaded. Nothing is live until the third call.
+
+```bash
+aws amplify create-deployment --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --region us-east-1
+```
+
+That prints `jobId` and `zipUploadUrl`. Both are needed below, and the URL is
+short-lived — do the upload straight away.
+
+```bash
+curl -T billwise-frontend.zip "PASTE_THE_zipUploadUrl_HERE"
+```
+
+`curl -T` sends a PUT, which is what the presigned URL is signed for. A silent
+success is normal; a 403 usually means the URL expired, so re-run
+`create-deployment`.
+
+```bash
+aws amplify start-deployment --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1
+```
+
+Then poll until `status` is `SUCCEED`:
+
+```bash
+aws amplify get-job --app-id YOUR-AMPLIFY-APP-ID --branch-name prod --job-id PASTE_THE_jobId_HERE --region us-east-1 --query "job.summary.status"
+```
+
+**If a flag name differs on your CLI version**, ask it rather than guessing:
+`aws amplify create-deployment help`. This file does not guess at AWS API
+shapes, and these four were written from the documented Amplify manual-deploy
+flow rather than from a run on this machine — the console path in 11.2 is the
+one that has actually been exercised here.
+
+**Verify with the bundle name, not the job status.** A green job only means
+the upload published; it does not prove the zip held the build you meant:
+
+```bash
+curl -s https://prod.YOUR-AMPLIFY-APP-ID.amplifyapp.com | grep -oE "index-[A-Za-z0-9_-]+\.(js|css)"
+```
+
+Compare that against `grep -oE "index-[A-Za-z0-9_-]+\.(js|css)" frontend/dist/index.html`.
+If they differ, the old bundle is still being served.
