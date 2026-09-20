@@ -378,3 +378,51 @@ compared.
 **A reporting bug rode on this and is fixed.** The summary said "Only one
 reader ran on this bill" whenever ANY line was unpaired, which claimed the
 second reader had not run at all. It now states how many lines of how many.
+
+### Class G, sharpened: a hospital inpatient bill may carry NO GST at all
+
+Raised 2026-09-20. Class G was recorded as "we do not know whether a line
+price includes GST". The real case is narrower and more actionable.
+
+`config.py` argues 12% over 5% on the grounds that a higher assumed GST gives
+a higher permitted price and therefore FEWER flags -- the silence-favouring
+choice. **It never considers 0%.**
+
+Healthcare services by a clinical establishment are GST-exempt, and several
+AAR rulings have held that medicines supplied to INPATIENTS form part of that
+exempt composite supply; outpatient pharmacy sales are taxable. That position
+has been contested and an AAR binds only its applicant, so this is not settled
+law -- but inpatient bills are commonly issued with no GST on medicines, and
+that is what matters here.
+
+**Measured on a real IPD bill:** two group totals of 7,700.00 and 3,558.84
+against a printed net of 11,258.84. The lines sum exactly to the total. There
+is no tax row anywhere on the page.
+
+**The size of the blind spot:**
+
+    assumed 12% GST : allowance = ceiling x 1.12, red at ceiling x 1.40
+    if exempt (0%)  : allowance = ceiling x 1.00, red at ceiling x 1.25
+
+So on a GST-exempt inpatient bill we permit 1.40x the ceiling before calling
+red, when the correct line is 1.25x. **Twelve per cent of headroom handed over
+for free, in the under-flagging direction** -- silence where there is a real
+overcharge.
+
+**THE BILL TELLS US, AND THAT IS THE FIX.** This does not need a tax lookup:
+
+  - lines sum to the printed total, no tax row  -> nothing is being added;
+    compare against the ceiling as billed
+  - a tax row appears at the bottom             -> lines are ex-tax; the
+    printed total carries the GST
+  - neither is legible                          -> unknown, keep 12%
+
+`verify.py` already computes the line sum against the printed total for R2, so
+the signal is in hand. What is missing is carrying it as an explicit
+three-state basis (inclusive / exclusive / unknown) into the price gate,
+instead of a flat multiplier.
+
+**Do not just change GST_PERCENT to 0.** That would tighten the gate on EVERY
+bill including retail ones, where MRP genuinely is tax-inclusive, and would
+turn compliant pharmacy lines red. The basis has to be per-bill and derived,
+not a global constant.
