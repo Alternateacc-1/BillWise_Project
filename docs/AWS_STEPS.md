@@ -1014,16 +1014,44 @@ Without it a refresh on any path returns Amplify's 404 page.
 
 ## 10.3 Stage, build and deploy the backend WITH the origin
 
-```bash
-python scripts/stage_lambda.py
-```
-
-Then, from the repo root — one command, and note it carries the Amplify
-origin you just copied:
+**Use the venv interpreter, not a bare `python`.** The system Python has no
+pydantic and this dies with ModuleNotFoundError halfway through, after it has
+already copied the reference data -- which looks like partial success.
 
 ```bash
-sam build --use-container --template infra/template.yaml
+PYTHONIOENCODING=utf-8 ./venv/Scripts/python.exe scripts/stage_lambda.py
 ```
+
+**STAGING MUST COME BEFORE THE BUILD.** It writes into `backend/`, and the
+build copies `backend/`. Run it afterwards and the build ships whatever was
+staged last time.
+
+Then, from the repo root:
+
+```bash
+sam build --use-container --template infra/template.yaml --build-dir C:/Users/you/billsahi-build
+```
+
+**`--build-dir` IS NOT OPTIONAL, AND OMITTING IT DEPLOYS THE WRONG CODE
+SILENTLY.** `samconfig.toml` sets `build_dir`, but on 2026-09-20 a plain
+`sam build` ignored it and wrote to `.aws-samuild` instead, while
+`sam deploy` went on reading `template_file` from samconfig -- the OTHER
+directory, holding a build from the day before.
+
+The deploy SUCCEEDED. CloudFormation reported UPDATE_COMPLETE. The parameter
+change went through, so CORS was fixed and it all looked right. The code was
+the previous build.
+
+**The tell is one line in the deploy output:**
+
+    File with same data already exists at billsahi/<hash>, skipping upload
+
+If the code changed, that hash must change. Seeing "skipping upload" after
+editing Python means the artifact is identical to a previous one -- which
+means it is not yours. Do not read it as a helpful optimisation.
+
+Verify with the probes in 10.4 rather than the CloudFormation status. A green
+stack says the DEPLOY worked, not that it deployed what you built.
 
 ```bash
 sam deploy --stack-name billsahi --region us-east-1 --capabilities CAPABILITY_IAM --parameter-overrides BedrockInferenceProfileId="us.anthropic.claude-sonnet-4-6" FrontendOrigin="https://PASTE-YOUR-AMPLIFY-DOMAIN" ReservedConcurrency="0"

@@ -62,3 +62,6 @@ backend/fixtures/
 # repo. The code was extracted to frontend/; the archive itself stays out.
 claude.zip
 frontend_old/
+
+# Build output zipped for an Amplify manual deploy. Regenerate, never commit.
+billwise-frontend.zip
