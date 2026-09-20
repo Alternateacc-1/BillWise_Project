@@ -1,4 +1,4 @@
-"""Bill storage. SQLite locally, DynamoDB behind the same interface later.
+"""Bill storage. SQLite locally, DynamoDB behind the same interface in AWS.
 
 Deliberately small: one table, JSON blobs, no ORM. The pipeline owns the
 shapes; this just persists them.

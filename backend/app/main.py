@@ -1,4 +1,4 @@
-"""The API. FastAPI locally, the same app behind Mangum on Lambda later.
+"""The API. FastAPI locally, and the same app behind Mangum on Lambda.
 
 Endpoints:
     GET  /health
@@ -37,8 +37,9 @@ from .pipeline.verify import verify_bill
 
 app = FastAPI(title="BillWise", version="0.3.0")
 
-#: Locked to the local dev origins. Phase 4 replaces this with the Amplify
-#: origin -- never "*", because the API returns a user's uploaded bill.
+#: The local dev origins. In AWS the deployed Amplify origin is APPENDED
+#: from FRONTEND_ORIGIN below -- never "*", because this API hands back a
+#: user's uploaded bill.
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",

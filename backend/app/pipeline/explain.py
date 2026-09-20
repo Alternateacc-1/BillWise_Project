@@ -1,6 +1,6 @@
 """Turning a flag's evidence into a sentence. Templates in local mode.
 
-The LLM variant (Phase 4) is held to exactly the same contract as these
+The LLM variant is held to exactly the same contract as these
 templates: it may rephrase, and it may introduce NO number that is not
 already in the evidence. That is enforceable precisely because the templates
 exist first and define what a correct explanation looks like.

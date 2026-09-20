@@ -1,4 +1,5 @@
-"""Reading a bill. Fixtures in local mode; Textract and Bedrock in Phase 4.
+"""Reading a bill. Fixtures in local mode; Textract and Bedrock when
+PROVIDER=aws, where both readers run on every bill.
 
 LOCAL MODE HAS NO OCR, and says so rather than pretending. An uploaded file is
 stored and, if its name matches a known fixture, that fixture's reading is
