@@ -28,3 +28,6 @@ dist-ssr
 
 # tsc -b writes this next to the configs; it is a build artefact.
 *.tsbuildinfo
+
+# Build output zipped for a manual Amplify deploy. Regenerate, never commit.
+dist.zip
