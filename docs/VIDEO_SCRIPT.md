@@ -268,3 +268,25 @@ bad photos it isn't, and when it isn't sure it says so instead of guessing."*
 Don't fight it. Say: *"That's a real upload hitting a real server, so
 occasionally it's slow — here's one we ran earlier"* and cut to a recording.
 Nobody minds. Trying to debug on camera is what kills a demo.
+
+---
+
+## Where this came from
+
+This replaces `docs/DEMO_SCRIPT.md`, a Phase 2 stub deleted on 2026-09-20
+because **every number in it had been superseded** -- 39/39 findings (now
+46/46), 5 bills (now 6), a 23/4 gray split (now 25/9), 207 tests (now 298).
+Quoting any of them to a judge would have been a false claim, which is the one
+thing the whole project is built to avoid.
+
+Two lines from it were right and are kept here in spirit:
+
+- **Lead with what we could NOT check**, not with what we found. That is what
+  separates this from a tool that flags everything.
+- **The second-best moment is an item coming back GREEN** and citing the exact
+  S.O. under which it cleared. A system that only ever shouts is easy to build
+  and easy to distrust.
+
+Its warning about unmeasured reading-accuracy claims has been honoured: there
+is no accuracy percentage anywhere in this script, and "Safe numbers" says so
+explicitly.
