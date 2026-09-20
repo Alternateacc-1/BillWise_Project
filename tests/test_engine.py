@@ -1230,3 +1230,62 @@ def test_line_confidence_still_falls_to_a_weak_field_we_do_read():
     ])
     out = _parse_expense(resp)
     assert out.items[0].confidence == Decimal("62.00")
+
+
+def test_r2_abstains_when_any_line_feeding_the_sum_is_untrusted():
+    """A sum is only as sound as its weakest term -- EVERY term.
+
+    Found 2026-09-20 by the user, on a real hospital bill that adds up
+    perfectly: two group totals of 7,700.00 and 3,558.84 against a printed
+    net of 11,258.84. Textract, reading a photographed page, dropped one
+    2,400.00 line and shuffled others, so OUR sum came to 8,985.68 -- and the
+    report asked the hospital to explain Rs 2,273.16 it had never charged.
+
+    verify.py sums every line carrying a number, trusted or not, so R2 was
+    reconciling a total built out of lines it had already refused to price.
+    The rule existed for the narrow case of a line worth more than the whole
+    bill; this is the same argument generalised.
+
+    NARROWING ONLY: strictly fewer findings, so it cannot create a false red.
+    """
+    from app.models import ReadingStats
+    from app.pipeline.audit import rule_r2_bill_total
+
+    stats = ReadingStats(
+        reconciliation=Reconciliation.MISMATCH,
+        sum_of_line_totals=Decimal("8985.68"),
+        printed_grand_total=Decimal("11258.84"),
+    )
+    # Trusted sum: the rule speaks.
+    assert rule_r2_bill_total(stats, False) is not None
+    # One line we could not read: it must not.
+    assert rule_r2_bill_total(stats, True) is None
+
+
+def test_r2_still_speaks_when_every_line_was_read_well():
+    """The other direction, so the narrowing cannot silence R2 entirely."""
+    from app.models import ReadingStats
+    from app.pipeline.audit import audit
+    from app.pipeline.normalize import normalize_bill
+
+    items = [
+        VerifiedItem(index=1, name="A", quantity=Decimal("1"),
+                     unit_price=Decimal("100.00"), line_total=Decimal("100.00"),
+                     confidence=ReadingConfidence.HIGH,
+                     reasons=["both_readers_agree:name_similarity=100"]),
+        VerifiedItem(index=2, name="B", quantity=Decimal("1"),
+                     unit_price=Decimal("200.00"), line_total=Decimal("200.00"),
+                     confidence=ReadingConfidence.HIGH,
+                     reasons=["both_readers_agree:name_similarity=100"]),
+    ]
+    from app.models import ReadingStats
+    stats = ReadingStats(
+        total_items=2, auto_high=2,
+        reconciliation=Reconciliation.MISMATCH,
+        sum_of_line_totals=Decimal("300.00"),
+        printed_grand_total=Decimal("900.00"),
+    )
+    flags = audit(items, normalize_bill(items), stats)
+    r2 = [f for f in flags if f.rule_id == "R2"]
+    assert r2, "a bill asking for more than well-read lines justify must fire R2"
+    assert r2[0].amount_affected == Decimal("600.00")

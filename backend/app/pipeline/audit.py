@@ -197,7 +197,7 @@ def rule_r1_line_arithmetic(
 # --------------------------------------------------------------------------
 
 def rule_r2_bill_total(
-    stats: ReadingStats, any_line_implausible: bool = False
+    stats: ReadingStats, sum_is_untrustworthy: bool = False
 ) -> Flag | None:
     """Reconcile the line sum against the printed total, when both are trusted.
 
@@ -217,7 +217,7 @@ def rule_r2_bill_total(
     rule simply never sees the harmless one, because a bill that asks for
     less than its own lines is not a bill worth questioning.
     """
-    if any_line_implausible:
+    if sum_is_untrustworthy:
         return None
     if stats.reconciliation is not Reconciliation.MISMATCH:
         return None
@@ -842,7 +842,27 @@ def audit(
         _line_exceeds_whole_bill(i, grand_total) for i in items
     )
 
-    bill_total_flag = rule_r2_bill_total(stats, any_line_implausible)
+    # A SUM IS ONLY AS SOUND AS ITS WEAKEST TERM, AND THAT MEANS EVERY TERM.
+    #
+    # verify.py builds sum_of_line_totals from EVERY line with a number on it,
+    # trusted or not. So R2 was comparing a total assembled out of lines we had
+    # already refused to price against the printed total, and reporting the gap
+    # as the BILL's problem.
+    #
+    # Found 2026-09-20 by the user, on a real hospital bill that adds up
+    # perfectly: 7,700.00 + 3,558.84 = 11,258.84 printed. Textract dropped one
+    # 2,400.00 line and shuffled several others across a photographed page, our
+    # sum came to 8,985.68, and the report asked the hospital to explain
+    # Rs 2,273.16 that it had never charged.
+    #
+    # The rule already existed for the narrow case of a line worth more than
+    # the whole bill. The general case is the same argument: if we did not
+    # trust a line enough to price it, we cannot add it up and blame the total.
+    any_line_unverified = any(not i.is_high for i in items)
+
+    bill_total_flag = rule_r2_bill_total(
+        stats, any_line_implausible or any_line_unverified
+    )
     if bill_total_flag:
         flags.append(bill_total_flag)
 
