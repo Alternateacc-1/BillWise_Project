@@ -56,23 +56,48 @@ html {
 
 /* Nav pill — single translucent state, values measured from the layout reference. */
 .nav-pill {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
   width: 100%;
-  max-width: 800px;
-  height: 74px;
-  padding: 18px 30px;
-  border-radius: 37px; /* half the height */
+  max-width: 720px;
+  height: 60px;
+  padding: 14px 26px;
+  border-radius: 30px; /* half the height */
+}
+/* The pill's skin lives on ::before so the entrance can grow it without moving the links (which stay full size, clickable). */
+.nav-pill::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  border-radius: 30px;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(20, 20, 20, 0.07);
   box-shadow: 0 2px 8px rgba(20, 20, 20, 0.06), 0 10px 32px rgba(20, 20, 20, 0.11); /* deepened so the pill still separates from white cards */
   -webkit-backdrop-filter: blur(48px);
   backdrop-filter: blur(48px);
 }
+/* Nav entrance: the shared reveal (see "Entrance reveal" below). Only ::before — the skin — grows; the nav box and
+   its links are full size and interactive from the first frame. */
+@media (prefers-reduced-motion: no-preference) {
+  .nav-pill.is-arriving::before {
+    width: 8px;
+    height: 8px;
+    animation: reveal-frame var(--reveal-frame-dur) var(--reveal-frame-ease) var(--reveal-frame-delay) forwards;
+    will-change: width, height;
+  }
+}
 .nav-wordmark {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
@@ -84,13 +109,16 @@ html {
   }
 }
 .nav-links {
-  column-gap: 11px;
-  margin-right: -19px; /* link padding 11 + 8 so the last label ends 22px from the pill edge */
+  column-gap: 8px;
+  margin-right: -17px; /* link padding 9 + 8 so the last label ends 22px from the pill edge */
 }
 @media (max-width: 639px) {
   .nav-pill {
-    padding: 18px 14px;
-    border-radius: 37px;
+    padding: 14px 14px;
+    border-radius: 30px;
+  }
+  .nav-pill::before {
+    border-radius: 30px;
   }
 }
 
@@ -98,11 +126,11 @@ html {
 .nav-link {
   display: inline-block;
   border-radius: 9999px;
-  padding: 7px 11px; /* 24px line + 14px = 38px pill = the bar's content box */
-  font-size: 18px;
+  padding: 5px 9px; /* 22px line + 10px = 32px pill = the bar's content box */
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  line-height: 24px;
+  line-height: 22px;
   color: rgb(20, 20, 20);
   background: transparent;
   white-space: nowrap;
@@ -123,7 +151,7 @@ html {
 @media (max-width: 639px) {
   /* 360px: four links do not fit at 18px; 16px is the floor. */
   .nav-link {
-    padding: 7px 4px;
+    padding: 5px 4px;
     font-size: 16px;
     letter-spacing: 0;
   }
@@ -171,9 +199,9 @@ body {
 /* About: two plain flex columns. Below 900px they stack and the left column is not sticky. */
 .about-row {
   width: 100%;
-  max-width: 1560px;
+  max-width: 1320px;
   margin-inline: auto;
-  padding: 0 20px;
+  padding: 0 40px;
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -238,6 +266,149 @@ body {
   height: auto;
 }
 
+/* ---------- Entrance reveal: one timeline shared by the nav pill and the hero badge ----------
+   Both start together on first mount and finish together; the timings live only in these custom properties.
+   Sequence: corner dots fade in (staggered) → the frame grows from 8×8 (height first, then width) → contents drop in.
+   Animation pattern adapted from the MIT-licensed Themefisher "Automark" Astro template (reimplemented, our palette). */
+:root {
+  --reveal-dot-dur: 0.6s;
+  --reveal-dot-d2: 0.2s;
+  --reveal-dot-d3: 0.4s;
+  --reveal-dot-d4: 0.5s;
+  --reveal-dot-out: 1.8s; /* dots leave once the frame has finished */
+  --reveal-frame-delay: 0.8s;
+  --reveal-frame-dur: 1s;
+  --reveal-frame-ease: cubic-bezier(0.56, 0.02, 0.03, 1.46);
+  --reveal-text-delay: 1.1s;
+  --reveal-text-dur: 0.6s;
+  --reveal-total: 2100; /* ms until the last animation (dot-out) ends; read by the JS that drops .is-arriving */
+}
+.reveal-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #141414;
+  opacity: 0; /* the dots belong to the entrance only; at rest neither element shows them */
+  pointer-events: none;
+}
+.reveal-dot.one {
+  top: 0;
+  left: 0;
+}
+.reveal-dot.two {
+  top: 0;
+  right: 0;
+}
+.reveal-dot.three {
+  bottom: 0;
+  left: 0;
+}
+.reveal-dot.four {
+  bottom: 0;
+  right: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .is-arriving .reveal-frame {
+    width: 8px;
+    height: 8px;
+    animation: reveal-frame var(--reveal-frame-dur) var(--reveal-frame-ease) var(--reveal-frame-delay) forwards;
+    will-change: width, height;
+  }
+  .is-arriving .reveal-dot {
+    animation: reveal-dot var(--reveal-dot-dur) ease forwards, reveal-dot-out 0.3s ease var(--reveal-dot-out) forwards;
+  }
+  .is-arriving .reveal-dot.two {
+    animation-delay: var(--reveal-dot-d2), var(--reveal-dot-out);
+  }
+  .is-arriving .reveal-dot.three {
+    animation-delay: var(--reveal-dot-d3), var(--reveal-dot-out);
+  }
+  .is-arriving .reveal-dot.four {
+    animation-delay: var(--reveal-dot-d4), var(--reveal-dot-out);
+  }
+  .is-arriving .reveal-item {
+    opacity: 0;
+    animation: reveal-item var(--reveal-text-dur) ease var(--reveal-text-delay) forwards;
+    will-change: filter, transform;
+  }
+}
+@keyframes reveal-dot {
+  from {
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes reveal-dot-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes reveal-frame {
+  0% {
+    width: 8px;
+    height: 8px;
+  }
+  30% {
+    width: 8px;
+    height: 100%;
+  }
+  100% {
+    width: 100%;
+    height: 100%;
+  }
+}
+@keyframes reveal-item {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+    filter: blur(8px);
+  }
+  60% {
+    transform: translateY(20%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* Hero badge. Resting state is the plain 1.5px-bordered pill; the shared reveal only changes how it arrives. */
+.badge-anim {
+  position: relative;
+  display: inline-block;
+  padding: 7.5px 13.5px; /* 6px/12px inside a 1.5px border, which the frame now draws */
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.2px;
+  color: rgb(20, 20, 20);
+  background: transparent;
+  overflow: hidden; /* the text drops in from above its own box */
+  vertical-align: top; /* overflow:hidden moves an inline-block baseline to its bottom edge, which would add descender space below */
+}
+.badge-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  border: 1.5px solid rgb(20, 20, 20);
+  border-radius: 8px;
+  pointer-events: none;
+}
+.badge-content {
+  position: relative;
+  display: inline-block;
+}
+
 /* Severity chips: light tinted fill, 1px border, dark text. Shape/size classes come from <Chip/>. */
 .chip {
   display: inline-block;
@@ -271,15 +442,15 @@ body {
 
 /* FAQ accordion */
 .faq-heading {
-  font-size: clamp(32px, 4.8vw, 68px);
-  letter-spacing: -0.5px;
-  word-spacing: 0.12em;
+  font-size: clamp(32px, 3.4vw, 48px);
+  letter-spacing: -1px;
+  word-spacing: 0.06em;
 }
 .faq-row {
   background: var(--surface);
   border: none;
   border-radius: 18px;
-  padding: 32px 40px;
+  padding: 26px 32px;
   transition: background 0.2s ease;
 }
 .faq-row:hover {
@@ -289,32 +460,26 @@ body {
   background: var(--card);
 }
 .faq-trigger {
-  font-size: 22px;
+  font-size: 19px;
   letter-spacing: -0.2px;
 }
 .faq-answer {
-  font-size: 18px;
+  font-size: 16px;
 }
 .faq-chevron {
   color: #141414;
-  margin-top: 3px; /* (22px × 1.3 − 22) / 2 */
+  margin-top: 2px; /* (19px × 1.3 − 20) / 2 */
   transition: transform 0.2s ease;
 }
 @media (max-width: 639px) {
-  .faq-heading {
-    word-spacing: 0.06em;
-  }
   .faq-row {
     padding: 22px 24px;
   }
   .faq-trigger {
-    font-size: 18px;
-  }
-  .faq-answer {
-    font-size: 16px;
+    font-size: 17px;
   }
   .faq-chevron {
-    margin-top: 1px; /* (18px × 1.3 − 22) / 2 */
+    margin-top: 1px; /* (17px × 1.3 − 20) / 2 */
   }
 }
 
@@ -354,19 +519,31 @@ body {
   }
 }
 
-/* Contact CTA: hover colour always; the one-shot entrance only when motion is allowed. */
+/* Contact CTA: hover colour always; the one-shot entrance is the shared blur reveal below. */
 .email-cta {
   transition: background-color 0.2s ease;
 }
+
+/* Blur reveal, once per element: .is-in is added by useRevealOnce, which also disconnects its observer.
+   Applied to the Email CTA, the feedback block and the hero drop zone. Nothing here loops. */
 @media (prefers-reduced-motion: no-preference) {
-  .email-cta {
+  .email-cta,
+  .feedback-block,
+  .hero-zone-wrap {
     opacity: 0;
     transform: translateY(14px);
-    transition: background-color 0.2s ease, opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    filter: blur(6px);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.55s ease;
   }
-  .email-cta.is-in {
+  .email-cta {
+    transition: background-color 0.2s ease, opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.55s ease;
+  }
+  .email-cta.is-in,
+  .feedback-block.is-in,
+  .hero-zone-wrap.is-in {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
@@ -374,7 +551,7 @@ body {
 .site-footer {
   background: var(--footer-bg);
   color: var(--footer-text);
-  padding: 88px 20px 40px;
+  padding: 80px 40px 36px;
 }
 /* Scroll reveal: the page content (z 1) slides up over the sticky footer (z 0). Nav is z 100.
    Their parent (#top) must never get overflow:hidden or a transform. Desktop + motion-ok only. */
@@ -396,7 +573,7 @@ body {
 }
 .footer-link {
   display: inline-block;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--footer-text);
   border-radius: 6px;
@@ -440,17 +617,7 @@ body {
 .footer-submit:hover:not(:disabled) {
   opacity: 0.88;
 }
-@media (prefers-reduced-motion: no-preference) {
-  .feedback-block {
-    opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .feedback-block.is-in {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+
 
 /* Hero drop zone. Transforms never affect layout, so neighbours stay put. */
 .hero-zone {
@@ -500,16 +667,6 @@ body {
   }
   .hero-zone.is-over {
     transform: scale(1.01);
-  }
-  /* Entrance, once: .is-in is added by useRevealOnce. */
-  .hero-zone-wrap {
-    opacity: 0;
-    transform: translateY(18px);
-    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .hero-zone-wrap.is-in {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

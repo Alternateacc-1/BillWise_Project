@@ -53,36 +53,36 @@ export default function About() {
   }, [])
 
   return (
-    // 1474px container — wider than the page's 1262px, matching the reference for this section.
+    // 1320px container with 40px side padding: ~60px clear on each side at 1440px.
     <section id="about" className="mt-24 w-full scroll-mt-24">
       {/* Plain flex row; see .about-* in index.css for the exact column rules. */}
       <div className="about-row">
         <div className="about-left">
-          <h2 className="text-[52px] font-bold leading-[1.05] tracking-[-1px]">How BillWise reads a bill.</h2>
+          <h2 className="text-[44px] font-bold leading-[1.05] tracking-[-1px]">How BillWise reads a bill.</h2>
           <ol className="mt-10">
             {ITEMS.map((item, i) => (
               <li key={item.title} className={`about-item ${i === active ? 'is-active' : ''}`}>
-                <h3 className="text-[42px] font-bold leading-tight tracking-[-0.6px]">{item.title}</h3>
-                <p className="about-body mt-3 text-[21px] leading-[1.55] text-[#585858]">{item.body}</p>
+                <h3 className="text-[34px] font-bold leading-tight tracking-[-0.5px]">{item.title}</h3>
+                <p className="about-body mt-3 text-[18px] leading-[1.6] text-[#585858]">{item.body}</p>
               </li>
             ))}
           </ol>
           <dl className="mt-9 space-y-5 border-t border-line pt-9">
             {FACTS.map(([label, value]) => (
               <div key={label}>
-                <dt className="text-[13px] uppercase tracking-[0.5px] text-[#9b9b9b]">{label}</dt>
-                <dd className="mt-0.5 text-[19px] font-semibold text-[#141414]">{value}</dd>
+                <dt className="text-[12px] uppercase tracking-[0.5px] text-[#9b9b9b]">{label}</dt>
+                <dd className="mt-0.5 text-[17px] font-semibold text-[#141414]">{value}</dd>
               </div>
             ))}
           </dl>
-          <p className="mt-7 max-w-[460px] text-base leading-[1.6] text-[#8a8a8a]">
+          <p className="mt-7 max-w-[460px] text-[15px] leading-[1.6] text-[#8a8a8a]">
             Not compared is an expected result, not a failure. Most of an Indian hospital bill has no published
             ceiling — BillWise says so plainly instead of guessing. BillWise is not legal or medical advice.
           </p>
         </div>
 
         {/* Right: the four steps, illustrated. Swap a Panel's body for a screenshot when assets arrive. */}
-        <div className="about-right relative isolate flex flex-col gap-8 overflow-hidden rounded-3xl bg-surface p-8">
+        <div className="about-right relative isolate flex flex-col gap-6 overflow-hidden rounded-3xl bg-surface p-7">
           <div
             aria-hidden="true"
             className="bill-illustration pointer-events-none absolute right-8 top-10 z-0 hidden w-[420px] opacity-55 min-[900px]:block"
@@ -119,10 +119,10 @@ function Panel({
 }) {
   return (
     <div ref={ref} className="relative rounded-2xl bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <span className="absolute right-4 top-4 rounded-md border border-line px-2 py-1 text-xs uppercase tracking-[0.5px] text-[#b0b0b0]">
+      <span className="absolute right-4 top-4 rounded-md border border-line px-2 py-1 text-[11px] uppercase tracking-[0.5px] text-[#b0b0b0]">
         Example
       </span>
-      <p className="pr-24 text-[17px] font-bold uppercase tracking-[0.8px] text-[#6b6b6b]">{step}</p>
+      <p className="pr-24 text-[15px] font-bold uppercase tracking-[0.8px] text-[#6b6b6b]">{step}</p>
       <div className="mt-4" aria-hidden={decorative ? 'true' : undefined}>
         {children}
       </div>
@@ -145,7 +145,7 @@ function UploadIllustration() {
   return (
     <div className="flex flex-col items-center rounded-[24px] border border-line bg-card px-6 py-8 text-center">
       <div aria-hidden="true" className="w-full max-w-[300px] opacity-55">
-        <p className="text-[13px] uppercase tracking-[0.5px] text-[#9b9b9b]">Example</p>
+        <p className="text-[11px] uppercase tracking-[0.5px] text-[#9b9b9b]">Example</p>
         <ul className="mt-2 space-y-2">
           {PREVIEW.map((row) => (
             <li key={row.chip} className="flex items-center justify-between gap-3">
@@ -159,11 +159,11 @@ function UploadIllustration() {
         type="button"
         onClick={goToUpload}
         aria-label="Go to the upload area"
-        className="mt-7 rounded-full bg-ink px-8 py-3.5 text-[17px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+        className="mt-7 rounded-full bg-ink px-8 py-3.5 text-[15px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
       >
         Upload a bill
       </button>
-      <span className="mt-3 text-base text-muted">Drop a photo or PDF, or click to choose</span>
+      <span className="mt-3 text-[14px] text-muted">Drop a photo or PDF, or click to choose</span>
     </div>
   )
 }
@@ -179,12 +179,12 @@ function CheckReadingIllustration() {
     <div>
       <p className="text-[15px] text-[#8a8a8a]">One line was hard to read. Confirm it before we check the price.</p>
       <div className="mt-4 flex gap-4">
-        <div className="flex h-36 w-28 shrink-0 items-center justify-center rounded-xl bg-surface-hover text-[13px] text-muted">bill crop</div>
+        <div className="flex h-36 w-28 shrink-0 items-center justify-center rounded-xl bg-surface-hover text-[11px] text-muted">bill crop</div>
         <div className="min-w-0 flex-1 space-y-3">
           {fields.map(([label, value]) => (
             <div key={label}>
-              <p className="text-[13px] font-medium text-muted">{label}</p>
-              <p className="mt-1 rounded-lg border border-line bg-card px-3 py-1.5 text-base text-[#222]">{value}</p>
+              <p className="text-[11px] font-medium text-muted">{label}</p>
+              <p className="mt-1 rounded-lg border border-line bg-card px-3 py-1.5 text-[14px] text-[#222]">{value}</p>
             </div>
           ))}
         </div>
@@ -202,24 +202,24 @@ function ReportIllustration() {
   ]
   return (
     <div>
-      <p className="text-[17px] font-semibold text-[#141414]">We found 4 things worth asking about, worth ₹53,347.00.</p>
-      <p className="mt-4 text-2xl font-bold">What we found</p>
+      <p className="text-[15px] font-semibold text-[#141414]">We found 4 things worth asking about, worth ₹53,347.00.</p>
+      <p className="mt-4 text-[20px] font-bold">What we found</p>
       <ul className="mt-3 divide-y divide-line">
         {rows.map((r) => (
           <li key={r.name} className="flex items-center justify-between gap-3 py-2.5">
             <div className="min-w-0">
-              <p className="text-[15px] text-[#222]">{r.name}</p>
-              <p className="text-sm text-[#6b6b6b]">Amount affected {r.affected}</p>
+              <p className="text-[13px] text-[#222]">{r.name}</p>
+              <p className="text-[12px] text-[#6b6b6b]">Amount affected {r.affected}</p>
             </div>
             <Chip tone={r.tone} label={r.label} size="sm" className="shrink-0" />
           </li>
         ))}
       </ul>
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
-        <p className="text-base font-bold">Not compared (10)</p>
+        <p className="text-[14px] font-bold">Not compared (10)</p>
         <Chip tone="gray" label="No published ceiling" size="sm" className="shrink-0" />
       </div>
-      <p className="mt-3 text-[13px] text-[#9b9b9b]">NPPA data retrieved 2026-09-18</p>
+      <p className="mt-3 text-[11px] text-[#9b9b9b]">NPPA data retrieved 2026-09-18</p>
     </div>
   )
 }
@@ -227,12 +227,12 @@ function ReportIllustration() {
 function LetterIllustration() {
   return (
     <div>
-      <p className="whitespace-pre-line rounded-xl bg-surface p-4 text-[14.5px] leading-[1.7] text-[#444]">
+      <p className="whitespace-pre-line rounded-xl bg-surface p-4 text-[12.5px] leading-[1.7] text-[#444]">
         {`To the billing department, Sunrise Multispeciality, Pune.
 I am writing about bill IP/2026/04812 dated 14-09-2026.
 Four items on this bill appear to be above the price ceiling published by the NPPA, or may need clarification. I would be grateful if you could review the items listed below and let me know the basis for the amounts charged.`}
       </p>
-      <p className="mt-3 text-[13px] text-[#9b9b9b]">You can edit this before sending.</p>
+      <p className="mt-3 text-[11px] text-[#9b9b9b]">You can edit this before sending.</p>
     </div>
   )
 }

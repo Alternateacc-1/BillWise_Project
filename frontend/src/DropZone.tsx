@@ -50,7 +50,7 @@ export function DropZone({ onStart, id }: { onStart: (file: File | null) => void
         onDrop={onDrop}
         aria-label="Upload a bill: drop a photo or PDF here, or click to get started"
         aria-describedby={error ? `${id}-error` : undefined}
-        className={`hero-zone flex min-h-[280px] w-full cursor-pointer flex-col items-center justify-center rounded-[24px] px-6 py-6 text-center ${
+        className={`hero-zone flex min-h-[300px] w-full cursor-pointer flex-col items-center justify-center rounded-[24px] px-6 py-6 text-center ${
           over ? 'is-over' : ''
         } ${focusRing}`}
       >

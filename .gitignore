@@ -68,3 +68,8 @@ billwise-frontend.zip
 
 # The share archive, built with git archive. Regenerate, never commit.
 billwise-handoff.zip
+
+# Frontend delivered by the contributor as a zip (2026-09-20). Byte-identical pair; the
+# source that mattered is integrated and logged in docs/CHANGES_BY_contributor.md.
+frontend-v2.zip
+frontend-handoff-b.zip
