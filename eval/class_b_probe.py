@@ -1,10 +1,9 @@
 """CLASS B / E / F -- is the ledger bug still live, and at which of its scales?
 
-NOTES.md's START HERE names Class B as "the ONLY thing currently WRONG rather
-than merely silent", citing a false `R2 amber Rs 22.94` measured on the
-deployed stack. That measurement predates `93184bd`, which made R2 directional.
-The deployed stack is stale, so the note may be describing a bug the code no
-longer has.
+The working notes once named Class B as the only thing actively WRONG rather
+than merely silent, citing a false `R2 amber Rs 22.94` measured on a deployed
+stack. That measurement predates `93184bd`, which made R2 directional -- so
+the note may have been describing a bug the code no longer had.
 
 THIS SCRIPT DECIDES THAT BY RUNNING IT, not by reading the diff.
 

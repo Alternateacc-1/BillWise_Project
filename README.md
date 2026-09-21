@@ -254,9 +254,9 @@ infra/              the SAM template
 docs/               see docs/README.md for an index
 ```
 
-`NOTES.md` is the working engineering log — every significant bug, what was
-measured, and what was decided. It is long because most of it was expensive to
-learn.
+Every ruling that shaped the engine — thresholds, the two-reader design, why
+gray is a correct answer — is in [`docs/DECISIONS.md`](docs/DECISIONS.md),
+with the measurement behind each one. Read that first; it is short.
 
 ---
 

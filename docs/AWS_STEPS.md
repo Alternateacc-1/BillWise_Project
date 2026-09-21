@@ -337,7 +337,7 @@ bill_06.pdf (retail) : ____ of 6 lines correct
   honest verdict on a real retail bill goes from six grays to six greens.
 
 Whatever the numbers are, they are the numbers. They replace the fixture
-figures in the video. See NOTES.md, "Which numbers are ours to claim".
+figures in the video. See docs/LIMITS.md for what may and may not be claimed.
 
 ---
 
@@ -481,8 +481,8 @@ Ground truth to check against — both bills, in full:
 
 **Whatever the numbers are, they are the numbers.** These replace the fixture
 figures in the video. Do not round them up, and if only one scan was tested
-say so — a missing claim is fine, an unmeasured one is not. See NOTES.md,
-"Which numbers are ours to claim".
+say so — a missing claim is fine, an unmeasured one is not. See
+docs/LIMITS.md for what may and may not be claimed.
 
 ---
 

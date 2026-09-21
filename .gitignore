@@ -101,3 +101,9 @@ eval/demo_bills/
 # node and venv paths, which differ on every box and break outright on
 # Linux/macOS. The commands it wraps are in the README.
 .vscode/
+
+# The private engineering log. Stays local: it is the maintainer's working
+# notes and it names the live API and Amplify endpoints, which do not belong
+# in a public repo while the API is unauthenticated. docs/DECISIONS.md is the
+# public version of the rulings it records.
+NOTES.md

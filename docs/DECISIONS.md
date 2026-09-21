@@ -1,7 +1,7 @@
 # Decisions — the short list
 
 Every ruling that would otherwise get re-litigated, in one place, with the
-evidence behind it. `NOTES.md` holds the full history; this is the index.
+evidence behind it.
 
 **The rule for this file: nothing goes in without a measurement, or a reason
 that survived contact with a real bill.**

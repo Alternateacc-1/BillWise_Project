@@ -8,8 +8,8 @@ invents a reading for a file it cannot read.
 
 That honesty matters beyond tidiness: every reading-quality number in the eval
 today comes from these fixtures, not from OCR, and must be re-measured on the
-AWS path before it is quoted anywhere. See NOTES.md, "Which numbers are ours
-to claim".
+AWS path before it is quoted anywhere. See docs/LIMITS.md for what may and
+may not be claimed.
 """
 
 from __future__ import annotations

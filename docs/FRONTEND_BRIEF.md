@@ -268,11 +268,10 @@ Verify with the probes in section 10.4.
 
 ## 9. Where the rest of the context is
 
-- **`NOTES.md`** — the full engineering history. Every significant bug, why
-  it happened, what was measured, and what was decided. Long, because most of
-  it was expensive to learn. If you are about to make a non-obvious change,
-  search it first; there is a fair chance the question has already been
-  settled with evidence.
+- **`docs/DECISIONS.md`** — every ruling that must not be re-litigated, with
+  the measurement behind it. If you are about to make a non-obvious change,
+  read it first; there is a fair chance the question has already been settled
+  with evidence.
 - **`docs/LIMITS.md`** — what the tool cannot do and why.
 - **`docs/ARCHITECTURE.md`** — how the pipeline fits together.
 - **`docs/AWS_STEPS.md`** — every console step and command, with the failures.
