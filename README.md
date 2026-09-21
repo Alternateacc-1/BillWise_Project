@@ -290,7 +290,12 @@ is legal or medical advice.**
 
 ---
 
-## Licence
+## Use of this code
 
-Code is MIT — see [LICENSE](LICENSE). NPPA price data is public government
-information. The brand dataset is MIT and credited above.
+This is a hackathon project, shared so the approach and the measurements can be
+checked. No licence is attached, so the usual default applies: the code is not
+offered for reuse. Ask if you want to build on it.
+
+The data is a different matter and is not ours to restrict. NPPA price data is
+public government information. The brand-name index comes from the MIT-licensed
+Indian Medicine Dataset, credited above.

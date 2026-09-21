@@ -99,7 +99,14 @@ export default function Landing({ onStart }: { onStart: (file: File | null) => v
         {/* Full-width section, 20px side padding; the 1262px inner container matches the reference. */}
         <section className="mt-16 w-full px-5">
           <div className="mx-auto w-full max-w-[1262px]">
-            <Placeholder label="Product video" className="aspect-video rounded-[32px]" />
+            <video
+              src="/product-demo.mp4"
+              className="aspect-video w-full rounded-[32px] bg-surface object-cover"
+              controls
+              playsInline
+              preload="metadata"
+              aria-label="Product demo: uploading a bill and reading the report"
+            />
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Placeholder label="Screenshot 1 — upload" className="aspect-[4/3]" />
               <Placeholder label="Screenshot 2 — report" className="aspect-[4/3]" />
