@@ -74,9 +74,9 @@ Globals:
     # x86_64, so `sam build --use-container` has to emulate ARM through QEMU
     # to compile the two native wheels (pydantic-core, rapidfuzz). SAM warns
     # about it: "Cross-architecture build detected ... may cause build
-    # failures". On 2026-09-19 that build container exited silently with no
-    # output -- the signature of the OOM killer, with Docker capped at 7.6 GiB
-    # and most of it already spoken for.
+    # failures", and in practice the build container can exit silently with no
+    # output at all -- the signature of the OOM killer, when Docker's memory
+    # cap is mostly spoken for already.
     #
     # 20% of a function that processes a handful of bills is a fraction of a
     # cent. A build that does not complete costs the deadline. Matching the
