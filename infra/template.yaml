@@ -137,6 +137,30 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
 
+  # Encryption at rest is set on the bucket above; this is the matching bar for
+  # data in flight. S3 already serves HTTPS -- what this adds is a refusal of
+  # the plaintext option, so a misconfigured client cannot quietly put a
+  # patient's bill on the wire in the clear. Deny beats any future Allow.
+  UploadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref UploadBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            # The bucket itself and everything in it: the first covers calls
+            # like ListBucket, the second covers the objects.
+            Resource:
+              - !GetAtt UploadBucket.Arn
+              - !Sub "${UploadBucket.Arn}/*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": false
+
   # -------------------------------------------------------------------------
   # Bill records. On-demand, and they expire with the uploads they describe.
   # -------------------------------------------------------------------------
