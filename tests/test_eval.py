@@ -1,4 +1,4 @@
-"""Phase 2: the eval suite is the gate on "zero false reds".
+"""The eval suite is the gate on "zero false reds".
 
 These tests make the claim in the pitch a thing CI can fail on, rather than a
 number someone read off a terminal once.

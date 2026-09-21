@@ -1,4 +1,4 @@
-"""Phase 1: verifier, matcher, rules, explainer, and the end-to-end CLI path."""
+"""Verifier, matcher, rules, explainer, and the end-to-end CLI path."""
 
 from __future__ import annotations
 
@@ -143,8 +143,9 @@ def test_sanity_bounds_reject_implausible_values(quantity, unit_price):
 def test_a_line_with_no_money_on_it_is_never_well_read():
     """No line total means no charge to audit.
 
-    Narrowed from "missing values never count as agreement" when Class A
-    landed. That older, broader rule ALSO rejected a line that simply had no
+    Narrowed from "missing values never count as agreement" once a missing
+    check began to abstain rather than fail. That older, broader rule ALSO
+    rejected a line that simply had no
     unit-price column, which is the commonest retail pharmacy layout in India
     -- on the deployed stack it made all six lines of such a bill unreadable.
 
@@ -254,9 +255,9 @@ def test_r1_abstains_when_the_line_charges_LESS_than_qty_times_rate():
     own discount -- the same wrong question R2 used to ask about a bill-level
     discount, one scale down.
 
-    This is the third and last scale of one bug: bill totals (Class B),
-    section subtotals read as line items (Class E) and line adjustments
-    (Class F). The rule at every scale is the direction, not a subtotal
+    This is the third and last scale of one bug: bill totals, section
+    subtotals read as line items, and line adjustments.
+    The rule at every scale is the direction, not a subtotal
     detector: a computed amount ABOVE the printed one means we failed to read
     a deduction, not that the bill is wrong.
     """
@@ -270,7 +271,7 @@ def test_r1_abstains_when_the_line_charges_LESS_than_qty_times_rate():
 
 
 def test_r1_still_fires_when_the_line_charges_MORE_than_qty_times_rate():
-    """The other direction, pinned so the Class F fix cannot silence R1.
+    """The other direction, pinned so the discount fix cannot silence R1.
 
     The narrowing is only safe because this case survives it. A line asking
     for more than it itemises is the direction worth a question, and it is
@@ -577,7 +578,7 @@ def test_no_explanation_ever_accuses_anyone():
 
 
 def test_explanations_introduce_no_number_absent_from_evidence():
-    """The contract the Bedrock explainer will be held to in Phase 4."""
+    """The contract the Bedrock explainer is held to."""
     import re
     bill = BillInput.model_validate_json(FIXTURE.read_text(encoding="utf-8"))
     items, stats = verify_bill(bill)
@@ -871,7 +872,7 @@ def test_the_alias_table_cannot_cross_a_release_modifier():
 
     NPPA prices release variants separately -- dispersible aspirin is Rs 0.36
     and plain aspirin is Rs 0.39 -- so an expansion that let a plain tablet
-    reach a modified-release ceiling would reintroduce the Phase 0b bug.
+    reach a modified-release ceiling would reintroduce the release-modifier bug.
 
     Two things prevent it, and this test pins both:
 
@@ -999,8 +1000,9 @@ def test_a_pack_count_can_never_become_the_ceiling_rows_unit_quantity():
         ceiling_row_unit_qty=10  -> NO CEILING FOUND
 
     Found in the adversarial audit of 2026-09-19 as DEAD CODE that would
-    activate the instant Class C read the PACK column, silently turning every
-    packed tablet from green to gray -- the opposite of Class C's purpose.
+    activate the instant anything read the printed PACK column, silently
+    turning every packed tablet from green to gray -- the opposite of what
+    reading that column is for.
     """
     from app.pipeline.audit import ceiling_row_unit_qty_for
 
@@ -1012,8 +1014,8 @@ def test_a_pack_count_can_never_become_the_ceiling_rows_unit_quantity():
     )
     assert ceiling_row_unit_qty_for(volume) == Decimal("500")
 
-    # A stated COUNT of discrete units is NOT. This is the Class C case: the
-    # ceiling row is per 1 tablet however many came in the strip.
+    # A stated COUNT of discrete units is NOT: the ceiling row is per
+    # 1 tablet however many came in the strip.
     count = NormalizedItem(
         index=1, category=ItemCategory.DRUG, salt_components=["PARACETAMOL"],
         unit_basis="tablet", pack_count=Decimal("15"), pack_count_source="bill_text",

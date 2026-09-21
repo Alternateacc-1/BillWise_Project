@@ -1,4 +1,4 @@
-"""Phase 3: the API surface, including the limits that keep it safe and cheap."""
+"""The API surface, including the limits that keep it safe and cheap."""
 
 from __future__ import annotations
 
@@ -713,8 +713,8 @@ def test_a_bill_where_nothing_was_compared_is_distinguishable_from_a_clean_one(
 ):
     """bill_06 is the real-pharmacy-layout fixture. Zero lines get a price.
 
-    The assertion is not that this SHOULD be zero -- Class A and R6 are meant
-    to raise it. It is that when it IS zero, the data says so plainly, so the
+    The assertion is not that this SHOULD be zero -- unbuilt work is meant to
+    raise it. It is that when it IS zero, the data says so plainly, so the
     UI can lead with "we could not compare any of these" rather than with a
     finding count of nothing.
     """
@@ -876,8 +876,10 @@ def test_a_long_bill_cannot_explode_the_response():
                        quantity=D("1"), unit_price=D("25"),
                        line_total=D("25"), confidence=D("99"))
             for i in range(1, n + 1)]
-    out = lambda src: ReaderOutput(source=src, items=rows,
-                                   printed_grand_total=D(n * 25))
+    def out(src):
+        return ReaderOutput(source=src, items=rows,
+                            printed_grand_total=D(n * 25))
+
     verified, stats = verify_bill(BillInput(
         bill_id="x", hospital_name="", bill_date="",
         reader_a=out("textract"), reader_b=out("bedrock")))

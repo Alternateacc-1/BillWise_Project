@@ -1,4 +1,4 @@
-"""Phase 0b: salt-name canonicalisation and two-tier matching."""
+"""Salt-name canonicalisation and two-tier matching."""
 
 from __future__ import annotations
 

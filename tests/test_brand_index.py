@@ -1,4 +1,4 @@
-"""Phase 0b acceptance tests for the brand index."""
+"""Acceptance tests for the brand index."""
 
 from __future__ import annotations
 

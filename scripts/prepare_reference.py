@@ -1,6 +1,6 @@
 """Build data/reference/reference_prices.csv from the NPPA source files.
 
-Phase 0. This script is the ONLY place government price data enters the
+This script is the ONLY place government price data enters the
 project. Everything downstream reads reference_prices.csv and nothing else.
 
 Three sources, one schema:
@@ -796,9 +796,9 @@ def parse_retail_csv() -> list[ReferenceRow]:
 # --------------------------------------------------------------------------
 # Ceiling selection
 #
-# Lives here in Phase 0 because the Phase 0 acceptance criteria require it
-# (Ringer Lactate: "the matcher returns the higher one"). Phase 1's matcher
-# imports this rather than reimplementing it.
+# Lives here because building the reference needs it (Ringer Lactate: "the
+# matcher returns the higher one"). The engine's matcher imports this rather
+# than reimplementing it.
 # --------------------------------------------------------------------------
 
 def per_base_unit_price(row: ReferenceRow) -> Decimal:

@@ -3,7 +3,7 @@
 Code decides every verdict. The model only writes prose about a verdict that
 has already been reached, from evidence that has already been computed.
 
-Phase 1 implements R1-R5 and R9. R6-R8 follow once this pass is solid.
+R1-R5 and R9 are implemented. R6-R8 are designed but not built.
 
   R1  qty x unit_price - discount + tax != line_total (+/- Rs 1)     amber
   R2  sum of line totals != printed grand total (+/- Rs 1)           amber
@@ -406,9 +406,9 @@ def pack_certainty(normalized: NormalizedItem) -> str:
 #:                          ceiling priced per-fifteen-tablets and finds none.
 #:
 #: Today only the first case reaches this code, because pack_count_source is
-#: "bill_text" only when a volume appears in the item name. Class C will make
-#: the second case reachable by reading the PACK column, and without this
-#: guard every packed tablet would silently lose its ceiling and go gray.
+#: "bill_text" only when a volume appears in the item name. Reading the printed
+#: PACK column would make the second case reachable, and without this guard
+#: every packed tablet would silently lose its ceiling and go gray.
 MEASURE_UNIT_BASES = frozenset({"ml", "gm", "g", "mg", "litre", "l"})
 
 
@@ -871,7 +871,7 @@ def audit(
     normalized: list[NormalizedItem],
     stats: ReadingStats,
 ) -> list[Flag]:
-    """Run every Phase 1 rule. Pure: same input, same output, no network."""
+    """Run every rule. Pure: same input, same output, no network."""
     by_index = {n.index: n for n in normalized}
     flags: list[Flag] = []
 

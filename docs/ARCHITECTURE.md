@@ -1,7 +1,13 @@
 # BillWise — architecture
 
-Living document. Phase 0 sections are final; later sections fill in as the
-phases land.
+How a photographed bill becomes a report: what reads it, what checks the
+reading, what compares each line against a government price, and what each
+component is forbidden from doing.
+
+The sections follow the order the work was built in, which is also roughly the
+order data flows: the reference prices first, then brand matching, then the
+rules, then cost and deployment. Read [`DECISIONS.md`](DECISIONS.md) first if
+you only want to know why the engine behaves the way it does.
 
 ---
 
@@ -60,8 +66,7 @@ policy is load-bearing rather than decorative.
 **The cost, stated plainly rather than quietly:** the deployed demo is further
 from its intended users than the design wants, and latency is worse for an
 Indian patient than an Indian Region would give. That is a consequence of
-model availability, not an architectural preference. See OPEN_QUESTIONS.md Q1
-and Q1a.
+model availability, not an architectural preference.
 
 ---
 
@@ -115,7 +120,7 @@ three findings and stay silent on twenty than guess at twenty-three.
 
 ---
 
-## Phase 0 — the reference data
+## The reference data
 
 ### Sources
 
@@ -157,11 +162,12 @@ R9 messaging. It just never produces a price verdict.
 
 Current state, across everything the parser reads: 4,582 usable of 4,818.
 (The file it writes carries the 937 ceiling and special-feature rows only --
-see above.) All 4 ceiling quarantines are unit
-strings that genuinely do not state what one unit is (`1 gm or 1 ml`,
-`Per mg of Phospholipids in the pack`, and two rows with two conflicting
-bases in one cell). Those four are pinned by a test so a parser regression
-cannot quietly add a fifth.
+see above.)
+
+All 4 ceiling quarantines are unit strings that genuinely do not state what one
+unit is. Two read `1 gm or 1 ml` and `Per mg of Phospholipids in the pack`; the
+other two put two conflicting bases in a single cell. Those four are pinned by
+a test, so a parser regression cannot quietly add a fifth.
 
 ### Ceiling selection
 
@@ -191,7 +197,7 @@ against the ceiling file's terse, structured strength column.
 
 ---
 
-## Phase 0b — brand-to-salt resolution
+## Brand-to-salt resolution
 
 Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) + CLAVULANIC
 ACID (B)". This is the most error-prone step in the project, so it is
@@ -315,7 +321,38 @@ changes.**
 
 ---
 
-## Phase 1 — the audit thresholds
+## The rules
+
+The engine's rules are numbered, and those numbers are used throughout this
+repo's documentation and code comments. All of them live in
+`backend/app/pipeline/audit.py`.
+
+| Rule | What it checks | Strongest verdict it can give |
+|---|---|---|
+| **R1** | Line arithmetic: does `quantity × rate` equal the printed line total? Only runs on a line we trust. | amber |
+| **R2** | Bill reconciliation: does the sum of the lines equal the printed grand total? Only runs when both are trusted. | amber |
+| **R3** | Exact duplicates: the same item name and quantity billed twice. | amber |
+| **R4** | Near duplicates: two lines at the same unit price with near-identical names. | amber |
+| **R5** | Above ceiling: the billed per-unit price against the NPPA ceiling plus GST. | **red** |
+| **R9** | Why a line got no price verdict at all. It explains a grey, it never raises a finding. | grey |
+
+**Only R5 can produce a red.** Everything else tops out at amber — a question,
+not a claim. So every red in the product traces to one comparison against one
+published government ceiling, which is what makes a red explainable to the
+hospital that issued the bill.
+
+**R6, R7 and R8 do not exist.** The numbering has gaps because those rules were
+designed and not built. R6 in particular — checking a billed rate against an
+MRP printed on the bill — is the most valuable unbuilt one, because it needs no
+identification of the medicine at all.
+
+**R1 and R2 only ever ask a question about arithmetic. R5 is the only rule
+that compares against a government price**, and therefore the only one that can
+say a charge looks too high.
+
+---
+
+## The audit thresholds
 
 Four numbers, all in `backend/app/config.py`, all erring toward silence. They
 are the entire defence against false red flags, which is the project's one
@@ -486,9 +523,3 @@ surfacing at $80.
 file and requiring them to agree is the most interesting thing this project
 does, and it is not where the money goes — the second reader is cents. Cost
 control never came at the expense of the verification design.
-
----
-
-## Phases 2–5
-
-Filled in as they land.

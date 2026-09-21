@@ -53,6 +53,15 @@ You should see tests passing and `caught 46/46 · missed 0 · FALSE REDS 0`.
 > **`PYTHONIOENCODING=utf-8` is not optional on Windows.** The code prints `₹`
 > and the default console codec raises `UnicodeEncodeError` on it.
 
+To lint, from the repo root:
+
+```bash
+ruff check backend/ scripts/ eval/ tests/
+```
+
+`ruff.toml` pins the rule set, so this gives the same answer on every machine
+and every ruff version. It should report no findings.
+
 A few tests will skip until you generate the demo bills. They are synthetic
 and not committed:
 

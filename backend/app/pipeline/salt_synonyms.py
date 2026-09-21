@@ -1,6 +1,6 @@
 """Salt-name canonicalisation for two-tier matching.
 
-Phase 0b. The ceiling file itself contains BOTH `AMOXICILLIN` and
+The ceiling file itself contains BOTH `AMOXICILLIN` and
 `AMOXYCILLIN` as separate rows, and the brand dataset spells it
 `Amoxycillin`. Without this module those never meet.
 

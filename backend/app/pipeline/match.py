@@ -4,7 +4,7 @@ Loads data/reference/reference_prices.csv and answers one question: for this
 bill line, what is the applicable published ceiling -- if any?
 
 Three rules govern everything here, all of them established against the real
-NPPA data in Phase 0/0b and each protected by a regression test:
+NPPA data while building the reference, each protected by a regression test:
 
   1. EXACT strength, and exact pack size. The special-feature file prices
      MEROPENEM 500 MG above MEROPENEM 1000 MG, and Ringer Lactate's 100 ml

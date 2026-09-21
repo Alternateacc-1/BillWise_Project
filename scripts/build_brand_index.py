@@ -1,6 +1,6 @@
 """Reduce the 254k-row brand dataset to data/reference/brand_index.csv.
 
-Phase 0b. Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) +
+Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) +
 CLAVULANIC ACID (B)". This index is the bridge.
 
 Only the columns needed to cross that bridge are kept:
@@ -341,7 +341,8 @@ def main() -> int:
 
     if mb > 10:
         print("\n  NOTE: too large to sit comfortably in a Lambda bundle.")
-        print("        Phase 4 loads this into DynamoDB at deploy time.")
+        print("        scripts/stage_lambda.py ships a reduced index instead;")
+        print("        this full file is not deployed.")
         print("        See docs/ARCHITECTURE.md.")
     print("=" * 68)
     return 0

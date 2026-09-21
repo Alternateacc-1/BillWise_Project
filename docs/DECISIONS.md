@@ -76,6 +76,12 @@ A real overcharge is a small multiple: a stent at 3.8× the ceiling is real, a
 
 ## The asymmetry that produced four separate bugs
 
+> **The rule numbers**, in case you have not met them yet: **R1** checks a
+> line's arithmetic, **R2** reconciles the bill total, **R3** and **R4** find
+> duplicates, **R5** compares against the NPPA ceiling and is the only rule
+> that can raise a red, and **R9** explains why a line got no verdict.
+> `ARCHITECTURE.md` has the full table.
+
 **R5 refuses to PRICE an unverified line. R1 and R2 went on doing ARITHMETIC
 on one.** Four fixes over two days to close it:
 
@@ -105,9 +111,12 @@ deduction, not that the bill is wrong.** Applied at three scales:
 - section subtotals read as line items
 - per-line discount columns
 
-All three closed by that one question, not by the ledger structure originally
-planned. Measured on all three scales after the change: no R1 or R2 fires on a
-bill carrying a discount, a round-off or a section subtotal.
+All three were closed by that one question. The original plan was a full
+`subtotal → adjustments → grand total` ledger with a structural subtotal
+detector; asking about the direction instead turned out to cover every case and
+cannot create a false red, because it only ever NARROWS a rule. Measured on all
+three scales after the change: no R1 or R2 fires on a bill carrying a discount,
+a round-off or a section subtotal.
 
 ---
 
@@ -168,5 +177,6 @@ reached Textract, which bills per page.
 **A green CloudFormation stack does not mean it deployed what you built.**
 `sam build` and `sam deploy` can read different directories. The tell is
 `File with same data already exists ... skipping upload` appearing after you
-edited code. Pass `--build-dir` explicitly, and verify with the probes rather
-than the stack status.
+edited code. Pass `--build-dir` explicitly, and verify by calling the deployed
+API and checking the behaviour you changed, rather than trusting the stack
+status. `AWS_STEPS.md` section 10.4 has the exact calls.

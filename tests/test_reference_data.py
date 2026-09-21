@@ -1,4 +1,4 @@
-"""Phase 0 acceptance tests for the NPPA reference data.
+"""Acceptance tests for the NPPA reference data.
 
 Every number asserted here was read out of data/raw/ by hand before the
 parser existed. If a test fails, the parser is wrong -- do not adjust the

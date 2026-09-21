@@ -116,20 +116,20 @@ cd frontend && npm run build && npm test && npm run lint
 
 ---
 
-## Logging what you changed
+## What to put in a pull request
 
-Copy [`CHANGES_TEMPLATE.md`](CHANGES_TEMPLATE.md) to `CHANGES_BY_<yourname>.md`
-and append as you go, not at the end — the reasoning is the part that gets
-lost.
-
-Two things worth writing down every time:
+The reasoning is the part that gets lost, so two things are worth writing down
+every time:
 
 - **Decisions that could reasonably have gone the other way.** "Renamed the
   button" needs one line. "Merged two gray groups because a patient cannot act
-  on the distinction" needs the reasoning, because someone may disagree and
+  on the distinction" needs the reasoning, because a reviewer may disagree and
   will need to know what was traded away.
-- **What you tried that did not work.** A dead end you document saves the next
+- **What you tried that did not work.** A documented dead end saves the next
   person from walking down it.
+
+If you touched anything under `backend/`, paste the test count and the eval's
+caught / missed / FALSE REDS lines.
 
 ---
 

@@ -53,7 +53,7 @@ class Line:
     mrp: str | None = None
     #: Units per pack, as printed. This is the fact the upper-bound gate
     #: exists because bills usually omit -- when it IS printed the per-unit
-    #: price is fully determinable. Class C in FORMAT_FINDINGS.md.
+    #: price is fully determinable. Reading it is not built yet.
     pack: int | None = None
     #: Set only to plant a deliberate arithmetic error.
     line_total_override: str | None = None
@@ -103,15 +103,15 @@ class BillSpec:
     layout: str = "standard"
     #: Printed totals-block adjustments, as (label, amount) applied AFTER the
     #: subtotal, e.g. [("Discount", "22.70"), ("Round Off (-)", "0.24")].
-    #: Printed on the PDF today; the engine does not read them yet -- that is
-    #: Class B, "a totals block is a ledger, not a number".
+    #: Printed on the PDF today; the engine does not read them yet. A totals
+    #: block is a ledger, not a number.
     adjustments: list[tuple[str, str]] = field(default_factory=list)
     #: Per-line GST as printed, e.g. "2.5" for CGST 2.5% + SGST 2.5% = 5%.
-    #: The engine assumes 12% regardless today; Class D.
+    #: The engine assumes 12% regardless today.
     printed_gst_half_rate: str | None = None
 
     def subtotal(self) -> str:
-        return str(sum(Decimal(l.line_total) for l in self.lines))
+        return str(sum(Decimal(line.line_total) for line in self.lines))
 
     def net_total(self) -> str:
         """Subtotal less every printed adjustment -- what was actually paid."""
@@ -124,9 +124,9 @@ class BillSpec:
         """What the READER hands the engine as "the total".
 
         For a bill with a totals block this is the SUBTOTAL, not the net. That
-        is the reading that reconciles today. The net-amount reading is the
-        Class B case and is exercised separately, because encoding it here
-        would bake a known-false R2 into ground truth.
+        is the reading that reconciles today. The net-amount reading is
+        exercised separately, because encoding it here would bake a
+        known-false R2 into ground truth.
         """
         if self.printed_total_override is not None:
             return self.printed_total_override
@@ -343,8 +343,8 @@ BILLS = [
     # ----------------------------------------------------------------------
     # bill_06 -- FORMAT FIXTURE, not a plant bill.
     #
-    # Structure copied from a real OPD pharmacy sale bill (Probe 1 in
-    # docs/FORMAT_FINDINGS.md). Line items, quantities, MRP, PACK, the GST
+    # Structure copied from a real OPD pharmacy sale bill. Line items,
+    # quantities, MRP, PACK, the GST
     # split and the totals block are faithful; the vendor name is synthetic
     # and no patient, doctor, invoice, registration or address detail from the
     # source bill exists anywhere in this repo.

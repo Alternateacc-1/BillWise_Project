@@ -360,8 +360,10 @@ bill_06.pdf (retail) : ____ of 6 lines correct
 - **Mild reads badly too.** The crop-and-re-read pass becomes load-bearing
   rather than a nicety, and Bedrock may need to be the primary reader with
   Textract as the second opinion rather than the other way round.
-- **bill_06 returns MRP and PACK.** Class C becomes nearly free, and the
-  honest verdict on a real retail bill goes from six grays to six greens.
+- **bill_06 returns MRP and PACK.** Reading those columns becomes nearly
+  free. It would NOT turn that bill green: none of its six medicines is a
+  ceiling-controlled formulation, so "no published ceiling" stays the correct
+  answer. What it buys is a second, independent check of the arithmetic.
 
 Whatever the numbers are, they are the numbers. They replace the fixture
 figures in the video. See docs/LIMITS.md for what may and may not be claimed.
@@ -413,11 +415,13 @@ No code, no SDK, no deployment. The console does this by hand.
      PACK, QTY, TOTAL and **no unit-price column**, with a Discount and Round
      Off in the totals block. Added 2026-09-18 after probing a real bill of
      this shape. It is a clean generated PDF, so this is not a reading-quality
-     test — it asks a different question: **does AnalyzeExpense return the
-     MRP and PACK columns as usable fields, and does it report the subtotal,
-     the discount and the net separately or collapse them into one total?**
-     Those two answers decide how much of Class B and Class C we get for free.
-     Record the raw field names it gives back, verbatim.
+     test. It asks two different questions:
+     **does AnalyzeExpense return the MRP and PACK columns as usable fields?**
+     And **does it report the subtotal, the discount and the net separately,
+     or collapse them into one total?**
+     Those two answers decide how much of the totals-block work and the
+     printed-pack work comes for free. Record the raw field names it gives
+     back, verbatim.
 
 ---
 
@@ -1012,7 +1016,7 @@ they find something — not a description of your stack:
 |---|---|---|
 | `POST /feedback` | **404** | the new landing page has a feedback form that calls it |
 | `GET /health` → `reader` | *"...verifying both"* | false at the time: the second reader was unavailable, so no cross-check ran |
-| directional R1 (Class F) | not deployed | landed after the last deploy |
+| directional R1 (per-line discounts) | not deployed | landed after the last deploy |
 | Textract confidence scoping | not deployed | the fix that stops a discarded field deciding a verdict |
 
 NOT stale, and worth knowing before you plan around it: **the reduced brand

@@ -79,13 +79,13 @@ billwise-frontend.zip
 # The share archive, built with git archive. Regenerate, never commit.
 billwise-handoff.zip
 
-# Frontend delivered by the contributor as a zip (2026-09-20). Byte-identical pair; the
-# source that mattered is integrated and logged in docs/CHANGES_BY_contributor.md.
+# Contributed frontend work, delivered as zips. Superseded: the source that
+# mattered is integrated into frontend/. Regenerable, never commit.
 frontend-v2.zip
 frontend-handoff-b.zip
 
-# the contributor's working copy of the whole project, delivered as a folder (2026-09-20).
-# His frontend is integrated into frontend/ and his log is docs/CHANGES_BY_contributor.md.
+# A contributor's working copy of the whole project. The frontend from it is
+# integrated into frontend/.
 # NEVER COMMIT THIS FOLDER: data/blobs/ inside it holds REAL uploaded bills, and
 # it carries its own .env. Keep it out of the repo, not just out of `git add -A`.
 handoff/
@@ -132,7 +132,7 @@ docs/VIDEO_SCRIPT.md
 docs/VIDEO_SCRIPT_3MIN.md
 docs/VIDEO_CUECARD.md
 
-# One contractor's handover log for finished frontend work. The decisions it
-# records that still matter are in DECISIONS.md and the code comments; the
-# rest is a diary of a job already done.
+# A contributor's handover log for finished frontend work. The decisions in it
+# that still matter are in DECISIONS.md and the code comments; the rest is a
+# diary of a job already done.
 docs/CHANGES_BY_contributor.md

@@ -75,7 +75,7 @@ bill line itself.
 > **The fix is to read the column when a bill provides it and fall back to
 > this limit when it does not** — `pack_count_source="bill_text"`, which is
 > CERTAIN, versus the upper-bound gate, which is the honest answer when
-> nothing is stated. Tracked as Class C in `FORMAT_FINDINGS.md`.
+> nothing is stated. Not built yet.
 
 ---
 
@@ -131,10 +131,11 @@ we hold and is not published in a form we could join against the ceiling list.
 > bill-level tax, or none at all — but the fix is the same shape: **use the
 > printed rate when the bill states one, record in the evidence that it came
 > from the bill rather than from config, and fall back to the 12% assumption
-> only when nothing is stated.** Tracked as Class D in `FORMAT_FINDINGS.md`.
+> only when nothing is stated.** Not built yet.
 >
 > A related and more dangerous question is not "which slab" but "is GST in
-> this number at all" — see Class G. That one can under-flag silently.
+> this number at all" — see the inpatient case further down. That one can
+> under-flag silently.
 
 ---
 
@@ -159,9 +160,13 @@ flag rather than having one arbitrarily picked.
 
 Our lists were retrieved on a stated date and every verdict displays it. NPPA
 revises ceilings through the year by individual S.O. and applies an annual WPI
-revision. We stamp the date and provide a diff mode so a new release can be
-compared against the old one — but we cannot make the data current, and a
-verdict is only as good as the day it was computed.
+revision. We stamp the date on every verdict, but there is **no refresh
+mechanism and no way to diff one release against another** — rebuilding the
+reference replaces it. So a ceiling revised after the retrieval date is simply
+not reflected, and a verdict is only as good as the day it was computed.
+
+**What would it take:** a dated archive of each release plus a comparison step,
+so a rebuild reports what changed instead of silently replacing it.
 
 ---
 
@@ -249,7 +254,7 @@ What the report got RIGHT on that bill, and it is worth recording:
   - all 7 lines read correctly, names and amounts matching the paper
   - R2 abstained. Textract took a SUBTOTAL as the printed total, the line sum
     came out above it, and the directional rule correctly said nothing rather
-    than querying a discount. Class B working on a real foreign bill.
+    than querying a discount — working on a real foreign bill.
 
 What it got WRONG:
   - S$ shown as ₹
@@ -379,10 +384,10 @@ compared.
 reader ran on this bill" whenever ANY line was unpaired, which claimed the
 second reader had not run at all. It now states how many lines of how many.
 
-### Class G, sharpened: a hospital inpatient bill may carry NO GST at all
+### Sharpened: a hospital inpatient bill may carry NO GST at all
 
-Raised 2026-09-20. Class G was recorded as "we do not know whether a line
-price includes GST". The real case is narrower and more actionable.
+Limit 4 says we do not know which GST slab applies. There is a narrower and
+more actionable version of it.
 
 `config.py` argues 12% over 5% on the grounds that a higher assumed GST gives
 a higher permitted price and therefore FEWER flags -- the silence-favouring
