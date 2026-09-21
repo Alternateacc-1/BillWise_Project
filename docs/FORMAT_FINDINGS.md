@@ -633,8 +633,10 @@ All three, in this order, and none is optional:
 2. **Class A** -- a missing unit-price column must not make a line unreadable.
    Today it produces `arithmetic_not_checkable:missing_values` AND
    `outside_sanity_bounds` on every line.
-3. **Brand resolution** -- the DynamoDB brand index, which has never been
-   written. Without it the lines become readable but still unpriceable.
+3. **Brand resolution** -- the brand index, unavailable to the engine at the
+   time of this experiment. Without it the lines become readable but still
+   unpriceable. (Since shipped, as a reduced index in the Lambda bundle rather
+   than the DynamoDB table planned here -- see `ARCHITECTURE.md`.)
 
 Class A alone is not enough. That is new information: the local probe could
 not show it, because the local fixture bypasses brand resolution entirely.

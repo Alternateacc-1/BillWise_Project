@@ -7,8 +7,9 @@ and when. Nothing here blocks Phase 0-3, which run entirely offline.
 
 ## Q1. Which Region, and which inference profile? (Phase 4)
 
-**Status: RESOLVED, 2026-09-19.** Final: **`us-east-1`**, Claude via the **US
-geo** profile `us.anthropic.claude-sonnet-4-6`.
+**Status: RESOLVED, 2026-09-19.** Final: **`us-east-1`**, second reader via a
+**US geo** profile. The model has since changed (see below); the Region and the
+`us.` prefix have not.
 
 **The Region went us-east-1 -> ap-south-1 -> us-east-1 across two days.** Both
 reversals taught something worth keeping.
@@ -31,11 +32,11 @@ Having fixed the gate, Mumbai worked, and the stack moved back — the tool is
 for Indian patients, so an Indian Region seemed obviously right. Then the
 model card settled it the other way:
 
-| | from `ap-south-1` | from `us-east-1` |
+| for the model then in use | from `ap-south-1` | from `us-east-1` |
 |---|---|---|
-| Sonnet 4.6 In-Region | no | no |
-| Sonnet 4.6 **Geo** | **no** | **yes** (`us.`) |
-| Sonnet 4.6 Global | yes | yes |
+| In-Region profile | no | no |
+| **Geo** profile | **no** | **yes** (`us.`) |
+| Global profile | yes | yes |
 | Destinations available | **33 Regions** (global only) | **3 Regions** (us-east-1, us-east-2, us-west-2) |
 | Textract AnalyzeExpense | 1 TPS | 5 TPS |
 
@@ -48,8 +49,15 @@ point in opposite directions here, and privacy won.
 would give. That is a consequence of model availability, not a preference, and
 `ARCHITECTURE.md` says so plainly.
 
-**Still worth revisiting** if Anthropic later offers a geo profile from
-`ap-south-1` — that would make Mumbai strictly better on both axes.
+**The model changed afterwards and none of this did.** The reader moved to
+`us.amazon.nova-2-lite-v1:0` when the previous model's Marketplace offer
+expired — a parameter change, because the reader uses Bedrock's Converse API
+and Converse is model-agnostic. The argument above is about the **prefix**, not
+the vendor, which is why it survived.
+
+**Still worth revisiting** if a geo profile becomes available from
+`ap-south-1` — that would make Mumbai strictly better on both axes. Check the
+model card for whichever model you deploy.
 
 ---
 
@@ -113,5 +121,6 @@ source after the threshold work.
 Our lists were retrieved 2026-09-18 and carry SO numbers dated 25-Mar-2026.
 NPPA revises ceilings on individual SOs through the year and applies an annual
 WPI revision. We show the retrieval date next to every verdict and have no
-refresh mechanism. Out of scope for the hackathon; name it in the demo video
-as known future work rather than letting a judge find it.
+refresh mechanism, so a ceiling revised after that date is not reflected. Every
+verdict shows the retrieval date next to it, so the staleness is visible rather
+than hidden — but a production version needs a refresh path.

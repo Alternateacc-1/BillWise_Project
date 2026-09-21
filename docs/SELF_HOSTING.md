@@ -168,7 +168,7 @@ pydantic and this dies halfway through, after copying the data, which looks
 like partial success.
 
 **You do not need to download anything for brand matching.** The reduced
-brand index (12.9 MB of a 36 MB source) is committed, so staging finds it
+brand index (13.5 MB of a 36 MB source) is committed, so staging finds it
 already in place and says so. `fetch_brand_data.py` and `build_brand_index.py`
 exist for rebuilding it if the NPPA reference data changes — not for a first
 deploy.

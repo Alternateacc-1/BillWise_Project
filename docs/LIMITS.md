@@ -477,7 +477,7 @@ was never useful anyway.
   - **Bill ids** -- `secrets.token_urlsafe(16)`, 128 bits. They are the only
     thing separating one user's bill from another's, since there is no login,
     and that is stated in the code.
-  - **XSS** -- three `dangerouslySetInnerHTML` calls, all build-time `?raw`
+  - **XSS** -- four `dangerouslySetInnerHTML` calls, all build-time `?raw`
     imports of local SVGs. No user data reaches any of them.
   - **No `console.log`, no source maps in `dist/`, nothing in `localStorage`
     or cookies.** External links carry `rel="noopener"`.

@@ -13,7 +13,7 @@ What gets staged and what does NOT:
                          they are left out of the bundle -- ~3.2 MB down to
                          ~0.3 MB. See stage_ceilings_only().
   salt_synonyms.json     YES, tiny, and load-bearing for matching.
-  brand_index.csv        REDUCED and staged, ~12.9 MB of 36 MB. See
+  brand_index.csv        REDUCED and staged, ~13.5 MB of 36 MB. See
                          reduce_brand_index() below for the filter and why it
                          is MEMBER-based rather than SET-based. The full 36 MB
                          file is never deployed: too large for the bundle and
@@ -94,7 +94,7 @@ def reduce_brand_index() -> int:
     an honest "not price-controlled" back into "we could not identify it".
 
     The member rule keeps a brand when EVERY salt appears somewhere in the 915,
-    in any form or strength. Cost, measured: 96,489 brands and 12.9 MB versus
+    in any form or strength. Cost, measured: 96,489 brands and 13.5 MB versus
     73,717 and 9.4 MB -- 1.38x for 22,772 more brands.
 
     It is still a REDUCTION, not the whole index. A brand with a salt that

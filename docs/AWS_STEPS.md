@@ -182,9 +182,12 @@ Budgets API reference and add them here once verified.
 
 ---
 
-## 1.1 Submit Anthropic use case details  ← THE REAL GATE
+## 1.1 Submit Anthropic use case details  ← ONLY IF YOU PICK AN ANTHROPIC MODEL
 
-**Do this first. Nothing else in this section works until it clears.**
+**Skip this section if you use the Amazon Nova model suggested in 1.2.** Nova
+is first-party AWS and needs no such form. This step is kept because the
+lesson in it costs a day to learn the hard way, and because you may prefer an
+Anthropic model.
 
 Anthropic requires first-time customers to submit use case details before
 invoking any of their models. It is **once per account** and applies to
@@ -223,16 +226,28 @@ Helps Indian patients understand hospital and pharmacy bills. It reads an upload
 
 ---
 
-## 1.2 Confirm a vision-capable Claude in us-east-1
+## 1.2 Pick a vision-capable model in us-east-1
 
 1. Region selector, top right → **US East (N. Virginia) us-east-1**.
-2. Bedrock → **Model catalog** → find a **Claude Sonnet** model.
-3. Check it takes **image input**. On a model card this shows as an icon row
-   reading `T 🖼 → T`, or on the model's detail page as an **Input Modalities**
-   table with **Image** ticked.
+2. Bedrock → **Model catalog**.
+3. Check the model takes **image input**. On a model card this shows as an
+   icon row reading `T 🖼 → T`, or on the model's detail page as an **Input
+   Modalities** table with **Image** ticked.
 
 **Vision is not optional** — the reader sends a photograph of a bill. A
 text-only model cannot do this job at all.
+
+**Any Converse-capable vision model works.** The reader calls Bedrock's
+**Converse** API, which is model-agnostic, so this is a configuration choice
+and not a code change.
+
+> **Suggested: `Amazon Nova 2 Lite`.** It is first-party AWS, so it needs no
+> Marketplace subscription and no use-case form — which means one less thing
+> that can expire underneath you. This project learned that the expensive way:
+> the model it originally used stopped working when its **AWS Marketplace
+> offer expired**, and the failure surfaced as an `AccessDeniedException`
+> about `aws-marketplace:Subscribe` on the Lambda role, which reads exactly
+> like an IAM bug and is not one. `docs/LIMITS.md` has the full account.
 
 **Verify and write down:**
 
@@ -245,22 +260,26 @@ Image input         : yes / no
 
 ## 1.3 Copy the US geo inference profile ID
 
-We reach Claude through the **US geo cross-region inference profile**, not a
+Reach the model through the **US geo cross-region inference profile**, not a
 bare model ID and **not the global profile**.
 
 1. Bedrock → left sidebar → **Infer → Inference profiles**.
 2. Find the row for your model with the **`us.`** prefix.
 3. **Copy it with the button. Do not retype it.**
 
-For Claude Sonnet 4.6 the ID is:
+For the suggested model that is:
 
 ```
-us.anthropic.claude-sonnet-4-6
+us.amazon.nova-2-lite-v1:0
 ```
 
-The short form is correct — this model generation has no date or version
-suffix, unlike older ones such as
-`us.anthropic.claude-sonnet-4-20250514-v1:0`.
+**Copy whatever the console shows for your model rather than adapting this
+one.** The suffix format varies between model families — some carry a date and
+version, some do not — and a hand-edited ID fails at the first call.
+
+**Keep the `us.` prefix whatever model you choose.** The next section is about
+the prefix, not the vendor, so the argument survives changing your mind about
+the model.
 
 **Paste it into `.env` as `BEDROCK_INFERENCE_PROFILE_ID`.**
 
@@ -288,10 +307,12 @@ number and a drug list that implies a diagnosis.
 > (Mumbai), to sit near the Indian users this tool is for. Two facts decided
 > against it, both from AWS model cards rather than assumption:
 >
-> 1. **Claude Sonnet 4.6 supports no geo profile from `ap-south-1`** — only
->    the global one. So Mumbai would have meant 33 destination Regions, while
->    N. Virginia means 3. The privacy-preferring choice is the US Region, which
->    is not the intuitive answer.
+> 1. **The vision models we evaluated offered no geo profile from
+>    `ap-south-1`** — only the global one. So Mumbai would have meant 33
+>    destination Regions, while N. Virginia means 3. The privacy-preferring
+>    choice is the US Region, which is not the intuitive answer. Check the
+>    model card for your own model: if it offers a geo profile from Mumbai,
+>    that Region becomes strictly better on both axes.
 > 2. **Textract `AnalyzeExpense` runs at 5 TPS in `us-east-1`, 1 TPS in
 >    Mumbai.**
 >
@@ -305,6 +326,12 @@ number and a drug list that implies a diagnosis.
 **Do not skip this.** Every reading-quality number this project has describes
 fixtures we wrote ourselves. This is the first time a model sees a real bill
 image, it costs about two cents, and nothing is deployed yet.
+
+The demo bills are generated, not committed. If `eval/demo_bills/` is empty:
+
+```bash
+PYTHONIOENCODING=utf-8 python scripts/make_demo_bills.py
+```
 
 1. Bedrock → **Playground** (or **Open in playground** from the model page).
 2. Attach `eval/demo_bills/bill_02.jpg` — the mild scan.
@@ -560,7 +587,7 @@ aws configure
 
 > **This creates a long-lived credential**, which is the security cost of this
 > path. Two things reduce it, and both are worth doing:
-> - **Delete the access key when the hackathon is over.** IAM → your user →
+> - **Delete the access key when you are finished with it.** IAM → your user →
 >   Security credentials → Actions → Delete. It takes ten seconds.
 > - **Do not create a second key "just in case".** Unused keys are the ones
 >   that leak, because nobody notices they still work.
@@ -596,12 +623,17 @@ find out.
 python scripts/stage_lambda.py
 ```
 
-**Verify:** it prints `staged reference_prices.csv  3.26 MB`.
+**Verify:** it prints `staged reference_prices.csv    0.27 MB` and
+`brand_index.csv already here   13.52 MB`.
 
-It deliberately does **not** stage `brand_index.csv` (36 MB). The engine
-handles its absence by falling back to generic-name resolution — branded
-names like "Augmentin" will go gray until Phase 4 loads the index into
-DynamoDB. That is a coverage reduction, not a failure.
+**You do not need to download anything for brand matching.** The reduced brand
+index is committed, so staging finds it already in place and says so.
+`fetch_brand_data.py` and `build_brand_index.py` exist for rebuilding it if the
+NPPA reference data changes — not for a first deploy.
+
+The full 36 MB index is **not** staged and is not needed. If the reduced index
+were missing, the engine would fall back to generic-name resolution and branded
+names like "Augmentin" would go gray — a coverage reduction, not a failure.
 
 ---
 
@@ -770,8 +802,10 @@ aws cloudformation wait stack-delete-complete --stack-name billsahi --region us-
 
 > **Keep the instinct that `delete-stack` is dangerous.** On a stack that has
 > ever SUCCEEDED it would take the real S3 bucket and DynamoDB table with it.
-> `DeletionPolicy: Delete` on the upload bucket is deliberate for a hackathon
-> and would be wrong for anything holding real data.
+> `DeletionPolicy: Delete` on the upload bucket is deliberate for a demo
+> deployment whose contents expire after a day, and would be wrong for
+> anything holding real data. Change it before you store anything you care
+> about.
 
 ---
 
@@ -838,11 +872,11 @@ it is done in that order: deploy API, deploy UI, then update the API's
 
 ---
 
-# Section 9 — Cost control, and what to do before sleeping
+# Section 9 — Cost control
 
-Written 2026-09-19 when the deadline was one day out and the stack had to
-survive the night. **Read the first paragraph before doing anything: the
-instinct to tear it all down is probably wrong here.**
+What this stack costs when nobody is using it, where the real spending risk
+actually is, and how to cap it. **Read 9.0 before deleting anything: the
+instinct to tear it all down to save money is usually wrong here.**
 
 ## 9.0 What this stack actually costs while nobody uses it
 
@@ -857,13 +891,14 @@ and you will find:
 | DynamoDB | **$0** | `BillingMode: PAY_PER_REQUEST` — no provisioned capacity to pay for. Records carry a 1-day TTL. |
 | S3 uploads | **~$0** | `ExpirationInDays: 1`. A few MB for under a day is a fraction of a cent. |
 | CloudWatch Logs | **~$0** | `RetentionInDays: 7`. Kilobytes. |
-| Bedrock / Textract | **$0** | Billed per call only. Nothing calls them while you sleep. |
+| Bedrock / Textract | **$0** | Billed per call only. Nothing calls them unless a bill is uploaded. |
 
 There is no hourly resource in this stack. No NAT gateway, no VPC endpoint,
 no provisioned concurrency, no RDS, no EC2 — those are the things that bill
 you for existing, and none of them is here.
 
-**So: you can close the laptop. Idle, this stack does not move the bill.**
+**So an idle stack does not meaningfully cost anything.** The spend is per
+upload, not per hour.
 
 ## 9.1 The real exposure, which is not idling
 
@@ -878,12 +913,14 @@ nothing to do with whether you are asleep.
 
 The risk is low — the URL is unlisted, and API Gateway hostnames are not
 enumerable in practice — but it is the one that is real, so it gets the
-mitigation rather than the idle cost that does not exist.
+mitigation, rather than an idle cost that does not exist.
 
-## 9.2 Do this — a hard $5 budget alert (3 minutes, console, free)
+**Do both 9.2 and 9.3.** The budget tells you when spending starts; the
+throttle caps how fast it can happen. Neither substitutes for the other.
 
-This is the ONE thing worth doing before bed. It does not stop spend, it tells
-you the moment it starts, which is what you actually need overnight.
+## 9.2 A budget alert (3 minutes, console, free)
+
+This does not stop spend — it tells you the moment it starts.
 
 1. Sign in, then open **Billing and Cost Management → Budgets**:
    https://us-east-1.console.aws.amazon.com/costmanagement/home#/budgets
@@ -901,10 +938,11 @@ Budgets themselves are free (the first two are). Alerts can lag actual spend
 by several hours — that is an AWS property, not a setting — which is exactly
 why the 50% threshold matters more than the 100% one.
 
-## 9.3 Optional — throttle the API so abuse cannot run away
+## 9.3 Throttle the API so abuse cannot run away
 
-Only if 9.2 does not let you sleep. This caps the blast radius rather than
-detecting it after the fact.
+**Do this if the endpoint is reachable by anyone but you.** The template does
+NOT ship a throttle, so a fresh deploy has none. This caps the blast radius
+rather than detecting it after the fact.
 
 Console: **API Gateway → APIs → the `billsahi` HTTP API → Stages → `$default`
 → Default route throttling → Edit**
@@ -912,20 +950,18 @@ Console: **API Gateway → APIs → the `billsahi` HTTP API → Stages → `$def
     Rate  (requests/second) : 2
     Burst (requests)        : 5
 
-Generous for a demo and a judge clicking through; useless to anyone trying to
-run up a bill. **Set it back to something higher before filming** if you plan
-to click quickly through several bills.
+Generous for one person clicking through a demo; useless to anyone trying to
+run up a bill. Raise it if you expect several people using it at once.
 
 ## 9.4 If you want certainty instead — delete the stack
 
-**RECOMMENDED AGAINST TONIGHT, and here is the honest reason.** This costs
-nothing to keep and a great deal to rebuild: the first deploy hit SIX separate
-environment failures (see "Troubleshooting the first deploy"), and a redeploy
-under deadline pressure with no sleep is where this project would actually get
-hurt. Deleting also CHANGES THE API URL, so anything already pointing at it
-breaks.
+**Usually the wrong trade, and here is the honest reason.** An idle stack
+costs nothing to keep and a fair amount of effort to rebuild: the first deploy
+of this project hit six separate environment failures (see "Troubleshooting the
+first deploy"). Deleting also CHANGES THE API URL, so anything already pointing
+at it breaks.
 
-Keep it. But if you want the certainty anyway, the command is:
+Keep it unless you are finished with it. If you do want it gone:
 
 ```bash
 sam delete --stack-name billsahi --region us-east-1
@@ -946,8 +982,7 @@ the next deploy.
 - **The local dev servers** (`:8000` FastAPI, `:5173` Vite). They run on your
   machine and cost nothing. Close the terminals if you like.
 - **Bedrock model access.** Granted access is not a subscription and is not
-  billed. It bills per call, and right now it is not even succeeding
-  (`INVALID_PAYMENT_INSTRUMENT`).
+  billed. It bills per call only.
 - **The Docker containers** left over from the SAM build. Local, free — though
   reclaiming the disk is worth it for other reasons.
 
@@ -966,13 +1001,17 @@ there is no remote. Use git mode later if you want deploy-on-push.
 ## 10.0 Why a redeploy at all — measured, not assumed
 
 `FrontendOrigin` alone would NOT need a rebuild: it is a CloudFormation
-parameter, and a parameter change is `sam deploy` on its own. The rebuild is
-for the Python, which is stale. Probed 2026-09-20 against the live stack:
+parameter, and a parameter change is `sam deploy` on its own. A rebuild is
+needed only when the Python changed.
 
-| Probe | Live result | Why it matters |
+**Probe before you assume which.** The table below is a real example from this
+project's own redeploy, kept because it shows what the probes look like when
+they find something — not a description of your stack:
+
+| Probe | Result seen | Why it mattered |
 |---|---|---|
 | `POST /feedback` | **404** | the new landing page has a feedback form that calls it |
-| `GET /health` → `reader` | *"...verifying both"* | false; Bedrock is down and no cross-check runs |
+| `GET /health` → `reader` | *"...verifying both"* | false at the time: the second reader was unavailable, so no cross-check ran |
 | directional R1 (Class F) | not deployed | landed after the last deploy |
 | Textract confidence scoping | not deployed | the fix that stops a discarded field deciding a verdict |
 
@@ -1002,10 +1041,9 @@ That reads `.env.production`, so the bundle points at the deployed API. Then:
 3. App name `billwise`, environment name `prod`
 4. Upload **a zip of the CONTENTS of `frontend/dist`**, so `index.html` sits
    at the ROOT of the archive.
-   **THIS STEP USED TO SAY "drag the dist FOLDER" AND THAT IS WRONG** -- it
-   was written before the first real deploy and corrected on 2026-09-20 after
-   it failed. Uploading the folder (or a zip OF the folder) puts everything
-   under `/dist/` and every asset path 404s, so the site loads a blank page.
+   **Do not upload the folder itself, or a zip OF the folder.** That puts
+   everything under `/dist/` and every asset path 404s, so the site loads a
+   blank page. This is an easy mistake and it looks like a successful deploy.
    Section 11 has the command that builds the archive correctly.
 5. **Save and deploy**, then copy the domain it prints. It looks like
    `https://prod.d1a2b3c4d5e6f7.amplifyapp.com`
@@ -1067,7 +1105,7 @@ Verify with the probes in 10.4 rather than the CloudFormation status. A green
 stack says the DEPLOY worked, not that it deployed what you built.
 
 ```bash
-sam deploy --stack-name billsahi --region us-east-1 --capabilities CAPABILITY_IAM --parameter-overrides BedrockInferenceProfileId="us.anthropic.claude-sonnet-4-6" FrontendOrigin="https://PASTE-YOUR-AMPLIFY-DOMAIN" ReservedConcurrency="0"
+sam deploy --stack-name billsahi --region us-east-1 --capabilities CAPABILITY_IAM --parameter-overrides BedrockInferenceProfileId="us.amazon.nova-2-lite-v1:0" FrontendOrigin="https://PASTE-YOUR-AMPLIFY-DOMAIN" ReservedConcurrency="0"
 ```
 
 **Replace `PASTE-YOUR-AMPLIFY-DOMAIN` with the real domain**, with `https://`
@@ -1103,21 +1141,22 @@ curl -s -X POST "https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com/f
 curl -s https://<YOUR-API-ID>.execute-api.<YOUR-REGION>.amazonaws.com/health
 ```
 
-`reader` must no longer say "verifying both". While Bedrock is down it should
-describe a CONFIGURED second reader, not a performed one.
+`reader` must describe what is CONFIGURED, not what was performed. It reports
+whether a second reader is set up; whether one actually ran on a given bill is
+a per-report field, not a property of the endpoint.
 
 Then open the Amplify URL and run **Try a sample bill**. If the report renders,
 the whole path is live: browser → Amplify → API Gateway → Lambda → the engine.
 
 ## 10.5 What will still be true afterwards
 
-**THIS SECTION USED TO SAY BEDROCK WAS DOWN AND ONLY ONE READER RAN. That was
-true while the Marketplace offer was expired and is NO LONGER TRUE.** Since
-2026-09-20 the second reader is `us.amazon.nova-2-lite-v1:0` and both readers
-run on every upload, measured on the deployed stack. Do not plan a demo around
-the old limitation.
+With a second reader configured, both readers run on every upload — measured
+on the deployed stack rather than assumed. If you left
+`BedrockInferenceProfileId` empty, the app runs on Textract alone, applies a
+stricter confidence bar, and says on each report that the cross-check did not
+run.
 
-What IS still true: reading quality depends on the image. A clean PDF reads
+What is true either way: reading quality depends on the image. A clean PDF reads
 well; a degraded phone photograph makes the two readers disagree, and a
 disagreement is deliberately resolved as gray rather than a guess. Uploads are
 capped at **4 MB**, not the 10 the UI once claimed.
@@ -1192,8 +1231,8 @@ is the 4 MB ceiling, not a deploy problem. See `docs/LIMITS.md`.
 
 ## 11.4 Deploying from the CLI instead of the console
 
-Same manual deploy, driven by `aws amplify` rather than drag-and-drop. Added
-2026-09-20 when the owner asked for commands.
+Same manual deploy, driven by `aws amplify` rather than drag-and-drop. Use
+this if you prefer a scriptable path to the console.
 
 **The app id is in the domain.** `prod.d1a2b3c4d5e6f7.amplifyapp.com` is
 `<branch>.<app-id>.amplifyapp.com`, so:

@@ -24,9 +24,9 @@ no network at all. Verifier, Matcher and Auditor have no AWS variant — they
 are pure functions and stay that way, because they are the parts that decide
 what a patient is told.
 
-**Region:** everything in `us-east-1` (N. Virginia), with Claude reached
-through the **US geo** cross-region inference profile
-(`us.anthropic.claude-sonnet-4-6`). Textract, including AnalyzeExpense, runs
+**Region:** everything in `us-east-1` (N. Virginia), with the second reader
+reached through a **US geo** cross-region inference profile
+(`us.amazon.nova-2-lite-v1:0`). Textract, including AnalyzeExpense, runs
 there at 5 TPS. The whole stack sits in one Region. **We never split Regions:**
 a split stack means cross-region transfer charges, two sets of logs, two
 places for an IAM policy to be wrong, and a latency path nobody will debug at
@@ -36,11 +36,14 @@ places for an IAM policy to be wrong, and a latency path nobody will debug at
 Indian users the tool is for, and the reversal is worth explaining because the
 intuitive answer is wrong.
 
-Claude Sonnet 4.6 supports **no geo inference profile from `ap-south-1`** —
-only the global profile, which routes to 33 Regions across three continents.
-From `us-east-1` the US geo profile is available, and it routes to exactly
-three: `us-east-1`, `us-east-2`, `us-west-2`. AWS guarantees a geo-tied
-profile's destination list never changes.
+The vision models evaluated for the reader support **no geo inference profile
+from `ap-south-1`** — only the global profile, which routes to 33 Regions
+across three continents. From `us-east-1` a US geo profile is available, and it
+routes to exactly three: `us-east-1`, `us-east-2`, `us-west-2`. AWS guarantees
+a geo-tied profile's destination list never changes.
+
+**The argument is about the PREFIX, not the vendor**, so it survives changing
+the model — which this project has done once already.
 
 So **the Region that keeps a patient's bill in the smallest, most predictable
 set of places is N. Virginia, not Mumbai.** Choosing India would have meant
@@ -62,7 +65,7 @@ and Q1a.
 
 ---
 
-## TWO GUARANTEES, AND WE ONLY HARDEN ONE
+## Two guarantees, and we only harden one
 
 These are constantly conflated, including by us. They are not the same claim
 and they do not have the same achievability.
@@ -268,30 +271,47 @@ size, manufacturer, and three flags.
 - **226 names map to more than one salt set** and are flagged `ambiguous`
   rather than arbitrarily resolved. An ambiguous name must never produce red.
 
-### Open for Phase 4: does the whole index need loading?
+### Shipping it: a reduced index in the bundle, not DynamoDB
 
-Phase 1 showed that most hospital pharmacy lines are **generic**, not branded
--- "Paracetamol 500mg Tablet", "Ringer Lactate Injection 500 ml", "Bare Metal
-Stent" -- and those resolve straight against the NPPA reference without
-touching the brand index at all. The brand index earns its place on lines
-like "Augmentin 625 Duo Tablet", which are a minority.
+The full index is **36 MB** — too large for a Lambda package and slow to parse
+on a cold start. The original plan was to load it into DynamoDB at deploy time
+and look names up by key.
 
-So before seeding 249k rows into DynamoDB, check what fraction the demo bills
-and any real bills actually hit. A filtered subset -- brands whose salts
-appear in the 915 ceiling rows, say -- may cover nearly all real traffic at a
-fraction of the size, and might even fit in the Lambda bundle. NOT changed
-now; flagged so the Phase 4 seeding step starts by measuring rather than
-assuming.
+**Measuring first changed the answer.** Most hospital pharmacy lines are
+*generic* — "Paracetamol 500mg Tablet", "Ringer Lactate Injection 500 ml",
+"Bare Metal Stent" — and resolve straight against the NPPA reference without
+touching the brand index at all. So the index is filtered to the brands that
+can actually produce a verdict, and the result fits in the bundle: **13.5 MB,
+96,489 of 249,148 names**, committed at `backend/reference_data/`. No
+DynamoDB table, no seeding step, and local runs read the same file production
+does — so what the tests exercise is what runs.
 
-### Deployment: DynamoDB, not the bundle
+**The filter is MEMBER-based, and the obvious SET-based version was wrong.**
+A set filter keeps a brand only if its whole salt *combination* has a ceiling
+row, which answers "can we PRICE this?" — a two-state question. The engine has
+three states:
 
-The reduced index is **36 MB** — too large to sit comfortably in a Lambda
-package, and slow to parse on a cold start. Phase 4 loads it into DynamoDB at
-deploy time and looks names up by key; `seed_dynamodb.py` does the load. At
-on-demand write pricing that is a **one-time ~$0.31** for ~249k items, with
-negligible storage after. It is gitignored and regenerable with two commands,
-so the repo stays lean; the small build report is committed so the numbers are
-reviewable without it.
+    priced   /   no_public_ceiling   /   could_not_identify
+
+and `no_public_ceiling` needs the brand **precisely when it cannot be priced**.
+The set rule deleted the data required to say "we identified this, and India
+does not price-control it", turning an honest answer back into "we could not
+identify it". It dropped a real medicine off a real bill.
+
+| | SET rule | MEMBER rule (shipped) |
+|---|---|---|
+| brands kept | 73,717 (29.6%) | **96,489 (38.7%)** |
+| staged size | 9.4 MB | **13.5 MB** |
+| cold start | +0.58s | **+0.63s** on ~1.1s |
+
+Still a reduction, deliberately: a brand whose salts appear nowhere in the 915
+can produce neither verdict, so shipping it costs cold-start time for nothing.
+Those names report `could_not_identify`, which is accurate — with the shipped
+data we hold nothing about those molecules.
+
+The 375-salt membership set is a property of the 915 ceiling rows, so
+**re-measure with `scripts/measure_reduced_index.py` if the reference data
+changes.**
 
 ---
 
@@ -414,16 +434,27 @@ This matters more than any other control, because **Textract is ~70–80% of
 the projected bill**. Building the engine, the rules and the eval entirely
 offline is what turns $8 into $1.50.
 
-### Reserved concurrency of 5
+### Reserved concurrency — available, but OFF by default
 
-Every Lambda that calls Textract or Bedrock carries
-`ReservedConcurrentExecutions: 5` in `infra/template.yaml`. A retry storm or a
-runaway client then costs five concurrent invocations' worth of API calls, not
-a thousand. It is a hard ceiling enforced by the platform rather than by our
-own retry logic being correct.
+`infra/template.yaml` exposes a `ReservedConcurrency` parameter. Set it, and a
+retry storm or a runaway client costs that many concurrent invocations' worth
+of API calls rather than a thousand — a hard ceiling enforced by the platform
+rather than by our own retry logic being correct.
+
+**It defaults to 0, which means NO reservation is set at all, and that is
+deliberate.** AWS refuses any reservation that would drop the account's
+unreserved concurrency below 10, and a new account's total limit is often
+exactly 10 — so reserving even 1 is rejected and CloudFormation rolls the whole
+stack back. The template therefore omits the property entirely at 0 rather than
+passing it, because passing 0 would mean "reserve zero concurrency", i.e. the
+function can never run.
+
+The control is not lost on such an account: the account limit is a harder cap
+than the one we wanted. Raise the quota in Service Quotas first, then set this
+parameter.
 
 Retry logic is capped at one attempt as well — but that is a code fix for a
-code risk. The concurrency limit is what holds when the code is wrong.
+code risk. A concurrency limit is what holds when the code is wrong.
 
 ### Reject before you pay
 
@@ -435,17 +466,18 @@ careless upload. The check is cheap, the failure mode is not.
 ### No always-on resources
 
 The SAM template has **no VPC**, therefore no NAT Gateway (~$32–45/month, the
-classic hackathon killer). DynamoDB is on-demand, never provisioned. S3
+the classic surprise on a small AWS bill). DynamoDB is on-demand, never
+provisioned. S3
 carries a 1-day lifecycle delete and CloudWatch a 7-day log retention. There
 is no OpenSearch, no vector store, no EC2, no Fargate. **Idle cost is
-effectively zero** — the stack can sit untouched between the demo and judging
-without accruing anything.
+effectively zero** — the stack can sit untouched indefinitely without
+accruing anything. The spend is per upload, not per hour.
 
 ### Guardrails outside the code
 
 `docs/AWS_STEPS.md` Section 0 sets up a $10 budget alerting at 50% and 100%,
 a $25 tripwire, and account-level billing alerts — **before any resource is
-created**. Free, and it means a runaway loop pages us at $5 rather than
+created**. Free, and it means a runaway loop is caught at $5 rather than
 surfacing at $80.
 
 ### What stays despite the cost
