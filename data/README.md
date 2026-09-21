@@ -52,7 +52,7 @@ is committed at `backend/reference_data/brand_index.csv`.
 ## The retail rows, and why they are kept
 
 `reference_prices.csv` holds 3,881 `retail_new_drug` rows, and **the engine
-never reads them**. `match.py` accepts only `ceiling` and `special_feature`
+never reads them**. `backend/app/pipeline/match.py` accepts only `ceiling` and `special_feature`
 (`CEILING_SOURCES`), because retail prices are per-company approvals that bind
 one manufacturer — they are not ceilings binding anyone else, so they can
 never justify a finding.

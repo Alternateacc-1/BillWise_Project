@@ -17,6 +17,7 @@ your question is.
 
 | File | Read it when |
 |---|---|
+| [`../data/README.md`](../data/README.md) | You are wondering what is in `data/`, why a 1 MB PDF ships that no code parses, or why the retail rows are kept when the engine never reads them. |
 | [`FORMAT_FINDINGS.md`](FORMAT_FINDINGS.md) | You are working on bill parsing. What broke across eight real-world bill formats, recorded before anything was fixed. Includes the accidental one-reader/two-reader experiment. |
 | [`OPEN_QUESTIONS.md`](OPEN_QUESTIONS.md) | You are looking for something worth doing. Unresolved questions, with what is known about each. |
 

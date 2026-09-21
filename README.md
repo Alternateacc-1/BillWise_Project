@@ -250,6 +250,7 @@ tests/              pytest
 scripts/            reference-data builders; the only networked one fetches brands
 data/raw/           NPPA source files, unmodified
 data/reference/     generated price reference and quarantine log
+                    see data/README.md for what each file is and what reads it
 infra/              the SAM template
 docs/               see docs/README.md for an index
 ```
