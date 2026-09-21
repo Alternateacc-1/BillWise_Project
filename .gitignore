@@ -114,3 +114,14 @@ NOTES.md
 # nothing. What actually proves a flag is the S.O. number and date carried on
 # every reference row, which points at the government's published notification.
 data/raw/All_Drugs_Ceiling_Prices_provenance.pdf
+
+# One-off investigation probes. They answered a specific question once --
+# is the ledger bug still live, can the two spelling tiers disagree enough to
+# flip a verdict, what exactly blocks bill_06, what breaks on an unfamiliar
+# bill format. The ANSWERS are in docs/; the scripts are working notes and
+# belong with them, not in a repo someone clones to run the product.
+# Kept locally. run_eval.py and adversarial_audit.py are the ones that matter.
+eval/class_b_probe.py
+eval/cross_tier_audit.py
+eval/bill_06_gap.py
+eval/format_probes.py

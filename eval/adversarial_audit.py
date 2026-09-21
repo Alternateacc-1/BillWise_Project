@@ -1,6 +1,14 @@
-"""ADVERSARIAL AUDIT. Goal: make BillWise emit a FALSE RED.
+"""Try to make the engine accuse a bill that is correctly priced.
 
-Every bill below is CORRECTLY PRICED. Any red is a false accusation.
+    python eval/adversarial_audit.py
+
+Every bill below is CORRECTLY PRICED, so any red is a false accusation --
+the one failure this product cannot have. Each attack targets a different
+way a correct bill can look wrong: a strip price read as a unit price, a
+lost decimal, an alias collision, an ambiguous pack size.
+
+Exits non-zero if any attack succeeds, so this can gate a build the same
+way run_eval.py does.
 """
 import pathlib
 import sys
@@ -16,6 +24,8 @@ def attack(n, why, items, total, two_readers=True):
     ATTACKS.append((n, why, items, D(total), two_readers))
 
 def I(i, name, qty, rate, total, conf="98"):
+    """One line as the readers would return it. Short name because it
+    appears in every attack below and a long one would bury the numbers."""
     return ReaderItem(index=i, name=name,
                       quantity=D(qty) if qty is not None else None,
                       unit_price=D(rate) if rate is not None else None,
@@ -109,3 +119,8 @@ for name, why, items, total, two in ATTACKS:
 print("\n" + "=" * 78)
 print(f"  FALSE REDS: {false_reds} / {len(ATTACKS)} attacks")
 print("=" * 78)
+
+# A gate that always exits 0 is not a gate. run_eval.py already fails this
+# way; this one printed the count and exited clean, so a false red could
+# slip past anything running it in a script.
+sys.exit(1 if false_reds else 0)

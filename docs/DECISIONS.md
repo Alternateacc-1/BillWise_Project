@@ -106,7 +106,8 @@ deduction, not that the bill is wrong.** Applied at three scales:
 - per-line discount columns
 
 All three closed by that one question, not by the ledger structure originally
-planned. Verify with `eval/class_b_probe.py`.
+planned. Measured on all three scales after the change: no R1 or R2 fires on a
+bill carrying a discount, a round-off or a section subtotal.
 
 ---
 

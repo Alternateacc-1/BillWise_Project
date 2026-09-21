@@ -875,7 +875,9 @@ D4 accepted an asymmetry on the grounds that its impact stayed inside the 25%
 red margin. That was an observation about ASPIRIN. This tests whether it holds
 across the whole published list.
 
-Harness: `eval/cross_tier_audit.py`.
+Method: enumerate every salt + form + strength + unit group across all 915
+ceiling rows, then check whether the two spelling tiers ever hold different
+ceilings for the same product.
 
 ## Part 1 -- the enumeration, and it is a much stronger claim than D4's
 
@@ -904,8 +906,8 @@ property of the reference data.
 **This bound is a property of the DATA, not of the code**, and it must be
 re-measured whenever the reference list is rebuilt. If NPPA ever publishes a
 cross-tier pair wider than 25%, the asymmetry becomes capable of producing a
-red and D4 must be revisited. `eval/cross_tier_audit.py` exists so that check
-is one command.
+red and D4 must be revisited. Re-run the enumeration described above whenever
+the reference list changes.
 
 ## Part 2 -- the attacks, with the pack gate stubbed
 

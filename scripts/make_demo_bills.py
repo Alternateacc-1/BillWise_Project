@@ -356,7 +356,7 @@ BILLS = [
     #
     # These six stay GRAY and that is the correct answer. Not one of the
     # medicines on this bill is ceiling-controlled, so 0 of 6 priced is the
-    # honest outcome -- measured by eval/bill_06_gap.py. If a change makes
+    # honest outcome: five lines stop at IDENTITY and one at CEILING. If a
     # these lines produce a price verdict, something is wrong.
     # ----------------------------------------------------------------------
     BillSpec(
@@ -479,7 +479,7 @@ def build_ground_truth(spec: BillSpec) -> dict:
             "bill, not a gap waiting to be closed. All six lines read at high "
             "confidence and the bill reconciles; they go gray because not one "
             "of these six medicines is a DPCO ceiling-controlled formulation. "
-            "Measured by eval/bill_06_gap.py: five stop at IDENTITY (the brand "
+            "Five stop at IDENTITY (the brand "
             "resolves but carries no salts) and one at CEILING (identified, no "
             "published ceiling row). "
             "0 of 6 PRICED is the honest outcome and no brand index changes "
