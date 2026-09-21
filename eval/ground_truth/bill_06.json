@@ -24,7 +24,7 @@
       "severity": "gray",
       "item_name": "SINALATE TAB",
       "gray_reason": "could_not_verify",
-      "why": "MOVED 2026-09-19 when the REDUCED brand index shipped. SINALATE is CAFFEINE + DIPHENHYDRAMINE, and DIPHENHYDRAMINE appears in ZERO ceiling rows, so the member-rule filter drops the brand and the deployed data cannot identify it. could_not_identify is the ACCURATE statement about what ships: we hold nothing at all about that molecule. With the full 36 MB index it resolves and reads no_public_ceiling -- which is why local and production must use the SAME file."
+      "why": "The REDUCED brand index decides this one. SINALATE is CAFFEINE + DIPHENHYDRAMINE, and DIPHENHYDRAMINE appears in ZERO ceiling rows, so the member-rule filter drops the brand and the deployed data cannot identify it. could_not_identify is the ACCURATE statement about what ships: we hold nothing at all about that molecule. With the full 36 MB index it resolves and reads no_public_ceiling -- which is why local and production must use the SAME file."
     },
     {
       "item_index": 4,

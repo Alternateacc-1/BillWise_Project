@@ -266,8 +266,7 @@ BILLS = [
                  why="RESOLVES fully (PANTOPRAZOLE, 40mg, tablet) and the "
                      "published list holds only PANTOPRAZOLE INJECTION 40 MG "
                      "-- no tablet row exists. Absence is PROVEN, so this is "
-                     "no_public_ceiling, not could_not_identify. Moved "
-                     "2026-09-19."),
+                     "no_public_ceiling, not could_not_identify."),
             Line("Cotton Roll 100gm", "1", "85.00",
                  expect=[("R9", "gray")], expect_gray_reason="no_public_ceiling"),
             Line("Micropore Tape", "2", "45.00",
@@ -384,7 +383,7 @@ BILLS = [
             Line("SINALATE TAB", "8", mrp="67.50", pack=10,
                  line_total_override="54.00",
                  expect=[("R9", "gray")], expect_gray_reason="could_not_verify",
-                 why="MOVED 2026-09-19 when the REDUCED brand index shipped. "
+                 why="The REDUCED brand index decides this one. "
                      "SINALATE is CAFFEINE + DIPHENHYDRAMINE, and "
                      "DIPHENHYDRAMINE appears in ZERO ceiling rows, so the "
                      "member-rule filter drops the brand and the deployed data "
@@ -647,7 +646,7 @@ def write_noisy_jpg(spec: BillSpec, path: Path, grade: str = "heavy") -> None:
         # Soft shadow falling across one corner, as a hand or phone would cast.
         shadow = Image.new("L", (width, height), 255)
         shade_draw = ImageDraw.Draw(shadow)
-        for offset in range(0, 380):
+        for offset in range(380):
             value = 255 - int(58 * (1 - offset / 380))
             shade_draw.line([(width - 380 + offset, 0),
                              (width - 120 + offset, height)], fill=value)

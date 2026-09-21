@@ -49,8 +49,8 @@ def reduce_brand_index() -> int:
 
     A set-based filter keeps a brand only if its whole salt COMBINATION has a
     ceiling row. That answers "can we PRICE this?", which is a two-state
-    question -- and the engine has had three states since R9 gained its third
-    branch on 2026-09-19:
+    question -- and the engine has three states, because R9 has a third
+    branch:
 
         priced            we resolved it and a ceiling exists
         no_public_ceiling we resolved it and NO ceiling exists  <-- needs the
