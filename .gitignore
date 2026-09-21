@@ -106,7 +106,7 @@ eval/demo_bills/
 
 # The private engineering log. Stays local: it is the maintainer's working
 # notes and it names the live API and Amplify endpoints, which do not belong
-# in a public repo while the API is unauthenticated. docs/DECISIONS.md is the
+# in a public repo while the API is unauthenticated. docs/decisions.md is the
 # public version of the rulings it records.
 NOTES.md
 
@@ -135,6 +135,6 @@ docs/VIDEO_SCRIPT_3MIN.md
 docs/VIDEO_CUECARD.md
 
 # A contributor's handover log for finished frontend work. The decisions in it
-# that still matter are in DECISIONS.md and the code comments; the rest is a
+# that still matter are in decisions.md and the code comments; the rest is a
 # diary of a job already done.
 docs/CHANGES_BY_contributor.md

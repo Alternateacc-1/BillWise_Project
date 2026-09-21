@@ -65,7 +65,7 @@ class GrayDetail(str, Enum):
                           say whether "Qty 10" means ten tablets or ten
                           strips, and the price is such that the answer
                           decides the verdict. See the correctness argument in
-                          docs/ARCHITECTURE.md: when the price is under the
+                          docs/architecture.md: when the price is under the
                           allowance we can still say green, because it holds
                           whatever the pack size is. When it is over, nothing
                           can be concluded at all.

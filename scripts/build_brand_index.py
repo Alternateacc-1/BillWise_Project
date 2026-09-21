@@ -343,7 +343,7 @@ def main() -> int:
         print("\n  NOTE: too large to sit comfortably in a Lambda bundle.")
         print("        scripts/stage_lambda.py ships a reduced index instead;")
         print("        this full file is not deployed.")
-        print("        See docs/ARCHITECTURE.md.")
+        print("        See docs/architecture.md.")
     print("=" * 68)
     return 0
 

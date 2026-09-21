@@ -115,7 +115,7 @@ are near-free at rest, and Amplify hosting is cheap. The variable cost is per
 upload: **Textract is priced per page and Bedrock per token**, so each bill
 processed costs real money.
 
-**Set a budget before you create anything.** `AWS_STEPS.md` section 0 walks
+**Set a budget before you create anything.** `aws-deployment.md` section 0 walks
 through a $10 budget and a $25 tripwire; both are free and take ten minutes.
 Do not skip this.
 
@@ -134,8 +134,8 @@ frontend's origin, but that origin does not exist until the frontend is
 deployed. So:
 
 ```
-0.  Budgets                    AWS_STEPS.md section 0
-1.  Bedrock model access       AWS_STEPS.md section 1   (optional, see below)
+0.  Budgets                    aws-deployment.md section 0
+1.  Bedrock model access       aws-deployment.md section 1   (optional, see below)
 2.  Deploy the backend         with FrontendOrigin EMPTY
 3.  Deploy the frontend        Amplify gives you a domain
 4.  Redeploy the backend       now with FrontendOrigin set to that domain
@@ -272,7 +272,7 @@ is that an idle stack already costs almost nothing — the spend is per upload.
 
 # 4. Known limits before you invest time
 
-Full detail with measurements in [`LIMITS.md`](LIMITS.md).
+Full detail with measurements in [`limitations.md`](limitations.md).
 
 - Only the **915 price-controlled formulations** can produce a finding. Most
   of a real bill is out of NPPA's remit and reports as "no published ceiling".
@@ -280,7 +280,7 @@ Full detail with measurements in [`LIMITS.md`](LIMITS.md).
   data, so a Hindi or Marathi bill resolves to nothing.
 - **Uploads cap at 4 MB**, a transport limit rather than a policy choice.
 - **The API is unauthenticated and unthrottled.** If you deploy this publicly,
-  add rate limiting first — `AWS_STEPS.md` 9.3. Every upload spends money.
+  add rate limiting first — `aws-deployment.md` 9.3. Every upload spends money.
 - **No reading-accuracy figure is claimed.** Good on clean PDFs, poor on
   degraded photographs, and it goes grey rather than guessing.
 
@@ -288,7 +288,7 @@ Full detail with measurements in [`LIMITS.md`](LIMITS.md).
 
 # 5. If something goes wrong
 
-`AWS_STEPS.md` is the long form of everything above, written as it was
+`aws-deployment.md` is the long form of everything above, written as it was
 actually done, including six environment failures on the first deploy and what
 each one really meant. Its "Troubleshooting the first deploy" section covers
 the ones most likely to hit you: Lambda reserved concurrency on a new account,

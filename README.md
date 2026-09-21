@@ -80,7 +80,7 @@ always leads with how many charges were actually compared.
 
 **Locally, offline, free** — `PROVIDER=local` makes zero network calls and
 needs no AWS account. Full setup, including deploying to **your own AWS
-account**, is in [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).
+account**, is in [`docs/self-hosting.md`](docs/self-hosting.md).
 
 ```bash
 py -3.12 -m venv venv
@@ -154,7 +154,7 @@ price-controlled — the most interesting path in the product.
 Frontend is React 19 + Vite 8 + Tailwind 3.4 on **Amplify**. Infrastructure is
 one **AWS SAM** template. Everything runs in `us-east-1`.
 
-Full detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Full detail in [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
@@ -201,7 +201,7 @@ quantities. None currently succeeds.
 ## What it cannot do
 
 Stated plainly, because a tool like this is only useful if it admits its
-limits. Measurements in [`docs/LIMITS.md`](docs/LIMITS.md).
+limits. Measurements in [`docs/limitations.md`](docs/limitations.md).
 
 - **Only the 915 price-controlled formulations can produce a finding.** Most
   of a real bill is out of NPPA's remit by nature. We report that as
@@ -226,13 +226,13 @@ Backend and frontend deploy separately and the frontend usually does not need
 the backend.
 
 **To deploy this to your own AWS account, follow
-[`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md).** Nothing in this repo points
+[`docs/self-hosting.md`](docs/self-hosting.md).** Nothing in this repo points
 at anyone else's infrastructure — every AWS identifier is empty in
 `.env.example` and you supply your own. The second reader is optional; without
 Bedrock the app runs on Textract alone and says so on every report.
 
 Every console step, with the failures that cost us hours, is in
-[`docs/AWS_STEPS.md`](docs/AWS_STEPS.md). Two traps worth naming here:
+[`docs/aws-deployment.md`](docs/aws-deployment.md). Two traps worth naming here:
 
 - **`--build-dir` is not optional on `sam build`.** Without it, build and
   deploy can read different directories and you ship the previous build while
@@ -261,7 +261,7 @@ docs/               see docs/README.md for an index
 ```
 
 Every ruling that shaped the engine — thresholds, the two-reader design, why
-gray is a correct answer — is in [`docs/DECISIONS.md`](docs/DECISIONS.md),
+gray is a correct answer — is in [`docs/decisions.md`](docs/decisions.md),
 with the measurement behind each one. Read that first; it is short.
 
 ---

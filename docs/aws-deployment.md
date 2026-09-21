@@ -1,10 +1,10 @@
-# AWS steps
+# Deploying to AWS
 
 Everything that touches an AWS account, written as it was actually done —
 including the failures and what each one really meant.
 
 **If you are deploying this to your own account, start with
-[`SELF_HOSTING.md`](SELF_HOSTING.md)**, which is the short ordered version.
+[`self-hosting.md`](self-hosting.md)**, which is the short ordered version.
 Come here for the detail, the console screens and the troubleshooting.
 
 Written for someone who has never used AWS. Every step says what it does, what
@@ -244,7 +244,7 @@ and not a code change.
 > subscription and no use-case form -- one less thing that can expire under
 > you. A model this project used earlier stopped working when its Marketplace
 > offer expired, and the error named IAM rather than the subscription, which
-> cost a day. `docs/LIMITS.md` has that story.
+> cost a day. `docs/limitations.md` has that story.
 
 **Verify and write down:**
 
@@ -314,7 +314,7 @@ number and a drug list that implies a diagnosis.
 >    Mumbai.**
 >
 > The cost is real: latency to Indian users is worse than the design wants.
-> That is stated plainly in `docs/ARCHITECTURE.md` rather than glossed over.
+> That is stated plainly in `docs/architecture.md` rather than glossed over.
 
 ---
 
@@ -363,7 +363,7 @@ bill_06.pdf (retail) : ____ of 6 lines correct
   answer. What it buys is a second, independent check of the arithmetic.
 
 Whatever the numbers are, they are the numbers. They describe reading quality,
-not the engine -- `docs/LIMITS.md` sets out which claims each one supports.
+not the engine -- `docs/limitations.md` sets out which claims each one supports.
 
 ---
 
@@ -510,7 +510,7 @@ Ground truth to check against — both bills, in full:
 
 **Whatever the numbers are, they are the numbers.** Do not round them up, and
 if you only tested one scan, say so -- a missing claim is fine, an unmeasured
-one is not. `docs/LIMITS.md` sets out which claims these support.
+one is not. `docs/limitations.md` sets out which claims these support.
 
 ---
 
@@ -1226,7 +1226,7 @@ Open https://<YOUR-BRANCH>.<YOUR-APP-ID>.amplifyapp.com and check all four:
    an older bundle is being served.
 
 If the sample works but a real upload fails with a bare "Network error", that
-is the 4 MB ceiling, not a deploy problem. See `docs/LIMITS.md`.
+is the 4 MB ceiling, not a deploy problem. See `docs/limitations.md`.
 
 ---
 

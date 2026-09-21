@@ -3,7 +3,7 @@
 What you need to know before changing the interface, and the handful of things
 in it that look like clutter and are not.
 
-**Setup is in [`SELF_HOSTING.md`](SELF_HOSTING.md)** — clone, install, run,
+**Setup is in [`self-hosting.md`](self-hosting.md)** — clone, install, run,
 in about ten minutes with no AWS account. This file is only about the parts
 that are easy to break without noticing.
 
@@ -135,11 +135,11 @@ caught / missed / FALSE REDS lines.
 
 ## Where the rest is
 
-- [`DECISIONS.md`](DECISIONS.md) — every ruling that should not be
+- [`decisions.md`](decisions.md) — every ruling that should not be
   re-litigated, with the measurement behind it. Short, and worth reading
   before any non-obvious change.
-- [`LIMITS.md`](LIMITS.md) — what the tool cannot do, and why.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — how a bill becomes a report.
+- [`limitations.md`](limitations.md) — what the tool cannot do, and why.
+- [`architecture.md`](architecture.md) — how a bill becomes a report.
 
 **One habit worth copying: measure before you conclude.** These notes have
 been confidently wrong about what was broken, and each time a five-minute

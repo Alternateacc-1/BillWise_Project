@@ -5,7 +5,7 @@ templates: it may rephrase, and it may introduce NO number that is not
 already in the evidence. That is enforceable precisely because the templates
 exist first and define what a correct explanation looks like.
 
-Language rules, non-negotiable (docs/ARCHITECTURE.md):
+Language rules, non-negotiable (docs/architecture.md):
   never   illegal, fraud, cheating, overcharged
   always  "above the listed ceiling price", "may need clarification",
           "amount affected"

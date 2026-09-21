@@ -17,7 +17,7 @@ get the same answer.
 
 OFFLINE ONLY. PROVIDER is pinned to "local" before the pipeline is imported:
 the eval is the thing most likely to be run in a loop, so it must never be
-able to reach a paid API. See docs/ARCHITECTURE.md, cost controls.
+able to reach a paid API. See docs/architecture.md, cost controls.
 """
 
 from __future__ import annotations

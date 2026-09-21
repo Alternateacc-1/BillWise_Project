@@ -52,7 +52,7 @@ The information is not in the document — this is not an OCR limitation.
 We have not solved this. We have made it **safe**: `line_total ÷ qty` is an
 upper bound on the per-unit price, so under the allowance we can say green for
 every possible pack size, and over it we say nothing at all. The full argument
-is in `ARCHITECTURE.md`.
+is in `architecture.md`.
 
 This cost us real coverage. It was worth it: the alternative was a false red
 on an ordinary wholesale invoice.
@@ -501,6 +501,6 @@ was never useful anyway.
   - **No rate limiting.** The endpoint is public and unauthenticated, and
     every upload costs Textract and Bedrock money. The budget alarm is the
     only control. API Gateway stage throttling is the fix and is one console
-    setting; see `docs/AWS_STEPS.md` section 9.3.
+    setting; see `docs/aws-deployment.md` section 9.3.
   - **No authentication.** Deliberate -- a patient should not need an account
     to check a bill. The unguessable bill id is the capability.

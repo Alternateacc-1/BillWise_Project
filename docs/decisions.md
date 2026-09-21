@@ -80,7 +80,7 @@ A real overcharge is a small multiple: a stent at 3.8× the ceiling is real, a
 > line's arithmetic, **R2** reconciles the bill total, **R3** and **R4** find
 > duplicates, **R5** compares against the NPPA ceiling and is the only rule
 > that can raise a red, and **R9** explains why a line got no verdict.
-> `ARCHITECTURE.md` has the full table.
+> `architecture.md` has the full table.
 
 **R5 refuses to PRICE an unverified line. R1 and R2 went on doing ARITHMETIC
 on one.** Four fixes over two days to close it:
@@ -177,4 +177,4 @@ reached Textract, which bills per page.
 `File with same data already exists ... skipping upload` appearing after you
 edited code. Pass `--build-dir` explicitly, and verify by calling the deployed
 API and checking the behaviour you changed, rather than trusting the stack
-status. `AWS_STEPS.md` section 10.4 has the exact calls.
+status. `aws-deployment.md` section 10.4 has the exact calls.

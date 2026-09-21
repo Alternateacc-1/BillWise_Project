@@ -1,7 +1,7 @@
 """Configuration and audit thresholds.
 
 The threshold rationale lives in the comments below; the longer argument is
-in docs/ARCHITECTURE.md.
+in docs/architecture.md.
 
 Nothing here reads a secret. AWS credentials come from the environment's own
 credential chain (SSO locally, an IAM role on Lambda), never from a file in
@@ -38,7 +38,7 @@ if PROVIDER not in ("local", "aws"):
 # guarantees that list never changes, so infra/template.yaml can pin all
 # three in IAM. The global profile routes to 33 and its list can change,
 # which for a document that is somebody's medical bill is the wrong trade.
-# The cost is latency for Indian users; see docs/ARCHITECTURE.md.
+# The cost is latency for Indian users; see docs/architecture.md.
 AWS_REGION = (
     os.getenv("AWS_REGION_NAME")
     or os.getenv("AWS_REGION")

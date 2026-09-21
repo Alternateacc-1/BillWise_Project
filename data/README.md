@@ -75,11 +75,11 @@ The raw file stays, for two reasons:
   compositions, and it has its own failure modes. One of them is a real bug
   the tests pin: a drug strength is not a container size, and reading a pack
   volume out of a retail composition once priced an item per 1.4 gm of vial.
-- **They are the evidence for a decision.** `docs/DECISIONS.md` records that
+- **They are the evidence for a decision.** `docs/decisions.md` records that
   ceilings and retail prices cover different medicines by design, with zero
   overlap between 372 and 1,818 salt sets. That measurement needs the data.
 
-If the retail tier is ever built, `docs/LIMITS.md` lists what blocks it: 21%
+If the retail tier is ever built, `docs/limitations.md` lists what blocks it: 21%
 clean salt parsing, a manufacturer field the parser drops, and no way to tell
 whether a 2013 notification is still in force.
 

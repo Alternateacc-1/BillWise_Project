@@ -492,7 +492,7 @@ def rule_r5_above_ceiling(
     """Compare the billed per-unit price against the ceiling threshold.
 
     Four guards stand between a price difference and a red flag, and all four
-    err toward silence. See docs/ARCHITECTURE.md for why each number is what
+    err toward silence. See docs/architecture.md for why each number is what
     it is.
     """
     interpretations = _interpretations(item, normalized)

@@ -204,7 +204,7 @@ def main() -> int:
     # --use-container is NOT optional on Windows. A plain `sam build` installs
     # wheels for the machine it runs on, so it would bundle Windows wheels
     # into an arm64 Linux function -- which deploys successfully and then dies
-    # at import time on the first request. See AWS_STEPS.md 3.4.
+    # at import time on the first request. See aws-deployment.md 3.4.
     print("\n  Now run, from the repo root:")
     print("    sam build --use-container --template infra/template.yaml \\")
     print("              --build-dir <ABSOLUTE PATH OUTSIDE THIS REPO>")

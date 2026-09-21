@@ -6,7 +6,7 @@ component is forbidden from doing.
 
 The sections follow the order the work was built in, which is also roughly the
 order data flows: the reference prices first, then brand matching, then the
-rules, then cost and deployment. Read [`DECISIONS.md`](DECISIONS.md) first if
+rules, then cost and deployment. Read [`decisions.md`](decisions.md) first if
 you only want to know why the engine behaves the way it does.
 
 ---
@@ -91,7 +91,7 @@ work targets this guarantee.**
 This is a **completeness** property, and it is out of reach for reasons that
 are not engineering problems. Phantom billing is invisible to a bill. Pack
 size is often absent from the document. Most hospital charges have no
-published ceiling in the first place. See `LIMITS.md`.
+published ceiling in the first place. See `limitations.md`.
 
 **We do not pursue it, and no claim we make should imply we have it.**
 
@@ -493,7 +493,7 @@ accruing anything. The spend is per upload, not per hour.
 
 ### Guardrails outside the code
 
-`docs/AWS_STEPS.md` Section 0 sets up a $10 budget alerting at 50% and 100%,
+`docs/aws-deployment.md` Section 0 sets up a $10 budget alerting at 50% and 100%,
 a $25 tripwire, and account-level billing alerts — **before any resource is
 created**. Free, and it means a runaway loop is caught at $5 rather than
 surfacing at $80.

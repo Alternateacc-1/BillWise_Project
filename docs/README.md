@@ -10,14 +10,14 @@ locally, and what it cannot do. These go deeper.
 
 | If you want to | Read |
 |---|---|
-| know why the engine behaves the way it does | [`DECISIONS.md`](DECISIONS.md) |
-| understand how a bill becomes a report | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| know what the tool cannot do, and how we know | [`LIMITS.md`](LIMITS.md) |
-| run it yourself, locally or on your own AWS | [`SELF_HOSTING.md`](SELF_HOSTING.md) |
-| deploy step by step, or fix a broken deploy | [`AWS_STEPS.md`](AWS_STEPS.md) |
-| change the interface | [`FRONTEND_BRIEF.md`](FRONTEND_BRIEF.md) |
+| know why the engine behaves the way it does | [`decisions.md`](decisions.md) |
+| understand how a bill becomes a report | [`architecture.md`](architecture.md) |
+| know what the tool cannot do, and how we know | [`limitations.md`](limitations.md) |
+| run it yourself, locally or on your own AWS | [`self-hosting.md`](self-hosting.md) |
+| deploy step by step, or fix a broken deploy | [`aws-deployment.md`](aws-deployment.md) |
+| change the interface | [`frontend.md`](frontend.md) |
 
-**[`DECISIONS.md`](DECISIONS.md) is the one to read first.** It is short, and
+**[`decisions.md`](decisions.md) is the one to read first.** It is short, and
 it holds every ruling that would otherwise get argued twice: the thresholds and
 why each number, why there are two readers, why "we could not check this" is a
 correct answer, and the words the product will not use.
