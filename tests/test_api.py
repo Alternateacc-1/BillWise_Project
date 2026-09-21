@@ -547,7 +547,7 @@ def test_cors_is_not_a_wildcard():
     from app.main import ALLOWED_ORIGINS
 
     assert "*" not in ALLOWED_ORIGINS
-    assert all(o.startswith("http://localhost") or o.startswith("http://127.")
+    assert all(o.startswith(("http://localhost", "http://127."))
                for o in ALLOWED_ORIGINS)
 
 

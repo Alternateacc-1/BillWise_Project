@@ -11,7 +11,6 @@ from app import config
 from app.cli import run_audit
 from app.models import (
     BillInput,
-    Flag,
     GrayDetail,
     GrayReason,
     ItemCategory,
@@ -34,10 +33,10 @@ FIXTURE = REPO_ROOT / "eval" / "fixtures" / "bill_01.json"
 
 
 def reader_item(**kwargs) -> ReaderItem:
-    base = dict(
-        index=1, name="Paracetamol 500mg Tablet", quantity=Decimal("10"),
-        unit_price=Decimal("1.00"), line_total=Decimal("10.00"), confidence=Decimal("98"),
-    )
+    base = {
+        "index": 1, "name": "Paracetamol 500mg Tablet", "quantity": Decimal("10"),
+        "unit_price": Decimal("1.00"), "line_total": Decimal("10.00"), "confidence": Decimal("98"),
+    }
     base.update(kwargs)
     return ReaderItem(**base)
 
@@ -300,22 +299,22 @@ def _drug(index=1, **kwargs) -> NormalizedItem:
     # pack_count 1 from bill_text = the pack size is CERTAIN, so these tests
     # exercise the four red guards rather than the upper-bound gate, which
     # has its own tests below.
-    base = dict(
-        index=index, category=ItemCategory.DRUG, match_type=MatchType.EXACT,
-        salt_components=["PARACETAMOL"], strength_mg=[500.0], strength_kind="mg",
-        dosage_form="tablet", unit_basis="tablet", form_modifier=None,
-        pack_count=Decimal("1"), pack_unit="tablet", pack_count_source="bill_text",
-    )
+    base = {
+        "index": index, "category": ItemCategory.DRUG, "match_type": MatchType.EXACT,
+        "salt_components": ["PARACETAMOL"], "strength_mg": [500.0], "strength_kind": "mg",
+        "dosage_form": "tablet", "unit_basis": "tablet", "form_modifier": None,
+        "pack_count": Decimal("1"), "pack_unit": "tablet", "pack_count_source": "bill_text",
+    }
     base.update(kwargs)
     return NormalizedItem(**base)
 
 
 def _item(index=1, **kwargs) -> VerifiedItem:
-    base = dict(
-        index=index, name="Paracetamol 500mg Tablet", quantity=Decimal("10"),
-        unit_price=Decimal("1.00"), line_total=Decimal("10.00"),
-        confidence=ReadingConfidence.HIGH,
-    )
+    base = {
+        "index": index, "name": "Paracetamol 500mg Tablet", "quantity": Decimal("10"),
+        "unit_price": Decimal("1.00"), "line_total": Decimal("10.00"),
+        "confidence": ReadingConfidence.HIGH,
+    }
     base.update(kwargs)
     return VerifiedItem(**base)
 
@@ -671,10 +670,10 @@ def test_the_pipeline_is_deterministic():
 
 
 def test_config_thresholds_are_the_approved_values():
-    assert config.GST_PERCENT == Decimal("12")
-    assert config.RED_EXCESS_FRACTION == Decimal("0.25")
-    assert config.RED_MIN_AMOUNT_AFFECTED == Decimal("50")
-    assert config.RED_MAX_RATIO == Decimal("50")
+    assert Decimal("12") == config.GST_PERCENT
+    assert Decimal("0.25") == config.RED_EXCESS_FRACTION
+    assert Decimal("50") == config.RED_MIN_AMOUNT_AFFECTED
+    assert Decimal("50") == config.RED_MAX_RATIO
     assert config.PROVIDER == "local"
 
 
@@ -1283,7 +1282,6 @@ def test_r2_still_speaks_when_every_line_was_read_well():
                      confidence=ReadingConfidence.HIGH,
                      reasons=["both_readers_agree:name_similarity=100"]),
     ]
-    from app.models import ReadingStats
     stats = ReadingStats(
         total_items=2, auto_high=2,
         reconciliation=Reconciliation.MISMATCH,
