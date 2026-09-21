@@ -45,6 +45,11 @@ EXPECTED_HEADER = (
 
 
 def download(url: str, target: Path) -> bytes:
+    # Only ever called with SOURCE_URL, but the signature is generic: refuse
+    # anything that is not https so a later edit cannot turn this into a
+    # file:// read or a custom-scheme handler.
+    if not url.startswith("https://"):
+        raise SystemExit(f"FATAL: refusing a non-https source: {url}")
     print(f"  Fetching {url}")
     request = urllib.request.Request(url, headers={"User-Agent": "BillWise/0.1"})
     try:

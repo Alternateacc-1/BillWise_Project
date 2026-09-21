@@ -272,7 +272,7 @@ def build() -> tuple[list[BrandRow], dict]:
     # the kind of quiet guess that produces a confident wrong verdict.
     # ----------------------------------------------------------------------
     deduped: list[BrandRow] = []
-    for name_norm, variants in by_name.items():
+    for _name_norm, variants in by_name.items():
         salt_sets = {tuple(v.salt_components) for v in variants}
         ambiguous = len(salt_sets) > 1
 

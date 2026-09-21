@@ -100,7 +100,7 @@ def main() -> int:
     print(f"  brands whose SALT SET has a ceiling   : {kept:,}  "
           f"({kept / total * 100:.1f}%)")
     print(f"  estimated reduced size                : {mb:.2f} MB")
-    print(f"  reference data already in the bundle  : 3.26 MB")
+    print("  reference data already in the bundle  : 3.26 MB")
     print(f"  bundle total if shipped               : {mb + 3.26:.2f} MB")
 
     print("\n  WHAT THE FILTER DOES TO THE REAL BILL'S SIX BRANDS:")
