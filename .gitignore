@@ -70,27 +70,13 @@ backend/fixtures/
 # means the reduction actually changed -- which is worth seeing.
 !backend/reference_data/brand_index.csv
 
-# A frontend hand-off archive. 33 MB, and it carries screenshots and a photo
-# that may show a real bill -- which must never enter this repo. The code was
-# extracted to frontend/; the archive itself stays out.
-claude.zip
-
 # Build output zipped for an Amplify manual deploy. Regenerate, never commit.
 billwise-frontend.zip
 
-# The share archive, built with git archive. Regenerate, never commit.
-billwise-handoff.zip
-
-# Contributed frontend work, delivered as zips. Superseded: the source that
-# mattered is integrated into frontend/. Regenerable, never commit.
-frontend-v2.zip
-frontend-handoff-b.zip
-
-# A contributor's working copy of the whole project. The frontend from it is
-# integrated into frontend/.
-# NEVER COMMIT THIS FOLDER: data/blobs/ inside it holds REAL uploaded bills, and
-# it carries its own .env. Keep it out of the repo, not just out of `git add -A`.
-handoff/
+# Local archives of any kind -- build output, hand-offs, downloaded bundles.
+# None of them belong in the repo, and some have carried screenshots of real
+# bills. Ignore the whole class rather than naming them one by one.
+*.zip
 
 # The demo bills are GENERATED, not committed. scripts/make_demo_bills.py emits
 # them from the same declaration that produces eval/fixtures/ and
@@ -99,16 +85,18 @@ handoff/
 # the repo carries no bill files at all, which is the simpler thing to promise.
 eval/demo_bills/
 
-# Per-developer editor/tooling config. launch.json hardcodes this machine's
-# node and venv paths, which differ on every box and break outright on
-# Linux/macOS. The commands it wraps are in the README.
+# Per-developer editor and assistant config. These hardcode machine-specific
+# paths that differ on every box. The commands they wrap are in the README.
 .vscode/
+.idea/
+.cursor/
 
-# The private engineering log. Stays local: it is the maintainer's working
-# notes and it names the live API and Amplify endpoints, which do not belong
-# in a public repo while the API is unauthenticated. docs/decisions.md is the
-# public version of the rulings it records.
+# Maintainer working notes. They record live endpoints and internal history,
+# neither of which belongs in a public repo. docs/decisions.md is the public
+# version of the rulings they hold.
 NOTES.md
+docs/VIDEO_*.md
+docs/CHANGES_BY_*.md
 
 # The NPPA ceiling list as a PDF. Kept locally, not shipped: no code parses it
 # (its embedded font has no ToUnicode map, so extraction yields (cid:0)), the
@@ -117,24 +105,10 @@ NOTES.md
 # every reference row, which points at the government's published notification.
 data/raw/All_Drugs_Ceiling_Prices_provenance.pdf
 
-# One-off investigation probes. They answered a specific question once --
-# is the ledger bug still live, can the two spelling tiers disagree enough to
-# flip a verdict, what exactly blocks bill_06, what breaks on an unfamiliar
-# bill format. The ANSWERS are in docs/; the scripts are working notes and
-# belong with them, not in a repo someone clones to run the product.
-# Kept locally. run_eval.py and adversarial_audit.py are the ones that matter.
+# One-off investigation probes. Each answered a specific question once; the
+# answers are in docs/. run_eval.py and adversarial_audit.py are the two that
+# matter to anyone cloning this.
 eval/class_b_probe.py
 eval/cross_tier_audit.py
 eval/bill_06_gap.py
 eval/format_probes.py
-
-# Recording notes for the demo video. Ours, not a user's -- nobody clones a
-# repo to read a script. Kept locally.
-docs/VIDEO_SCRIPT.md
-docs/VIDEO_SCRIPT_3MIN.md
-docs/VIDEO_CUECARD.md
-
-# A contributor's handover log for finished frontend work. The decisions in it
-# that still matter are in decisions.md and the code comments; the rest is a
-# diary of a job already done.
-docs/CHANGES_BY_contributor.md
