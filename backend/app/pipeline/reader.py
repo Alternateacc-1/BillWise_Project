@@ -78,7 +78,7 @@ def read_upload(bill_id: str, original_filename: str, blob_key: str) -> BillInpu
     inventing a reading, and this project does not do that.
     """
     if config.PROVIDER == "aws":
-        return _read_upload_aws(bill_id, original_filename, blob_key)
+        return _read_upload_aws(bill_id, blob_key)
 
     match = _FIXTURE_NAME.search(original_filename or "")
     if match and match.group(1) in available_fixtures():
@@ -94,7 +94,7 @@ def read_upload(bill_id: str, original_filename: str, blob_key: str) -> BillInpu
     )
 
 
-def _read_upload_aws(bill_id: str, original_filename: str, blob_key: str) -> BillInput:
+def _read_upload_aws(bill_id: str, blob_key: str) -> BillInput:
     """Two independent readings of the same file.
 
     Textract is reader A. A Bedrock vision model is reader B, and is optional:

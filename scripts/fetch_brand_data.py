@@ -44,7 +44,7 @@ EXPECTED_HEADER = (
 )
 
 
-def download(url: str, target: Path) -> bytes:
+def download(url: str) -> bytes:
     # Only ever called with SOURCE_URL, but the signature is generic: refuse
     # anything that is not https so a later edit cannot turn this into a
     # file:// read or a custom-scheme handler.
@@ -94,7 +94,7 @@ def main() -> int:
         print("  Use --force to re-download.")
         return 0
 
-    payload = download(SOURCE_URL, TARGET)
+    payload = download(SOURCE_URL)
 
     header = payload.split(b"\n", 1)[0].decode("utf-8-sig").strip()
     if header != EXPECTED_HEADER:
