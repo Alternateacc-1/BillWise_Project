@@ -1,27 +1,17 @@
 """Stage the reference data into the Lambda bundle. Run before `sam build`.
 
-The SAM template's CodeUri is `backend/`, so anything outside that directory
-is simply not deployed. The reference prices live in `data/reference/`, so
-without this step the Lambda starts and then fails on its first bill with a
-FileNotFoundError -- at runtime, in production, which is the worst place to
-discover it.
+The SAM template's CodeUri is `backend/`, so anything outside it is not
+deployed. Without this step the Lambda fails on its first bill with a
+FileNotFoundError -- at runtime, in production.
 
-What gets staged and what does NOT:
-
-  reference_prices.csv   YES, but FILTERED to ceiling + special_feature.
-                         The retail rows are never read by the matcher, so
-                         they are left out of the bundle -- ~3.2 MB down to
-                         ~0.3 MB. See stage_ceilings_only().
-  salt_synonyms.json     YES, tiny, and load-bearing for matching.
-  brand_index.csv        REDUCED and staged, ~13.5 MB of 36 MB. See
-                         reduce_brand_index() below for the filter and why it
-                         is MEMBER-based rather than SET-based. The full 36 MB
-                         file is never deployed: too large for the bundle and
-                         slow to parse on a cold start.
-  eval/fixtures/*.json   YES, a few KB. These are the "Try a sample bill"
-                         demo bills. Missed on the first deploy, which made
-                         POST /bills/sample return a bare 500 -- the exact
-                         button a judge presses first.
+  reference_prices.csv   filtered to ceiling + special_feature. The retail
+                         rows are never read by the matcher, so they stay out
+                         of the bundle: ~3.2 MB down to ~0.3 MB.
+  salt_synonyms.json     tiny, and load-bearing for matching.
+  brand_index.csv        reduced to ~13.5 MB of 36 MB. See reduce_brand_index()
+                         for why the filter is member-based, not set-based.
+  eval/fixtures/*.json   the "Try a sample bill" demos. Missing these once made
+                         POST /bills/sample return a bare 500.
 
 Run:  python scripts/stage_lambda.py
 """

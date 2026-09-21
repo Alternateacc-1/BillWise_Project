@@ -2,22 +2,17 @@
 
     python eval/run_eval.py
 
-Reports, per the acceptance criteria:
+Reports caught/missed, FALSE REDS (must be zero -- this is the hard gate), the
+0-25% amber band separately so the size of the band the thresholds create stays
+visible, and the gray split between no_public_ceiling and could_not_verify,
+because those mean opposite things.
 
-    caught / missed        did we find what we planted?
-    FALSE REDS             must be ZERO. This is the hard gate.
-    0-25% amber band       reported separately, so the size of the band the
-                           GST and excess thresholds create stays visible
-                           rather than buried in the amber total.
-    gray split             no_public_ceiling vs could_not_verify, because
-                           they mean opposite things.
+Exits non-zero on any false red or missed finding, so CI and a human get the
+same answer.
 
-Exits non-zero on any false red or any missed finding, so CI and a human
-get the same answer.
-
-OFFLINE ONLY. PROVIDER is pinned to "local" before the pipeline is imported:
-the eval is the thing most likely to be run in a loop, so it must never be
-able to reach a paid API. See docs/architecture.md, cost controls.
+Offline only: PROVIDER is pinned to "local" before the pipeline is imported.
+This is the thing most likely to be run in a loop, so it must never reach a
+paid API.
 """
 
 from __future__ import annotations

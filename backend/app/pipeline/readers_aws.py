@@ -1,24 +1,16 @@
 """The two AWS readers. Only imported when PROVIDER=aws.
 
-Reader A  Textract AnalyzeExpense -- structured extraction, per-field
-          confidence. Field names verified against the AnalyzeExpense API
-          reference, not guessed.
+Reader A is Textract AnalyzeExpense: structured extraction with per-field
+confidence. Reader B is a vision model through Bedrock Converse, reached via a
+cross-region inference profile. Converse is model-agnostic, so swapping the
+model is a parameter change, not a code change.
 
-Reader B  A vision model through Bedrock Converse, returning strict JSON.
-          Converse is model-agnostic, so any Converse-capable vision model
-          works -- it is a parameter, not a code change. Reached via a
-          cross-region inference profile whose ID is copied from the console
-          into .env.
+Neither reader decides anything. They produce two independent readings and
+verify.py -- pure Python, no AWS -- decides which lines are trustworthy.
 
-Neither reader decides anything. They produce two independent readings, and
-`verify.py` -- pure Python, no AWS -- decides which lines are trustworthy.
-That separation is the whole point: the models read, the code judges.
-
-DEGRADING BY DESIGN: if reader B fails for any reason (model access not yet
-granted, a throttle, a malformed response) we return Textract alone rather
-than failing the request. verify.py already handles a single reader, and it
-demands >= 95 confidence from it. One reader and a higher bar beats an error
-page.
+If reader B fails for any reason we return Textract alone rather than failing
+the request. verify.py handles a single reader and demands >= 95 confidence
+from it: one reader and a higher bar beats an error page.
 """
 
 from __future__ import annotations

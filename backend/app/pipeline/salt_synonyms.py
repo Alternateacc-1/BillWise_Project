@@ -1,30 +1,17 @@
 """Salt-name canonicalisation for two-tier matching.
 
-The ceiling file itself contains BOTH `AMOXICILLIN` and
-`AMOXYCILLIN` as separate rows, and the brand dataset spells it
-`Amoxycillin`. Without this module those never meet.
+The ceiling file contains both AMOXICILLIN and AMOXYCILLIN as separate rows,
+and the brand dataset spells it Amoxycillin. Without this module they never
+meet.
 
-THE CONTRACT, which the rest of the project depends on:
+The contract: reference rows keep their original spelling (this only expands
+a query), tier 2 runs only if exact-spelling tier 1 found nothing, and the
+highest applicable ceiling is resolved within the winning tier only -- so a
+synonym can never outrank an exact match.
 
-  1. Reference rows keep their ORIGINAL spelling. Nothing here rewrites or
-     merges a row in data/reference/. This module only ever expands a query.
-
-  2. Matching is TWO-TIER. Tier 1 matches on exact spelling. Tier 2 -- the
-     synonym-expanded form -- runs only if tier 1 found nothing.
-
-  3. "Highest applicable ceiling" is resolved WITHIN THE WINNING TIER ONLY.
-     An exact-spelling match is never mixed with a synonym-expanded one, so
-     a synonym can never raise the ceiling that an exact match already found.
-
-Two kinds of transformation, and the difference matters:
-
-  ORTHOGRAPHIC RULES are spelling conventions applied to BOTH sides of a
-  comparison. `sulph` -> `sulf` is safe because it is a canonicalisation, not
-  a claim that two different drugs are the same: phenytoin still equals
-  phenytoin afterwards.
-
-  SYNONYMS are genuine claims of identity -- aspirin IS acetylsalicylic acid.
-  Each one is hand-curated in salt_synonyms.json and unit-tested.
+Orthographic rules (sulph -> sulf) are canonicalisation applied to both sides.
+Synonyms are claims of identity -- aspirin IS acetylsalicylic acid -- and each
+is hand-curated in salt_synonyms.json and unit-tested.
 """
 
 from __future__ import annotations

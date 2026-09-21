@@ -1,24 +1,17 @@
 """What is this bill line? Pure Python in local mode; Bedrock is optional.
 
-Two jobs:
+Categorise, then resolve.
 
-  CATEGORISE -- is this a drug, a consumable, or a service? This decides
-  which gray reason applies, and the two mean opposite things to the user:
+Categorising decides which gray reason applies, and the two mean opposite
+things. `no_public_ceiling` covers room rent, nursing, consultations, lab
+charges and consumables -- no ceiling exists for these and none ever did, so
+saying so is a feature, not a gap. `could_not_verify` means it looks like a
+medicine but the reading was not HIGH, the name did not resolve, or the match
+was ambiguous: a ceiling may exist, we just cannot say which.
 
-    no_public_ceiling   room rent, nursing, consultation, OT and lab charges,
-                        gloves, syringes, cannulae. No published ceiling
-                        exists for these and none ever did. We checked them
-                        for arithmetic and duplication and say so plainly.
-                        THIS IS A FEATURE, not a gap.
-
-    could_not_verify    it looks like a medicine, but the reading was not
-                        HIGH, or the name did not resolve, or the match was
-                        ambiguous. A ceiling may well exist; we cannot
-                        responsibly say which one applies.
-
-  RESOLVE -- map a brand name to salts, strength, form and pack size, using
-  brand_index.csv. Exact normalised match first, then fuzzy >= 92 with the
-  strength corroborated from the raw text. Nothing else is eligible for red.
+Resolving maps a brand name to salts, strength, form and pack size via
+brand_index.csv -- exact normalised match first, then fuzzy >= 92 with the
+strength corroborated from the raw text. Nothing else is eligible for red.
 """
 
 from __future__ import annotations

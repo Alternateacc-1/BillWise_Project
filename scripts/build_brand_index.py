@@ -1,31 +1,16 @@
 """Reduce the 254k-row brand dataset to data/reference/brand_index.csv.
 
-Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) +
-CLAVULANIC ACID (B)". This index is the bridge.
+Bills say "Augmentin 625". The price lists say "AMOXICILLIN (A) + CLAVULANIC
+ACID (B)". This index is the bridge, and keeps only the columns needed to
+cross it.
 
-Only the columns needed to cross that bridge are kept:
+The price column is dropped and never written: those prices are scraped and
+undated, and Augmentin 625 Duo's already exceeds the March 2026 ceiling. A
+test asserts no field from this file can reach a verdict.
 
-    brand_name_norm, salt_components, strength_mg, strength_kind,
-    dosage_form, form_modifier, pack_count, pack_unit, manufacturer,
-    is_discontinued, ambiguous, variant_count
-
-THE PRICE COLUMN IS DROPPED AND NEVER WRITTEN. Those prices are scraped,
-undated and stale -- Augmentin 625 Duo's listed price already exceeds the
-March 2026 NPPA ceiling. A test asserts no field originating in the brand
-file can reach a verdict.
-
-Three deliberate behaviours:
-
-  Discontinued brands are KEPT, flagged. An old bill can legitimately list a
-  product that has since been withdrawn; refusing to resolve its name would
-  turn a readable line gray for no reason.
-
-  Unparseable pack labels leave pack_count NULL rather than guessing. A null
-  pack count forces gray downstream, which is the correct outcome.
-
-  Names that resolve to DIFFERENT salt sets are flagged `ambiguous` rather
-  than having one arbitrarily chosen. An ambiguous name must never produce a
-  red flag.
+Discontinued brands are kept but flagged, unparseable pack labels leave
+pack_count null rather than guessing, and names resolving to different salt
+sets are flagged ambiguous rather than picking one.
 
 Run:  python scripts/build_brand_index.py
 """

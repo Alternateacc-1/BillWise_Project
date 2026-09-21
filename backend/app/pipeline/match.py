@@ -1,24 +1,20 @@
 """Ceiling matching. Pure Python, no AWS variant, fully unit-tested.
 
-Loads data/reference/reference_prices.csv and answers one question: for this
-bill line, what is the applicable published ceiling -- if any?
+Answers one question: for this bill line, what is the applicable published
+ceiling, if any? Three rules govern it, each found against the real NPPA data
+and each pinned by a regression test.
 
-Three rules govern everything here, all of them established against the real
-NPPA data while building the reference, each protected by a regression test:
+Strength and pack size must match EXACTLY. The special-feature file prices
+MEROPENEM 500 MG above 1000 MG, and Ringer Lactate's 100 ml pack is dearer
+per ml than its 500 ml. Fuzzy matching either dimension corrupts verdicts.
 
-  1. EXACT strength, and exact pack size. The special-feature file prices
-     MEROPENEM 500 MG above MEROPENEM 1000 MG, and Ringer Lactate's 100 ml
-     pack is dearer per ml than its 500 ml pack. Fuzzy matching on either
-     dimension silently corrupts verdicts.
+Two tiers, gated on the whole product match: exact spelling first, synonyms
+only if that finds nothing, and "highest applicable" resolved within the
+winning tier.
 
-  2. TWO TIERS, gated on the whole product match. Exact spelling first;
-     synonym-expanded only if tier 1 finds nothing. "Highest applicable" is
-     resolved strictly within the winning tier.
-
-  3. UNKNOWN RESOLVES IN THE HOSPITAL'S FAVOUR. A bill rarely states whether
-     a tablet is plain, dispersible or modified release. When the modifier is
-     unknown we widen to every modifier variant and take the HIGHEST ceiling,
-     exactly as the dual-interpretation rule does for pack size.
+Unknown resolves in the hospital's favour. A bill rarely says whether a tablet
+is plain, dispersible or modified release, so an unknown modifier widens to
+every variant and takes the highest ceiling.
 """
 
 from __future__ import annotations

@@ -1,33 +1,18 @@
 """Build data/reference/reference_prices.csv from the NPPA source files.
 
-This script is the ONLY place government price data enters the
-project. Everything downstream reads reference_prices.csv and nothing else.
+The only place government price data enters the project. Everything downstream
+reads reference_prices.csv and nothing else.
 
-Three sources, one schema:
+  ceiling          915 DPCO scheduled formulations, price per unit ex-tax.
+                   The only rows allowed to produce a red flag.
+  special_feature  22 higher ceilings for special-feature packs. Additional
+                   to the ceiling rows, never replacements.
+  retail_new_drug  3881 per-company approved prices. Not ceilings binding
+                   anyone else, so context only.
 
-  ceiling         All_Drugs_Ceiling_Prices.csv (915 rows)
-                  DPCO scheduled formulations. Ceiling price per unit,
-                  EXCLUDING taxes. These are the only rows allowed to
-                  produce a red flag.
-
-  special_feature Special_Feature_..._for_Specific_Companies.pdf (22 rows)
-                  Higher ceilings for special-feature packs. ADDITIONAL to
-                  the ceiling rows, never replacements -- Ringer Lactate
-                  500 ml exists in both (57.85 ordinary, 66.52 special).
-
-  retail_new_drug Retail_Price_Information.csv (3881 rows)
-                  Non-scheduled new drugs. These are per-company approved
-                  retail prices, NOT ceilings that bind other companies.
-                  Amber/context only, never red.
-
-Two hard rules enforced here:
-
-  1. ZERO DROPPED from the ceiling file. All 915 rows must parse. If any
-     row fails, the script exits non-zero. The regex is wrong, not the data.
-
-  2. NOTHING IS EVER INVENTED. A row we cannot parse is marked
-     status=quarantined with a machine-readable reason and is invisible to
-     the matcher. We never fill in a missing price, unit, SO number or date.
+Two rules: all 915 ceiling rows must parse or the script exits non-zero, and
+nothing is ever invented -- an unparseable row is quarantined with a reason,
+never filled in.
 
 Run:  python scripts/prepare_reference.py
 """
