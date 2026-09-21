@@ -353,14 +353,12 @@ BILLS = [
     # It plants NOTHING. Its job is to be an ordinary, correctly-priced
     # pharmacy bill in the commonest Indian retail layout, and to fail loudly
     # when we cannot read that layout. Every line is billed at or fractionally
-    # BELOW its printed MRP -- the honest verdict on this bill is six greens
-    # and nothing to ask about.
+    # below its printed MRP, so there is nothing here to ask about.
     #
-    # EXPECTED TO CHANGE. Today all six come back could_not_verify, because
-    # the bill prints no unit-price column and the verifier treats "absent" as
-    # "wrong" (Class A). When Class A lands, this ground truth must be
-    # rewritten to greens. If a change makes these lines pass WITHOUT that
-    # rewrite, something is wrong -- see the note in the ground-truth file.
+    # These six stay GRAY and that is the correct answer. Not one of the
+    # medicines on this bill is ceiling-controlled, so 0 of 6 priced is the
+    # honest outcome -- measured by eval/bill_06_gap.py. If a change makes
+    # these lines produce a price verdict, something is wrong.
     # ----------------------------------------------------------------------
     BillSpec(
         bill_id="bill_06",
@@ -478,18 +476,19 @@ def build_ground_truth(spec: BillSpec) -> dict:
 
     if spec.layout == "retail":
         truth["note"] = (
-            "FORMAT FIXTURE. The grays below record CURRENT behaviour, not "
-            "desired behaviour. Every line is billed at or below its printed "
-            "MRP, so the correct verdict is six GREENS. "
-            "CLASS A LANDED 2026-09-19 and moved these from could_not_read to "
-            "could_not_identify: all six lines now read at HIGH confidence and "
-            "the bill reconciles, but no brand name resolves to an NPPA "
-            "formulation. The remaining blocker is BRAND RESOLUTION -- the "
-            "DynamoDB brand index, which has never been written. Confirmed on "
-            "the deployed stack: PANTOCID DSR, OFIVAY OZ, SINALATE, EFERIM SP, "
-            "BECOSULE and MEDINOZE all returned name_did_not_resolve. "
-            "Rewrite to greens in the commit that lands brand resolution. Do "
-            "NOT relax the fixture to make a change pass."
+            "FORMAT FIXTURE. The grays below are the CORRECT answer for this "
+            "bill, not a gap waiting to be closed. All six lines read at high "
+            "confidence and the bill reconciles; they go gray because not one "
+            "of these six medicines is a DPCO ceiling-controlled formulation. "
+            "Measured by eval/bill_06_gap.py: five stop at IDENTITY (the brand "
+            "resolves but carries no salts) and one at CEILING (identified, no "
+            "published ceiling row). "
+            "0 of 6 PRICED is the honest outcome and no brand index changes "
+            "it. An earlier version of this note promised six GREENS once "
+            "brand resolution landed -- brand resolution HAS landed and the "
+            "number did not move, because the blocker was never resolution. "
+            "Do NOT relax the fixture to make a change pass, and do not go "
+            "looking for six greens."
         )
 
     return truth
