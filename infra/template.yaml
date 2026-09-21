@@ -7,20 +7,17 @@ Description: >
   while idle.
 
 # ---------------------------------------------------------------------------
-# COST NOTES, because $100 of credits is the whole budget.
+# COST NOTES. Idle cost is what kills a small budget, so it is designed out:
 #
-#   No VPC          -> no NAT Gateway. A NAT is ~$32-45/month and is the single
-#                      most common way a hackathon burns its credits.
-#   DynamoDB        -> PAY_PER_REQUEST. Never provisioned.
-#   S3              -> lifecycle deletes uploads after 1 day.
-#   Logs            -> 7-day retention. Log storage is a slow leak otherwise.
-#   Concurrency     -> see the ReservedConcurrency parameter. On an account
-#                      whose total Lambda concurrency is still the new-account
-#                      default, AWS REFUSES any reservation, and the account
-#                      limit is itself a harder cap than the one we wanted.
-#                      Either way a retry storm costs a handful of calls, not
-#                      a thousand -- a platform limit, not our retry logic
-#                      being correct.
+#   No VPC      -> no NAT Gateway. A NAT is ~$32-45/month and is the most
+#                  common way a small AWS budget disappears.
+#   DynamoDB    -> PAY_PER_REQUEST. Never provisioned.
+#   S3          -> uploads deleted after 1 day by lifecycle rule.
+#   Logs        -> 7-day retention. Log storage is a slow leak otherwise.
+#   Concurrency -> see the ReservedConcurrency parameter below.
+#
+# The variable cost is per upload: Textract bills per page and Bedrock per
+# token. An idle stack costs almost nothing; a busy one is not free.
 # ---------------------------------------------------------------------------
 
 Parameters:
@@ -115,7 +112,11 @@ Resources:
   # -------------------------------------------------------------------------
   UploadBucket:
     Type: AWS::S3::Bucket
+    # Explicit on both, so `sam delete` cannot leave an orphaned bucket of
+    # other people's bills behind. Nothing here is worth keeping: uploads
+    # expire after a day anyway.
     DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -141,6 +142,10 @@ Resources:
   # -------------------------------------------------------------------------
   BillsTable:
     Type: AWS::DynamoDB::Table
+    # Records expire by TTL after a day, so there is nothing to preserve and
+    # an orphaned table would just cost money. Stated rather than defaulted.
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
@@ -191,37 +196,23 @@ Resources:
           - HasBedrockProfile
           - Statement:
               # -------------------------------------------------------------
-              # SCOPED TO THE INFERENCE PROFILE, and it needs TWO resource
-              # types, not one. This is the least obvious IAM shape in the
-              # stack, so the reason is written down rather than rediscovered.
+              # Scoped to the inference profile -- and it needs TWO resource
+              # types, not one. Granting only the profile ARN is the intuitive
+              # least-privilege move and fails at the first call, because the
+              # profile is a routing target while the model is what is
+              # actually invoked. AWS docs, "Prerequisites for inference
+              # profiles": "you must also specify the foundation model in
+              # each Region associated with it."
               #
-              # AWS docs, "Prerequisites for inference profiles":
-              #   "When you specify an inference profile in the Resource field
-              #    in the first statement, you must also specify the
-              #    foundation model in each Region associated with it."
+              # The three Regions are safe to hardcode because AWS guarantees
+              # a geo-tied profile's destination list never changes. THIS IS
+              # THE DATA-RESIDENCY CONTROL: no policy here permits invoking
+              # the model anywhere else, so a bill cannot be routed outside
+              # them. The global profile spans 33 Regions and its list can
+              # change, so it would have to stay wildcarded.
               #
-              # So granting ONLY the profile ARN -- the intuitive "least
-              # privilege" move -- produces AccessDeniedException at the first
-              # call. The profile is a routing target; the model is what is
-              # actually invoked.
-              #
-              # The profile is pinned to the exact ID supplied at deploy time.
-              #
-              # The foundation models are pinned to the THREE Regions the
-              # US geo profile routes to from us-east-1: us-east-1,
-              # us-east-2, us-west-2.
-              # That list is safe to hardcode because AWS guarantees it:
-              #   "if an inference profile is tied to a geography (such as US,
-              #    EU, or APAC), its destination Region list will never change."
-              # The GLOBAL profile would have to stay wildcarded instead --
-              # its destinations are 33 Regions and they DO change.
-              #
-              # This is also the data-residency control. A patient's bill
-              # cannot be routed outside these three Regions, because no
-              # policy here permits invoking the model anywhere else.
-              #
-              # InvokeModel* (not InvokeModel) because the reader uses the
-              # Converse API, which authorises against bedrock:InvokeModel.
+              # InvokeModel* rather than InvokeModel, because the reader uses
+              # the Converse API.
               # -------------------------------------------------------------
               - Sid: InvokeClaudeThroughTheUsGeoProfileOnly
                 Effect: Allow
@@ -249,6 +240,8 @@ Resources:
 
   ApiFunctionLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
       RetentionInDays: 7
