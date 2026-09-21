@@ -20,7 +20,7 @@ It is **live and working**:
 - Readers: AWS Textract **and** Amazon Nova via Bedrock — two independent
   readings of every bill, cross-checked against each other
 - Engine: pure Python, no ML in the verdict path
-- 298 tests, plus an eval suite over six bill fixtures
+- 300 tests, plus an eval suite over six bill fixtures
 
 **It is not a fraud detector.** It helps a patient ask an informed question.
 That framing runs through every word of the interface.
@@ -100,7 +100,7 @@ PYTHONIOENCODING=utf-8 ./venv/Scripts/python.exe -m pytest tests/ -q
 PYTHONIOENCODING=utf-8 ./venv/Scripts/python.exe eval/run_eval.py
 ```
 
-Current state: **298 tests pass**, and the eval reports:
+Current state: **300 tests pass**, and the eval reports:
 
 ```
 caught 46/46 · missed 0 · FALSE REDS 0
