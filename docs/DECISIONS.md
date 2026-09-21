@@ -111,12 +111,10 @@ deduction, not that the bill is wrong.** Applied at three scales:
 - section subtotals read as line items
 - per-line discount columns
 
-All three were closed by that one question. The original plan was a full
-`subtotal → adjustments → grand total` ledger with a structural subtotal
-detector; asking about the direction instead turned out to cover every case and
-cannot create a false red, because it only ever NARROWS a rule. Measured on all
-three scales after the change: no R1 or R2 fires on a bill carrying a discount,
-a round-off or a section subtotal.
+All three were closed by that one question about direction, which only ever
+makes a rule quieter and so cannot create a false red. Measured afterwards at
+all three scales: no R1 or R2 fires on a bill carrying a discount, a round-off
+or a section subtotal.
 
 ---
 

@@ -174,11 +174,10 @@ Budgets API reference and add them here once verified.
 
 **Time: 10 minutes, then possibly a wait.**
 
-> **Rewritten 2026-09-19 against the console as it actually is.** The old
-> version described a "Model access" page that the current console does not
-> have in that place, and it completely missed the step that actually blocks
-> everything. If what you see disagrees with what is written here, trust your
-> screen and tell me.
+> **AWS moves its console around.** These steps were written against it as it
+> stood, and the page that used to grant model access has already moved once.
+> If what you see disagrees with what is written here, trust your screen and
+> search the console for the service name.
 
 ---
 
@@ -241,13 +240,11 @@ text-only model cannot do this job at all.
 **Converse** API, which is model-agnostic, so this is a configuration choice
 and not a code change.
 
-> **Suggested: `Amazon Nova 2 Lite`.** It is first-party AWS, so it needs no
-> Marketplace subscription and no use-case form — which means one less thing
-> that can expire underneath you. This project learned that the expensive way:
-> the model it originally used stopped working when its **AWS Marketplace
-> offer expired**, and the failure surfaced as an `AccessDeniedException`
-> about `aws-marketplace:Subscribe` on the Lambda role, which reads exactly
-> like an IAM bug and is not one. `docs/LIMITS.md` has the full account.
+> **Suggested: `Amazon Nova 2 Lite`.** First-party AWS, so no Marketplace
+> subscription and no use-case form -- one less thing that can expire under
+> you. A model this project used earlier stopped working when its Marketplace
+> offer expired, and the error named IAM rather than the subscription, which
+> cost a day. `docs/LIMITS.md` has that story.
 
 **Verify and write down:**
 
@@ -365,30 +362,31 @@ bill_06.pdf (retail) : ____ of 6 lines correct
   ceiling-controlled formulation, so "no published ceiling" stays the correct
   answer. What it buys is a second, independent check of the arithmetic.
 
-Whatever the numbers are, they are the numbers. They replace the fixture
-figures in the video. See docs/LIMITS.md for what may and may not be claimed.
+Whatever the numbers are, they are the numbers. They describe reading quality,
+not the engine -- `docs/LIMITS.md` sets out which claims each one supports.
 
 ---
 
-## 1.5 Report back
+## 1.5 Before moving on
 
-- the model you enabled, and that image input is supported
-- the `us.` inference profile ID
-- the Region you did it in
+You should now have:
+
+- a model enabled, with image input confirmed
+- its `us.` inference profile ID, pasted into `.env`
+- both in the same Region
 - the playground results from 1.4
 
-**If 1.1 does not clear, say so immediately** — it blocks Sections 2 and 3
+**If 1.1 has not cleared, stop here** — it blocks Sections 2 and 3
 entirely, and it is not something waiting will fix.
 
 ---
 
-# Section 2 — Run Textract on the two degraded scans  (START IN PARALLEL)
+# Section 2 — Run Textract on the two degraded scans
 
-**Why this is its own step, before any deployment:** every reading-quality
-number we have comes from hand-written fixtures, not OCR. We do not know how
-real Textract behaves on a real scan, and that is the single biggest unknown
-left in the project. It is also the thing the demo video depends on. Find out
-now, not after the stack is up.
+**Why this comes before any deployment:** the engine's own test numbers come
+from hand-written fixtures, not from OCR. How Textract actually behaves on a
+degraded scan is a separate question, and it is cheaper to answer in the
+console than after a stack is up.
 
 **Cost: about $0.05.** Five AnalyzeExpense pages at roughly $0.01 each. The
 first 100 pages/month are free for the first 3 months if the account is new.
@@ -510,10 +508,9 @@ Ground truth to check against — both bills, in full:
   rather than a nicety, and possibly that the Bedrock vision reader should be
   primary with Textract as the second opinion rather than the other way round.
 
-**Whatever the numbers are, they are the numbers.** These replace the fixture
-figures in the video. Do not round them up, and if only one scan was tested
-say so — a missing claim is fine, an unmeasured one is not. See
-docs/LIMITS.md for what may and may not be claimed.
+**Whatever the numbers are, they are the numbers.** Do not round them up, and
+if you only tested one scan, say so -- a missing claim is fine, an unmeasured
+one is not. `docs/LIMITS.md` sets out which claims these support.
 
 ---
 
@@ -854,13 +851,13 @@ sam logs --stack-name billsahi --tail
 
 ---
 
-## 3.6 Report back before going further
+## 3.6 Before going further
 
-Paste me:
-- the `ApiUrl`
-- the `/health` response
+You should now have:
+- the `ApiUrl` from the stack outputs
+- a `/health` response saying `"provider":"aws"`
 - `items_read` for both scans
-- any error from `sam logs`
+- no errors in `sam logs`
 
 **Do not deploy the frontend until the API smoke test passes.** A broken API
 behind a working UI is harder to debug than no UI at all.

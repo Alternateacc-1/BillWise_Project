@@ -277,47 +277,33 @@ size, manufacturer, and three flags.
 - **226 names map to more than one salt set** and are flagged `ambiguous`
   rather than arbitrarily resolved. An ambiguous name must never produce red.
 
-### Shipping it: a reduced index in the bundle, not DynamoDB
+### Shipping it: a reduced index in the bundle
 
-The full index is **36 MB** — too large for a Lambda package and slow to parse
-on a cold start. The original plan was to load it into DynamoDB at deploy time
-and look names up by key.
+The full index is **36 MB** -- too large for a Lambda package and slow to parse
+on a cold start. So only part of it ships: the brands whose salts appear
+somewhere in the 915 ceiling rows, which is **13.5 MB and 96,489 of 249,148
+names**, committed at `backend/reference_data/`.
 
-**Measuring first changed the answer.** Most hospital pharmacy lines are
-*generic* — "Paracetamol 500mg Tablet", "Ringer Lactate Injection 500 ml",
-"Bare Metal Stent" — and resolve straight against the NPPA reference without
-touching the brand index at all. So the index is filtered to the brands that
-can actually produce a verdict, and the result fits in the bundle: **13.5 MB,
-96,489 of 249,148 names**, committed at `backend/reference_data/`. No
-DynamoDB table, no seeding step, and local runs read the same file production
-does — so what the tests exercise is what runs.
+Local runs read that same file, so what the tests exercise is what runs.
 
-**The filter is MEMBER-based, and the obvious SET-based version was wrong.**
-A set filter keeps a brand only if its whole salt *combination* has a ceiling
-row, which answers "can we PRICE this?" — a two-state question. The engine has
-three states:
+**The filter keeps a brand if ANY of its salts is in the ceiling list, not only
+if the whole combination is.** That matters because the engine has three
+answers, not two:
 
     priced   /   no_public_ceiling   /   could_not_identify
 
-and `no_public_ceiling` needs the brand **precisely when it cannot be priced**.
-The set rule deleted the data required to say "we identified this, and India
-does not price-control it", turning an honest answer back into "we could not
-identify it". It dropped a real medicine off a real bill.
+Saying "no public ceiling" needs the brand too. A stricter filter would keep
+only brands we can price, and turn "we identified this, and India does not
+price-control it" back into "we could not identify it" -- a worse answer, on a
+real medicine from a real bill.
 
-| | SET rule | MEMBER rule (shipped) |
-|---|---|---|
-| brands kept | 73,717 (29.6%) | **96,489 (38.7%)** |
-| staged size | 9.4 MB | **13.5 MB** |
-| cold start | +0.58s | **+0.63s** on ~1.1s |
+Brands whose salts appear nowhere in the 915 are dropped: they can produce
+neither answer, so carrying them costs cold-start time for nothing. They report
+`could_not_identify`, which is honest -- with the shipped data we know nothing
+about those molecules.
 
-Still a reduction, deliberately: a brand whose salts appear nowhere in the 915
-can produce neither verdict, so shipping it costs cold-start time for nothing.
-Those names report `could_not_identify`, which is accurate — with the shipped
-data we hold nothing about those molecules.
-
-The 375-salt membership set is a property of the 915 ceiling rows, so
-**re-measure with `scripts/measure_reduced_index.py` if the reference data
-changes.**
+`scripts/measure_reduced_index.py` re-measures this if the reference data
+changes.
 
 ---
 
@@ -471,27 +457,22 @@ This matters more than any other control, because **Textract is ~70–80% of
 the projected bill**. Building the engine, the rules and the eval entirely
 offline is what turns $8 into $1.50.
 
-### Reserved concurrency — available, but OFF by default
+### Reserved concurrency -- available, but off by default
 
-`infra/template.yaml` exposes a `ReservedConcurrency` parameter. Set it, and a
-retry storm or a runaway client costs that many concurrent invocations' worth
-of API calls rather than a thousand — a hard ceiling enforced by the platform
-rather than by our own retry logic being correct.
+`infra/template.yaml` takes a `ReservedConcurrency` parameter. Set it and a
+retry storm costs that many concurrent invocations rather than a thousand -- a
+ceiling the platform enforces, rather than one that depends on our retry logic
+being right.
 
-**It defaults to 0, which means NO reservation is set at all, and that is
-deliberate.** AWS refuses any reservation that would drop the account's
-unreserved concurrency below 10, and a new account's total limit is often
-exactly 10 — so reserving even 1 is rejected and CloudFormation rolls the whole
-stack back. The template therefore omits the property entirely at 0 rather than
-passing it, because passing 0 would mean "reserve zero concurrency", i.e. the
-function can never run.
+**It defaults to 0, which sets no reservation at all.** AWS refuses a
+reservation that would leave the account under 10 unreserved concurrent
+executions, and a new account's whole limit is often exactly 10 -- so reserving
+even 1 fails and rolls the stack back. At 0 the template omits the property
+rather than passing it, because passing 0 would mean "this function may never
+run".
 
-The control is not lost on such an account: the account limit is a harder cap
-than the one we wanted. Raise the quota in Service Quotas first, then set this
-parameter.
-
-Retry logic is capped at one attempt as well — but that is a code fix for a
-code risk. A concurrency limit is what holds when the code is wrong.
+Nothing is lost on such an account: its own limit is the harder cap. Raise the
+quota in Service Quotas first, then set this.
 
 ### Reject before you pay
 
