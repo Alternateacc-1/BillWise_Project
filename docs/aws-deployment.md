@@ -546,9 +546,9 @@ aws --version && sam --version
 
 ## 3.2 Sign in
 
-**Two ways, depending on how you sign in to the console.** Your console shows
-an IAM user (`..._IAM` next to the account name), so it is almost certainly
-path B.
+**Two ways, depending on how you sign in to the console.** If the account name
+at the top right shows an IAM user, you want path B. If you sign in through a
+start URL, you want path A.
 
 > **Whichever you use: the credentials stay on your machine, in
 > `~/.aws/credentials`. Never paste an access key, secret key or session token
@@ -662,10 +662,9 @@ docker info
 
 Prints a block of server info → **path A**. Errors or hangs → **path B**.
 
-> **Checked 2026-09-19 on this machine: Docker is installed and running
-> (server 29.5.2), so PATH A applies.** Path B is kept below because it is
-> verified and costs nothing to leave in — if Docker Desktop is not running
-> when you get here, start it rather than switching paths.
+> **Path A is the normal one.** Path B is kept below for the case where Docker
+> is genuinely unavailable — but if Docker Desktop is simply not running when
+> you get here, start it rather than switching paths.
 
 ---
 
@@ -1272,10 +1271,9 @@ aws amplify get-job --app-id <YOUR-APP-ID> --branch-name prod --job-id PASTE_THE
 ```
 
 **If a flag name differs on your CLI version**, ask it rather than guessing:
-`aws amplify create-deployment help`. This file does not guess at AWS API
-shapes, and these four were written from the documented Amplify manual-deploy
-flow rather than from a run on this machine — the console path in 11.2 is the
-one that has actually been exercised here.
+`aws amplify create-deployment help`. These four commands come from the
+documented Amplify manual-deploy flow; the console path in 11.2 is the more
+travelled one, so prefer it if you hit friction here.
 
 **Verify with the bundle name, not the job status.** A green job only means
 the upload published; it does not prove the zip held the build you meant:
