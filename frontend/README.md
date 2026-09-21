@@ -1,4 +1,4 @@
-# BillWise — frontend-v2
+# BillWise — frontend
 
 Check a hospital bill against India's published (NPPA) price ceilings.
 
