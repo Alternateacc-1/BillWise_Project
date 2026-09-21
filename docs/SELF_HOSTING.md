@@ -161,9 +161,17 @@ before the build**, because it writes into `backend/` and the build copies
 PYTHONIOENCODING=utf-8 ./venv/Scripts/python.exe scripts/stage_lambda.py
 ```
 
+On Linux or macOS that interpreter is `./venv/bin/python`.
+
 Use the venv interpreter, not a bare `python` — the system Python has no
 pydantic and this dies halfway through, after copying the data, which looks
 like partial success.
+
+**You do not need to download anything for brand matching.** The reduced
+brand index (12.9 MB of a 36 MB source) is committed, so staging finds it
+already in place and says so. `fetch_brand_data.py` and `build_brand_index.py`
+exist for rebuilding it if the NPPA reference data changes — not for a first
+deploy.
 
 ```bash
 sam build --use-container --template infra/template.yaml --build-dir <ABSOLUTE_PATH_OUTSIDE_THE_REPO>
@@ -175,7 +183,8 @@ build directory.
 
 **`--build-dir` is not optional.** Omit it and `sam build` and `sam deploy`
 can read different directories, so you ship an older build while
-CloudFormation reports complete success.
+CloudFormation reports complete success. `stage_lambda.py` prints the full
+command with this flag when it finishes, so you can copy it from there.
 
 ```bash
 sam deploy --guided

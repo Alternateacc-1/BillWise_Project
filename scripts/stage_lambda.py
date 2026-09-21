@@ -147,11 +147,22 @@ def main() -> int:
           f"{fixture_bytes / 1_000:>6.1f} KB -> "
           f"{FIXTURE_TARGET.relative_to(REPO_ROOT)}")
 
+    # Three cases, and the middle one is the normal one for anyone who just
+    # cloned: the reduced index is COMMITTED at BRAND_INDEX_TARGET, so brands
+    # resolve without downloading the 36 MB source at all.
     if BRAND_INDEX_SOURCE.exists():
         kept = reduce_brand_index()
         size = BRAND_INDEX_TARGET.stat().st_size
         print(f"  staged brand_index.csv (reduced) {size / 1_000_000:>6.2f} MB "
               f"-- {kept:,} brands")
+    elif BRAND_INDEX_TARGET.exists():
+        size = BRAND_INDEX_TARGET.stat().st_size
+        print(f"  brand_index.csv already here     {size / 1_000_000:>6.2f} MB "
+              f"-- the committed reduced index. Brands WILL resolve;")
+        print("    nothing to download. Rebuild it only if the reference data "
+              "changes:")
+        print("    python scripts/fetch_brand_data.py && "
+              "python scripts/build_brand_index.py")
     else:
         print("  brand_index.csv NOT FOUND -- brands will not resolve.")
         print("  Run: python scripts/fetch_brand_data.py && "
@@ -160,8 +171,15 @@ def main() -> int:
     # wheels for the machine it runs on, so it would bundle Windows wheels
     # into an arm64 Linux function -- which deploys successfully and then dies
     # at import time on the first request. See AWS_STEPS.md 3.4.
-    print("\n  Now run:  sam build --use-container --template infra/template.yaml")
-    print("  then:     sam deploy --guided --stack-name billsahi")
+    print("\n  Now run, from the repo root:")
+    print("    sam build --use-container --template infra/template.yaml \\")
+    print("              --build-dir <ABSOLUTE PATH OUTSIDE THIS REPO>")
+    print("    sam deploy --guided")
+    print()
+    print("  --build-dir is NOT optional: without it, build and deploy can")
+    print("  read different directories and you ship an older build while")
+    print("  CloudFormation reports success. Keep it out of any synced")
+    print("  folder -- sync clients hold handles open while SAM wipes it.")
     return 0
 
 
