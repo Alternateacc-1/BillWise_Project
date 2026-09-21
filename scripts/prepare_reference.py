@@ -64,6 +64,11 @@ if str(REPO_ROOT / "backend") not in sys.path:
 
 CEILING_CSV = RAW_DIR / "All_Drugs_Ceiling_Prices.csv"
 RETAIL_CSV = RAW_DIR / "Retail_Price_Information.csv"
+
+#: Sources the engine can produce a verdict from. Mirrors
+#: match.CEILING_SOURCES -- if they ever disagree, the engine silently
+#: loses rows it expects to find.
+ENGINE_SOURCES = ("ceiling", "special_feature")
 SPECIAL_PDF = (
     RAW_DIR
     / "Special_Feature_Schedule_Drugs_Ceiling_Prices_fixed_for_Specific_Companies.pdf"
@@ -1020,10 +1025,22 @@ def write_outputs(rows: list[ReferenceRow]) -> None:
     # file, byte for byte.
     ordered = sorted(rows, key=lambda r: r.ref_id)
 
+    # reference_prices.csv is the ENGINE's reference, so it carries only what
+    # the engine can act on. match.py accepts ceiling and special_feature and
+    # ignores retail_new_drug -- retail prices are per-company approvals that
+    # bind one manufacturer, so they can never justify a finding against
+    # anyone else. Writing them out would add ~3,900 rows and 2.8 MB that
+    # nothing reads, in the repo and in the Lambda bundle.
+    #
+    # build() still RETURNS every row, including retail, so the tests keep
+    # exercising the retail parser against the real source file. This only
+    # decides what lands on disk.
+    engine_rows = [r for r in ordered if r.source in ENGINE_SOURCES]
+
     with OUT_CSV.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=CSV_COLUMNS)
         writer.writeheader()
-        for row in ordered:
+        for row in engine_rows:
             writer.writerow(row.as_csv_dict())
 
     quarantined = [r for r in ordered if r.status == STATUS_QUARANTINED]

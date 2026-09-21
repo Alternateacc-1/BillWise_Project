@@ -107,3 +107,10 @@ eval/demo_bills/
 # in a public repo while the API is unauthenticated. docs/DECISIONS.md is the
 # public version of the rulings it records.
 NOTES.md
+
+# The NPPA ceiling list as a PDF. Kept locally, not shipped: no code parses it
+# (its embedded font has no ToUnicode map, so extraction yields (cid:0)), the
+# CSV holds the same 915 rows, and a PDF sitting in our own repo authenticates
+# nothing. What actually proves a flag is the S.O. number and date carried on
+# every reference row, which points at the government's published notification.
+data/raw/All_Drugs_Ceiling_Prices_provenance.pdf
