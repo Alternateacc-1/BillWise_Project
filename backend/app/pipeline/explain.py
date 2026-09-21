@@ -16,8 +16,9 @@ from __future__ import annotations
 from ..models import Flag, GrayDetail, GrayReason, Severity
 from ..money import format_inr
 
-#: Words that must never appear in anything the user reads. Asserted by a test
-#: over every generated explanation.
+#: Words that must never appear in anything the user reads. Pinned by
+#: test_no_forbidden_word_reaches_anything_a_user_reads, which walks the
+#: serialised report and the letter for every fixture.
 FORBIDDEN_WORDS = ("illegal", "fraud", "cheat", "overcharg", "scam", "rip off")
 
 

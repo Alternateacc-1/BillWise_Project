@@ -1412,3 +1412,52 @@ def test_r1_speaks_for_a_lone_reader_above_the_confidence_floor():
     )
     flag = rule_r1_line_arithmetic(item)
     assert flag is not None and flag.amount_affected == Decimal("12.00")
+
+
+# --------------------------------------------------------------------------
+# The language rule
+# --------------------------------------------------------------------------
+
+def test_no_forbidden_word_reaches_anything_a_user_reads():
+    """The product never accuses. This is the test explain.py claims exists.
+
+    explain.py declares FORBIDDEN_WORDS and its comment said the rule was
+    "asserted by a test over every generated explanation". It was not -- the
+    words were kept out by discipline alone, on a product whose whole position
+    is that it questions a bill rather than accusing anyone of anything.
+
+    This walks the SERIALISED report for every fixture, which is the exact
+    payload the interface renders, and fails on any string in it.
+    """
+    import json
+    from app.main import _serialise
+    from app.models import BillInput, BillReport
+    from app.pipeline.audit import audit
+    from app.pipeline.explain import FORBIDDEN_WORDS
+    from app.pipeline.normalize import normalize_bill
+    from app.pipeline.verify import verify_bill
+    from app.pipeline.letter import compose
+
+    fixtures = sorted((REPO_ROOT / "eval" / "fixtures").glob("bill_*.json"))
+    assert fixtures, "no fixtures to check"
+
+    for path in fixtures:
+        bill = BillInput.model_validate_json(path.read_text(encoding="utf-8"))
+        verified, stats = verify_bill(bill)
+        normalized = normalize_bill(verified)
+        flags = audit(verified, normalized, stats)
+
+        report = BillReport(
+            bill_id=bill.bill_id, hospital_name=bill.hospital_name,
+            bill_date=bill.bill_date, items=verified, flags=flags, stats=stats,
+        )
+        # Everything the API hands the browser, plus the letter, which is the
+        # one piece of prose the user is invited to send to a hospital.
+        surfaces = json.dumps(_serialise(report)) + compose(report)
+
+        for word in FORBIDDEN_WORDS:
+            assert word not in surfaces.lower(), (
+                f"{path.name}: the word {word!r} reached the user-facing payload. "
+                "The product says 'may need clarification' and 'above the listed "
+                "ceiling'; it never accuses."
+            )
