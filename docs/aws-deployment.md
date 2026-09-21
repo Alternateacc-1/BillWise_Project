@@ -411,9 +411,8 @@ No code, no SDK, no deployment. The console does this by hand.
      may return almost nothing, and that is a legitimate result.**
    - `eval/demo_bills/bill_06.pdf` — the **retail pharmacy layout**: MRP,
      PACK, QTY, TOTAL and **no unit-price column**, with a Discount and Round
-     Off in the totals block. Added 2026-09-18 after probing a real bill of
-     this shape. It is a clean generated PDF, so this is not a reading-quality
-     test. It asks two different questions:
+     Off in the totals block, copied from a real bill of this shape. It is a
+     clean generated PDF, so this is not a reading-quality test. It asks two different questions:
      **does AnalyzeExpense return the MRP and PACK columns as usable fields?**
      And **does it report the subtotal, the discount and the net separately,
      or collapse them into one total?**

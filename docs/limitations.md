@@ -17,8 +17,8 @@ the reader, and the only one on this list with a clear route out.
 >
 > That is a failure mode worth naming, because it is comfortable. A limit
 > documented honestly and then left to absorb cases it does not apply to
-> stops being honesty and becomes an excuse. Each entry below now says what
-> would lift it, and where a bill supplies the missing fact, the rule is
+> stops being honesty and becomes an excuse. Each entry below says what would
+> lift it, and where a bill supplies the missing fact, the rule is
 > **read the bill and fall back to the limit only when it stays silent.**
 
 ---
@@ -341,7 +341,7 @@ The presigned route is the right one and is not built.
 
 Until then the honest thing is to state 4 MB and mean it.
 
-### The two readings are paired by CONTENT (was ROW INDEX -- fixed 2026-09-20)
+### The two readings are paired by CONTENT, not by row index
 
 Measured 2026-09-20 on a photographed bill. `verify_bill()` does:
 
