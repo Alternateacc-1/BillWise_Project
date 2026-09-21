@@ -18,6 +18,13 @@ generated reference already ships.
 These are NPPA publications, kept byte-faithful. The parser never edits a
 source file; unparseable rows are quarantined with a reason and logged.
 
+**A name in the PDF metadata is not ours.** The special-feature PDF carries
+`/Producer: jsPDF 1.2.61-git ...jameshall` — the build string baked into that
+release of the jsPDF library, which is what NPPA's site used to generate the
+export. It appears in every PDF that version produces, it is not in the page
+text, and it has nothing to do with this project. Left in place because
+stripping it would mean the file no longer matches what was published.
+
 **The ceiling list also exists as a PDF, and it is NOT shipped.** No code
 parses it — its embedded font has no ToUnicode map, so extraction yields
 `(cid:0)` between every glyph — and a PDF sitting in our own repository

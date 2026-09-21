@@ -13,7 +13,7 @@ A line is HIGH confidence only if ALL of these hold:
   3. Sanity bounds: quantity 0.01-500, unit price Rs 0.10-5,00,000.
 
 Anything else is `unverified_reading`, shown gray with reason
-could_not_verify, and excluded from R5/R6/R7.
+could_not_verify, and never priced by R5.
 """
 
 from __future__ import annotations

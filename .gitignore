@@ -125,3 +125,14 @@ eval/class_b_probe.py
 eval/cross_tier_audit.py
 eval/bill_06_gap.py
 eval/format_probes.py
+
+# Recording notes for the demo video. Ours, not a user's -- nobody clones a
+# repo to read a script. Kept locally.
+docs/VIDEO_SCRIPT.md
+docs/VIDEO_SCRIPT_3MIN.md
+docs/VIDEO_CUECARD.md
+
+# One contractor's handover log for finished frontend work. The decisions it
+# records that still matter are in DECISIONS.md and the code comments; the
+# rest is a diary of a job already done.
+docs/CHANGES_BY_contributor.md

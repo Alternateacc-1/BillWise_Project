@@ -122,8 +122,14 @@ three findings and stay silent on twenty than guess at twenty-three.
 | `Special_Feature_..._Companies.pdf` | 22 | Higher ceilings for special-feature packs. Additional to the above, never replacements. |
 | `Retail_Price_Information.csv` | 3,881 | Non-scheduled new drugs. Per-company approved prices. **Amber/context only, never red.** |
 
-All three collapse into one schema in `data/reference/reference_prices.csv`.
-Nothing downstream reads `data/raw/` directly.
+All three are parsed into one schema by `scripts/prepare_reference.py`.
+
+Only the first two are WRITTEN to `data/reference/reference_prices.csv`: that
+file is the engine's reference, and the matcher accepts `ceiling` and
+`special_feature` only, so the retail rows would be 3,881 rows nothing reads.
+`prepare_reference.build()` still returns all three in memory, which is what
+the reference-data tests parse. Nothing in the running app reads `data/raw/`
+directly.
 
 ### Two hard rules
 
@@ -146,7 +152,9 @@ Two different ideas that would be a bug to conflate:
 A `price_checkable=false` row is still shown as evidence and still counts for
 R9 messaging. It just never produces a price verdict.
 
-Current state: 4,582 usable of 4,818. All 4 ceiling quarantines are unit
+Current state, across everything the parser reads: 4,582 usable of 4,818.
+(The file it writes carries the 937 ceiling and special-feature rows only --
+see above.) All 4 ceiling quarantines are unit
 strings that genuinely do not state what one unit is (`1 gm or 1 ml`,
 `Per mg of Phospholipids in the pack`, and two rows with two conflicting
 bases in one cell). Those four are pinned by a test so a parser regression
@@ -376,8 +384,10 @@ recover most of it:
 
 - the **brand index** supplies a pack size for branded names;
 - an **explicit volume** on the line ("Injection 500 ml") supplies it directly;
-- **R6 against a printed MRP** needs no pack size at all, because MRP and the
-  billed rate sit on the same row in the same unit.
+- **R6 against a printed MRP** would need no pack size at all, because MRP and
+  the billed rate sit on the same row in the same unit. **R6 is not built** --
+  the engine ships R1-R5 and R9. Listed here because it is the mitigation with
+  the most headroom, not because it is running.
 
 Regression tests: `test_wholesale_strip_price_is_never_red`,
 `test_under_the_allowance_is_green_whatever_the_pack_size`,
