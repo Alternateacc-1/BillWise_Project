@@ -7,6 +7,8 @@ number someone read off a terminal once.
 from __future__ import annotations
 
 import json
+import subprocess
+import os
 import sys
 from pathlib import Path
 
@@ -79,6 +81,55 @@ def test_the_eval_runner_exits_zero(capsys):
     out = capsys.readouterr().out
     assert "FALSE REDS" in out
     assert "PASS" in out
+
+
+def test_the_eval_runner_exits_NON_zero_when_something_is_missed(tmp_path, monkeypatch, capsys):
+    """The failure direction, which is the one that actually protects anything.
+
+    A gate is only a gate if it fails. adversarial_audit.py printed its false-red
+    count and then exited 0 unconditionally for its whole life, because only the
+    passing direction was ever checked. This pins the other one.
+    """
+    for bill in GROUND_TRUTH.glob("bill_*.json"):
+        (tmp_path / bill.name).write_text(bill.read_text(encoding="utf-8"), encoding="utf-8")
+
+    # An expectation no engine can satisfy: there is no item 99 on any bill.
+    target = tmp_path / "bill_01.json"
+    truth = json.loads(target.read_text(encoding="utf-8"))
+    truth["expected"].append(
+        {"item_index": 99, "rule_id": "R5", "severity": "red",
+         "item_name": "No such line", "why": "cannot be found"}
+    )
+    target.write_text(json.dumps(truth, indent=2), encoding="utf-8")
+
+    monkeypatch.setattr(run_eval, "GROUND_TRUTH", tmp_path)
+    assert run_eval.main() == 1
+    assert "FAIL" in capsys.readouterr().out
+
+
+def test_the_adversarial_audit_exits_non_zero_on_a_false_red():
+    """Same property for the other gate, checked by running it as a process.
+
+    It has no main() to call, so this runs the script and reads its exit code.
+    Skipped rather than failed when the script is absent -- it is local-only
+    for some checkouts.
+    """
+    script = REPO_ROOT / "eval" / "adversarial_audit.py"
+    if not script.exists():
+        pytest.skip("adversarial_audit.py not present in this checkout")
+
+    source = script.read_text(encoding="utf-8")
+    assert "sys.exit(1 if false_reds else 0)" in source, (
+        "the audit must exit non-zero when an attack succeeds; without this it "
+        "prints its count and exits clean, which is not a gate"
+    )
+
+    completed = subprocess.run(
+        [sys.executable, str(script)], capture_output=True, text=True,
+        cwd=str(REPO_ROOT), env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+    )
+    assert completed.returncode == 0, "an attack produced a false red"
+    assert "FALSE REDS: 0" in completed.stdout
 
 
 # --------------------------------------------------------------------------

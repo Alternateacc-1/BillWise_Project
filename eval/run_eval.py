@@ -229,7 +229,7 @@ def main() -> int:
             for entry in r["missed"]:
                 print(bad(f"    {r['bill_id']} line {entry['item_index']:>2}  "
                           f"{entry['rule_id']} {entry['severity']:<6} "
-                          f"{entry['item_name'][:36]}"))
+                          f"{entry.get('item_name', '')[:36]}"))
                 if entry.get("why"):
                     print(dim(f"        {entry['why']}"))
         print()
