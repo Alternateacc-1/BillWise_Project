@@ -249,7 +249,8 @@ Every console step, with the failures that cost us hours, is in
 backend/app/        config, models, and the pipeline (match → verify → audit)
 frontend/src/       React app; lib/api.ts is the ONLY file that knows the
                     backend's field names
-eval/               the correctness suites and six demo bills with ground truth
+eval/               the correctness suites, plus six bill fixtures and their
+                    ground truth (the bill files themselves are generated)
 tests/              pytest
 scripts/            reference-data builders; the only networked one fetches brands
 data/raw/           NPPA source files, unmodified

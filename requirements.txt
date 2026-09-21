@@ -14,7 +14,8 @@ rapidfuzz==3.14.6          # MIT  - fuzzy name matching, native, no network
 
 # --- api ---
 fastapi==0.141.1           # MIT
-uvicorn==0.53.0            # BSD-3
+uvicorn==0.53.0            # BSD-3 - the local dev server. Run as a command,
+                           #        never imported, so it looks unused. It is not.
 pydantic==2.13.5           # MIT
 python-multipart==0.0.32   # Apache-2.0 - multipart upload parsing
 pypdf==6.19.0              # BSD-3 - exact PDF page count before Textract
@@ -30,6 +31,7 @@ pillow==12.3.0             # MIT-CMU
 
 # --- dev / test ---
 pytest==9.1.1              # MIT
-httpx==0.28.1              # BSD-3
+httpx==0.28.1              # BSD-3 - required by starlette's TestClient. Never
+                           #        imported by our code; the tests need it.
 ruff==0.16.8               # MIT  - linter. ruff.toml pins the rule set, so
                            #        the result is the same on every machine.
