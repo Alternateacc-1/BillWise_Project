@@ -46,13 +46,10 @@ const STEPS: { n: StepNo; title: string }[] = [
  * which inflates it by about a third, and Lambda caps a synchronous event at
  * 6 MB. So roughly 4.5 MB of file is the real ceiling, whatever we claim.
  *
- * Measured against the deployed stack 2026-09-20: 4 MB reached our code,
- * 5 MB and 8 MB came back 413 from the gateway.
- *
- * THE 413 IS GENERATED BEFORE OUR CODE RUNS, so it carries no CORS headers,
- * so the browser cannot read it and reports a bare "Network error" instead.
- * A user with a normal phone photo saw a network failure for a file we had
- * just told them was within the limit.
+ * The 413 is generated before our code runs, so it carries no CORS headers,
+ * the browser cannot read it, and the user sees a bare "Network error" for a
+ * file we had just told them was within the limit. Hence the client-side
+ * check: it is the only place we can explain the real reason.
  *
  * Advertising a limit the infrastructure will not honour is the same class of
  * problem as the rest of this project: stating something we cannot back.
@@ -233,6 +230,11 @@ export default function Flow({ initialFile, onDone }: Props) {
     goStep(3)
   }, [billId, confirmed, goStep])
 
+  // `retry: doSave` / `retry: doConfirm` reference the callback being defined.
+  // A linter reads that as use-before-initialisation; it is not. The reference
+  // sits inside an async body that only runs once the user clicks retry, long
+  // after assignment.
+  //
   // "Save corrections": PUT /items stores them, but the engine only re-runs on /confirm —
   // so saving is PUT then confirm, and the report the user lands on reflects the edits.
   const doSave = useCallback(async () => {
@@ -718,7 +720,11 @@ function PreviewDialog({ url, name, isImage, onClose }: { url: string; name: str
         {isImage ? (
           <img src={url} alt={`Uploaded bill: ${name}`} className="preview-media" />
         ) : (
-          <iframe src={url} title={`Uploaded bill: ${name}`} className="preview-media preview-frame" />
+          // sandbox with no allow-* tokens: this renders a file the user just
+          // picked, and the preview needs no script, form or navigation. blob:
+          // URLs can inherit the page origin, so a crafted PDF should not get
+          // to run here even though it is the user's own file.
+          <iframe src={url} title={`Uploaded bill: ${name}`} sandbox="" className="preview-media preview-frame" />
         )}
       </div>
     </div>,

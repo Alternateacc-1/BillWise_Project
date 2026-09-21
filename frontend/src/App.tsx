@@ -5,11 +5,10 @@ import Landing from './pages/Landing'
 export type Page = 'landing' | 'flow'
 
 const pathFor = (p: Page) => (p === 'flow' ? '/check' : '/')
-// Amplify 301-redirects /check to /check/, so an EXACT match sent every deep
-// link to the landing page on the deployed site while working locally, where
-// the dev server adds no trailing slash. Measured 2026-09-20 against the live
-// URL. Strip it here rather than relying on a console rewrite rule: this is
-// the copy that ships, and ?fixture= deep links are what the demo runs on.
+// Amplify 301-redirects /check to /check/, so matching the path exactly sent
+// every deep link to the landing page in production while working locally,
+// where the dev server adds no trailing slash. Stripped here rather than in an
+// Amplify rewrite rule, because this is the copy that ships.
 const pageFor = (path: string): Page => (path.replace(/\/+$/, '') === '/check' ? 'flow' : 'landing')
 
 export default function App() {

@@ -1,30 +1,24 @@
 /**
- * The ONLY file that touches the network or knows the backend's field names.
+ * The only file that touches the network or knows the backend's field names.
+ * Everything above it works in UI types, so a field rename lands here alone.
  *
- * The original was written against a provisional contract, with mocks behind
- * VITE_USE_MOCKS. This is that file pointed at the REAL backend. Its own
- * comment said "if a field name differs, only this file changes" -- that held,
- * and this is the change. Every page above it is untouched by the wiring.
+ * Every function returns ApiResult<T>. Nothing here throws.
  *
- * Every function returns ApiResult<T>; nothing here throws.
+ * Three places where the engine says more than the UI types first allowed.
+ * Flattening any of them makes the interface state something untrue:
  *
- * THREE PLACES WHERE THE REAL BACKEND IS RICHER THAN THE PROVISIONAL CONTRACT,
- * and flattening any of them would make the UI say something untrue:
- *
- *  1. GRAY HAS FOUR REASONS, NOT TWO. The contract had no_public_ceiling and
- *     could_not_read. The engine also returns could_not_identify (we read the
- *     line perfectly and could not work out which medicine it is) and
- *     pack_size_unknown (we know the medicine and cannot tell how many units
- *     the line covers). Collapsing those into could_not_read would claim we
- *     MISREAD lines we read correctly -- on the real pharmacy bill that is
- *     five of six lines slandering our own reading.
- *  2. RECONCILIATION HAS A FOURTH STATE, below_line_sum: the printed total is
- *     BELOW what the lines add up to, which is a discount we did not read, not
- *     a discrepancy. Reporting it as "mismatch" would ask a pharmacy to
- *     explain its own discount.
- *  3. `compared` -- how many lines actually got a price verdict. The contract
- *     had no such field, so a report that compared NOTHING looked identical to
- *     a clean bill. See summariseFromItems() and Report.tsx.
+ *  1. Gray has FIVE reasons. Beyond no_public_ceiling and could_not_read,
+ *     the engine distinguishes could_not_identify (we read the line fine and
+ *     cannot tell which medicine it is), pack_size_unknown (we know the
+ *     medicine, not how many units the line covers) and not_cross_checked
+ *     (only one reader saw it). Folding those into could_not_read would
+ *     claim we misread lines we read perfectly.
+ *  2. Reconciliation has a fourth state, below_line_sum: the printed total
+ *     is BELOW the line sum, which is a discount we failed to read rather
+ *     than a discrepancy. Calling it a mismatch asks a pharmacy to explain
+ *     its own discount.
+ *  3. `compared` counts lines that actually got a price verdict. Without it,
+ *     a report that checked nothing looks exactly like a clean bill.
  */
 import sampleReport from '../mocks/report.sample.json'
 import { sampleLetter } from '../mocks/letter.sample'
@@ -70,22 +64,19 @@ export interface BillReading {
   lines_verified: number
   reconciliation: Reconciliation
   /**
-   * HOW MANY lines only one reader saw -- NOT whether the second reader ran.
+  /**
+   * How many lines only ONE reader saw -- not whether the second reader ran
+   * at all.
    *
-   * The two readings are paired BY ROW INDEX, so when Textract finds 11 rows
-   * and the vision model finds 9, the unmatched indices carry
-   * `only_one_reader_ran` while the rest were cross-checked normally. A
-   * boolean over that made the report say "only one reader ran on this bill"
-   * when in fact most lines had two, which overstates the problem in the same
-   * way the old summary understated it.
+   * The two readings are paired by content, so a bill can have most lines
+   * cross-checked and a few unmatched. A boolean over that would report
+   * "only one reader ran on this bill" when most lines had two.
    *
-   * "N of M lines verified by both readers" is FALSE when only one reader
-   * ran, and the count alone does not say which. Measured on the deployed
-   * stack, same bill, one variable changed: 0 of 7 lines high-confidence with
-   * two readers became 4 of 7 with one -- plus a false finding -- while
-   * Textract reported 96-99 confidence both times. A single reader cannot
-   * disagree with itself. Bedrock is currently returning
-   * INVALID_PAYMENT_INSTRUMENT in production, so this is the live case.
+   * It matters because "N of M lines read at high confidence" means
+   * something weaker when nothing confirmed them. Measured on the deployed
+   * stack, same bill, one variable changed: two readers gave 0 of 7 lines at
+   * high confidence, one reader gave 4 of 7 -- plus a finding that was
+   * wrong -- while Textract reported 96-99 confidence both times.
    */
   single_reader_lines: number
 }
@@ -127,10 +118,9 @@ export interface BillReport {
   /**
    * Findings about the whole bill rather than any one line.
    *
-   * The provisional contract had no field for these, so they would have been
-   * dropped silently -- and R2, the rule that checks whether the bill adds up
-   * at all, reports ONLY at this level. A bill whose total does not match its
-   * lines would have rendered as a bill with nothing wrong.
+   * R2 -- the rule checking whether the bill adds up at all -- reports ONLY
+   * here, never against a line. Drop this field and a bill whose total does
+   * not match its lines renders as a bill with nothing wrong.
    */
   bill_findings: BillFinding[]
 }
@@ -243,12 +233,13 @@ interface RawReport {
 }
 
 /**
- * Our four-state gray, recovered from the engine's reason + detail pair.
+/**
+ * The five-state gray, recovered from the engine's reason + detail pair.
  *
  * `gray_reason` says WHETHER a price verdict was reached; `gray_detail` says
- * why not. The UI needs the detail, because "we could not read this" and "we
- * read it and cannot identify the medicine" are different admissions and only
- * one of them is about our reading.
+ * why not. The UI needs the detail: "we could not read this" and "we read it
+ * and cannot identify the medicine" are different admissions, and only one
+ * of them is about our own reading.
  */
 function grayReasonOf(item: RawItem): GrayReason | undefined {
   if (!item.gray_reason) return undefined
@@ -278,7 +269,7 @@ function adaptItem(raw: RawItem): BillItem {
 }
 
 /**
- * EVERY COUNT IS DERIVED FROM THE ITEMS THE UI WILL RENDER.
+ * Every count is derived from the items the UI will render.
  *
  * Not from the server's own summary fields. Those are computed on a different
  * partition and they HAD drifted: the headline said "10 of 16 charges have no
@@ -303,7 +294,7 @@ function summariseFromItems(items: BillItem[], billFlags: RawFlag[]): BillSummar
     could_not_identify: by('could_not_identify'),
     pack_size_unknown: by('pack_size_unknown'),
     not_cross_checked: by('not_cross_checked'),
-    // A PRICE VERDICT, NOT A COLOUR. An item can be amber from the duplicate
+    // A price verdict, not a colour. An item can be amber from the duplicate
     // or arithmetic rules while its price was never compared to anything --
     // an amber duplicate on a line with no ceiling, say. `gray_reason` is set
     // exactly when no price verdict was reached, so it is the test.
@@ -436,9 +427,8 @@ export async function createBill(
 /**
  * POST /bills/sample -- run a bundled demo bill.
  *
- * The provisional contract had no sample path, and local mode has no OCR, so
- * without this there is nothing to press on a machine with no AWS credentials
- * -- which is the first thing a judge does.
+ * Local mode has no OCR, so without this there is nothing to click on a
+ * machine with no AWS credentials.
  */
 export async function createSampleBill(fixture?: string): Promise<ApiResult<CreateBillResponse>> {
   if (mocksOn()) {

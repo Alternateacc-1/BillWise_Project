@@ -60,18 +60,17 @@ export default function Report({ report, onLetter, onWrong, onNewBill }: Props) 
         </p>
       </div>
 
-      {/* THE DENOMINATOR COMES FIRST, ALWAYS.
+      {/* The denominator comes first, always.
         *
         * "We found nothing above the listed ceiling" reads as "your bill is
-        * fine". On a bill where nothing could be compared it is true and it is
-        * a lie. Measured on a real retail pharmacy bill: six of six lines
-        * gray, ZERO compared, and this sentence rendered calm and green.
+        * fine". On a bill where nothing could be compared that is true and it
+        * is a lie -- six of six lines gray, zero compared, and the sentence
+        * renders calm and green.
         *
-        * Falsely reassuring a patient about a medical bill is the same failure
-        * as falsely accusing a pharmacy, pointed the other way -- and every
-        * guard in the engine points at the accusing direction only. So the
-        * count of what we CHECKED leads, and a report that checked nothing
-        * says exactly that in its first sentence. */}
+        * Falsely reassuring a patient is the same failure as falsely accusing
+        * a pharmacy, pointed the other way, and every guard in the engine
+        * points only at the accusing direction. So the count of what we
+        * CHECKED leads the summary. */}
       <p className="text-[17px] font-medium leading-[1.4]">
         {summary.compared === 0 ? (
           <>
@@ -460,7 +459,7 @@ function FindingCard({ item }: { item: BillItem }) {
   )
 }
 
-/** Three one-line rows at most, only from fields the API sent. (rule_id and match tier were shown here until 2026-09-20 — see the change log.) */
+/** Three one-line rows at most, and only from fields the API actually sent. */
 function evidenceRows(item: BillItem): { dt: string; dd: string }[] {
   const ev = item.evidence ?? {}
   const ref = (ev.reference && typeof ev.reference === 'object' ? (ev.reference as Record<string, unknown>) : {}) as Record<string, unknown>
