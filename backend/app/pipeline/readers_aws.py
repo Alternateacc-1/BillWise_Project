@@ -4,9 +4,11 @@ Reader A  Textract AnalyzeExpense -- structured extraction, per-field
           confidence. Field names verified against the AnalyzeExpense API
           reference, not guessed.
 
-Reader B  A Claude vision model through Bedrock Converse, returning strict
-          JSON. Reached via a cross-region inference profile whose ID is
-          copied from the console into .env.
+Reader B  A vision model through Bedrock Converse, returning strict JSON.
+          Converse is model-agnostic, so any Converse-capable vision model
+          works -- it is a parameter, not a code change. Reached via a
+          cross-region inference profile whose ID is copied from the console
+          into .env.
 
 Neither reader decides anything. They produce two independent readings, and
 `verify.py` -- pure Python, no AWS -- decides which lines are trustworthy.
@@ -172,7 +174,7 @@ def _parse_expense(response: dict) -> ReaderOutput:
 
 
 # --------------------------------------------------------------------------
-# Reader B -- Claude vision through Bedrock Converse
+# Reader B -- a vision model through Bedrock Converse
 # --------------------------------------------------------------------------
 
 #: Converse accepts these image formats. A PDF cannot go down this path.

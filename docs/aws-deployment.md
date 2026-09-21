@@ -1170,8 +1170,7 @@ Use this when the frontend changed and the backend did not. It touches no
 CloudFormation and costs nothing beyond Amplify's hosting, which is already
 running. **The backend does NOT need redeploying for a frontend-only change.**
 
-Written 2026-09-20 for the contributor's redesign. The build is already made and
-verified; step 11.1 only needs re-running if you change frontend code again.
+Step 11.1 only needs re-running if you change frontend code.
 
 ## 11.1 Build, and package it the way Amplify actually wants
 

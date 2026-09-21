@@ -97,7 +97,7 @@ def read_upload(bill_id: str, original_filename: str, blob_key: str) -> BillInpu
 def _read_upload_aws(bill_id: str, original_filename: str, blob_key: str) -> BillInput:
     """Two independent readings of the same file.
 
-    Textract is reader A. A Claude vision model is reader B, and is optional:
+    Textract is reader A. A Bedrock vision model is reader B, and is optional:
     if it is unavailable the bill still gets read, and verify.py simply
     applies the stricter single-reader bar of >= 95 confidence.
     """
