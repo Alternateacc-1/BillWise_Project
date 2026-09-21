@@ -220,31 +220,3 @@ def select_ceiling(
             modifier_was_unknown=widened,
         )
     return None
-
-
-def retail_references(
-    salt_components: list[str],
-    dosage_form: str,
-    strength_mg: list[float],
-    strength_kind: str,
-    rows: Iterable[ReferenceRow] | None = None,
-) -> list[ReferenceRow]:
-    """Non-scheduled retail rows for the same composition. R7 context only.
-
-    These are per-company approved prices, not ceilings binding anyone else,
-    so they can never produce a red flag.
-    """
-    pool = list(rows) if rows is not None else list(load_reference())
-    wanted = canonicalise_salt_set(salt_components)
-    wanted_mg = sorted(strength_mg)
-    return [
-        r for r in pool
-        if r.source == "retail_new_drug"
-        and r.status == "usable"
-        and r.price_checkable
-        and r.price_ex_gst is not None
-        and canonicalise_salt_set(r.salt_components) == wanted
-        and r.dosage_form == dosage_form
-        and r.strength_kind == strength_kind
-        and sorted(r.strength_mg) == wanted_mg
-    ]

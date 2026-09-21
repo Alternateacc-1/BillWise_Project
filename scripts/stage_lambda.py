@@ -8,8 +8,10 @@ discover it.
 
 What gets staged and what does NOT:
 
-  reference_prices.csv   YES, 3.2 MB. The engine cannot produce a verdict
-                         without it.
+  reference_prices.csv   YES, but FILTERED to ceiling + special_feature.
+                         The retail rows are never read by the matcher, so
+                         they are left out of the bundle -- ~3.2 MB down to
+                         ~0.3 MB. See stage_ceilings_only().
   salt_synonyms.json     YES, tiny, and load-bearing for matching.
   brand_index.csv        REDUCED and staged, ~12.9 MB of 36 MB. See
                          reduce_brand_index() below for the filter and why it
@@ -26,6 +28,7 @@ Run:  python scripts/stage_lambda.py
 
 from __future__ import annotations
 
+import csv
 import shutil
 from pathlib import Path
 
@@ -40,6 +43,33 @@ REQUIRED = ["reference_prices.csv", "salt_synonyms.json"]
 
 BRAND_INDEX_SOURCE = SOURCE / "brand_index.csv"
 BRAND_INDEX_TARGET = TARGET / "brand_index.csv"
+
+
+def stage_ceilings_only() -> tuple[int, int, int]:
+    """Stage only the rows the engine can produce a verdict from.
+
+    reference_prices.csv carries three sources: ceiling, special_feature and
+    retail_new_drug. match.py accepts the first two (CEILING_SOURCES) and
+    ignores the third, so the ~3,900 retail rows are parsed, shipped and held
+    in memory on every cold start without ever reaching a verdict.
+
+    They stay in the repo -- they back the reference-data tests and the
+    measurement behind the ceiling-versus-retail ruling. They just do not need
+    to be in the Lambda bundle. Filtering here keeps the file the engine reads
+    honest: everything in it is something the engine can actually use.
+    """
+    kept = dropped = 0
+    with (SOURCE / "reference_prices.csv").open(encoding="utf-8", newline="") as src,          (TARGET / "reference_prices.csv").open("w", encoding="utf-8", newline="") as dst:
+        reader = csv.DictReader(src)
+        writer = csv.DictWriter(dst, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        for row in reader:
+            if row.get("source") in ("ceiling", "special_feature"):
+                writer.writerow(row)
+                kept += 1
+            else:
+                dropped += 1
+    return (TARGET / "reference_prices.csv").stat().st_size, kept, dropped
 
 
 def reduce_brand_index() -> int:
@@ -74,7 +104,6 @@ def reduce_brand_index() -> int:
     could_not_identify -- which is honest, because we genuinely hold nothing
     about those molecules.
     """
-    import csv
     import json
     import sys as _sys
 
@@ -122,10 +151,15 @@ def main() -> int:
     TARGET.mkdir(parents=True, exist_ok=True)
     total = 0
     for name in REQUIRED:
-        shutil.copy2(SOURCE / name, TARGET / name)
-        size = (TARGET / name).stat().st_size
+        if name == "reference_prices.csv":
+            size, kept, dropped = stage_ceilings_only()
+            print(f"  staged {name:<26} {size / 1_000_000:>6.2f} MB "
+                  f"-- {kept:,} ceiling rows, {dropped:,} retail rows left out")
+        else:
+            shutil.copy2(SOURCE / name, TARGET / name)
+            size = (TARGET / name).stat().st_size
+            print(f"  staged {name:<26} {size / 1_000_000:>6.2f} MB")
         total += size
-        print(f"  staged {name:<26} {size / 1_000_000:>6.2f} MB")
 
     print(f"\n  Total staged: {total / 1_000_000:.2f} MB -> "
           f"{TARGET.relative_to(REPO_ROOT)}")
